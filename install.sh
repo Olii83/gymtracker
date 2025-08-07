@@ -61,7 +61,7 @@ execute "mysql -u $DB_USER -p$DB_PASSWORD $DB_NAME < $DB_DIR/schema.sql"
 echo -e "${GREEN}Richte Nginx ein...${NC}"
 NGINX_CONF=$(cat <<EOF
 server {
-    listen 80;
+    listen 8880;
     server_name $NGINX_DOMAIN;
 
     location /api/ {
