@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Tracker - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-nav {
+            background: #1e293b;
+            color: white;
+        }
+        .admin-nav .nav-brand h2 {
+            color: #f59e0b;
+        }
+        .admin-nav .nav-link {
+            color: #cbd5e1;
+        }
+        .admin-nav .nav-link:hover,
+        .admin-nav .nav-link.active {
+            color: #f59e0b;
+            border-bottom-color: #f59e0b;
+        }
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: var(--surface-color);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        .stat-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .settings-section {
+            background: var(--surface-color);
+            padding: 32px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+        .settings-section h3 {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .recent-activity {
+            background: var(--surface-color);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        .activity-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        .activity-info {
+            flex: 1;
+        }
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .danger-zone {
+            border: 2px solid var(--error-color);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-top: 32px;
+        }
+        .danger-zone h3 {
+            color: var(--error-color);
+            margin-bottom: 16px;
+        }
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading" class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Admin Panel wird geladen...</p>
+        </div>
+
+        <!-- Admin Login Screen -->
+        <div id="admin-login-screen" class="auth-screen" style="display: none;">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h1>Admin Login</h1>
+                    <p>Melde dich als Administrator an.</p>
+                </div>
+                
+                <form id="admin-login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="admin-username">Benutzername</label>
+                        <input type="text" id="admin-username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="admin-password">Passwort</label>
+                        <input type="password" id="admin-password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Anmelden</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="admin-panel" style="display: none;">
+            <!-- Navigation -->
+            <nav class="main-nav admin-nav">
+                <div class="nav-brand">
+                    <h2>Gym Tracker Admin</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+                    <a href="#" class="nav-link" data-page="users">Benutzer</a>
+                    <a href="#" class="nav-link" data-page="settings">Einstellungen</a>
+                    <a href="#" class="nav-link" data-page="system">System</a>
+                </div>
+                <div class="nav-user">
+                    <span id="admin-name"></span>
+                    <button id="admin-logout-btn" class="btn-secondary">Abmelden</button>
+                </div>
+            </nav>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page active">
+                    <div class="page-header">
+                        <h1>Dashboard</h1>
+                        <p>Übersicht über das System</p>
+                    </div>
+                    
+                    <div class="stats-overview">
+                        <div class="stat-card">
+                            <h3 id="total-users">-</h3>
+                            <p>Aktive Benutzer</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="total-sessions">-</h3>
+                            <p>Workouts</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="total-exercises">-</h3>
+                            <p>Übungen</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="total-prs">-</h3>
+                            <p>Personal Records</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div class="recent-activity">
+                            <h3>Neue Benutzer</h3>
+                            <div id="recent-users">
+                                <div class="loading">Lädt...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="recent-activity">
+                            <h3>Letzte Workouts</h3>
+                            <div id="recent-sessions">
+                                <div class="loading">Lädt...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Page -->
+                <div id="users-page" class="page">
+                    <div class="page-header">
+                        <h1>Benutzerverwaltung</h1>
+                        <p>Verwalte alle registrierten Benutzer</p>
+                    </div>
+                    
+                    <div id="users-list" class="users-list">
+                        <div class="loading">Lädt...</div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings-page" class="page">
+                    <div class="page-header">
+                        <h1>Systemeinstellungen</h1>
+                        <p>Konfiguriere die Anwendung</p>
+                    </div>
+                    
+                    <form id="settings-form">
+                        <div class="settings-section">
+                            <h3>Allgemeine Einstellungen</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="site-name">Site Name</label>
+                                    <input type="text" id="site-name" name="site_name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="site-url">Site URL</label>
+                                    <input type="url" id="site-url" name="site_url">
+                                </div>
+                                <div class="form-group">
+                                    <label for="registration-enabled">Registrierung aktiviert</label>
+                                    <select id="registration-enabled" name="registration_enabled">
+                                        <option value="1">Ja</option>
+                                        <option value="0">Nein</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="email-verification">E-Mail Verifizierung erforderlich</label>
+                                    <select id="email-verification" name="email_verification_required">
+                                        <option value="1">Ja</option>
+                                        <option value="0">Nein</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>E-Mail Einstellungen</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="smtp-host">SMTP Host</label>
+                                    <input type="text" id="smtp-host" name="smtp_host">
+                                </div>
+                                <div class="form-group">
+                                    <label for="smtp-port">SMTP Port</label>
+                                    <input type="number" id="smtp-port" name="smtp_port">
+                                </div>
+                                <div class="form-group">
+                                    <label for="smtp-username">SMTP Benutzername</label>
+                                    <input type="text" id="smtp-username" name="smtp_username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="smtp-password">SMTP Passwort</label>
+                                    <input type="password" id="smtp-password" name="smtp_password">
+                                </div>
+                                <div class="form-group">
+                                    <label for="smtp-encryption">SMTP Verschlüsselung</label>
+                                    <select id="smtp-encryption" name="smtp_encryption">
+                                        <option value="tls">TLS</option>
+                                        <option value="ssl">SSL</option>
+                                        <option value="none">Keine</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="from-email">Absender E-Mail</label>
+                                    <input type="email" id="from-email" name="from_email">
+                                </div>
+                                <div class="form-group">
+                                    <label for="from-name">Absender Name</label>
+                                    <input type="text" id="from-name" name="from_name">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Sicherheit</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="session-timeout">Session Timeout (Sekunden)</label>
+                                    <input type="number" id="session-timeout" name="session_timeout">
+                                </div>
+                                <div class="form-group">
+                                    <label for="password-reset-expiry">Passwort Reset Token Ablauf (Sekunden)</label>
+                                    <input type="number" id="password-reset-expiry" name="password_reset_token_expiry">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Einstellungen speichern</button>
+                    </form>
+                </div>
+
+                <!-- System Page -->
+                <div id="system-page" class="page">
+                    <div class="page-header">
+                        <h1>System</h1>
+                        <p>Systemverwaltung und Wartung</p>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>System Information</h3>
+                        <div id="system-info">
+                            <p><strong>Node.js Version:</strong> <span id="node-version">-</span></p>
+                            <p><strong>Anwendungsversion:</strong> 1.0.0</p>
+                            <p><strong>Uptime:</strong> <span id="uptime">-</span></p>
+                            <p><strong>Speicherverbrauch:</strong> <span id="memory-usage">-</span></p>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Datenbankwartung</h3>
+                        <p>Führe Wartungsarbeiten an der Datenbank durch.</p>
+                        <button class="btn-secondary" onclick="adminApp.optimizeDatabase()">Datenbank optimieren</button>
+                        <button class="btn-secondary" onclick="adminApp.cleanupSessions()">Alte Sessions löschen</button>
+                    </div>
+
+                    <div class="danger-zone">
+                        <h3>⚠️ Gefahrenbereich</h3>
+                        <p>Diese Aktionen sind unwiderruflich. Verwende sie mit Vorsicht!</p>
+                        <button class="btn-danger" onclick="adminApp.confirmClearAllSessions()">Alle Sessions löschen</button>
+                        <button class="btn-danger" onclick="adminApp.confirmResetAllPasswords()">Alle Passwörter zurücksetzen</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Notifications -->
+        <div id="notifications" class="notifications"></div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

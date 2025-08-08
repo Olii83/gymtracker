@@ -1,1 +1,0 @@
-# gymtracker-frontend
