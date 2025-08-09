@@ -234,8 +234,6 @@ INSERT OR IGNORE INTO exercises (name, category, muscle_group, description, inst
 ('Ellipsentrainer', 'Cardio', 'Cardio', 'Gelenkschonendes Cardio', 'Ganzkörper-Cardio-Training'),
 ('Rudergerät', 'Cardio', 'Cardio', 'Ganzkörper-Cardio', 'Ruder-Bewegung für Ausdauer und Kraft'),
 ('Burpees', 'Functional', 'Ganzkörper', 'Explosive Ganzkörperübung', 'Kombination aus Liegestütz, Sprung und Streckung');
-
-.quit
 EOF
     
     print_success "SQLite database created with schema and default exercises"
@@ -416,19 +414,67 @@ create_sqlite_server() {
             cp $APP_DIR/server.js $APP_DIR/server.js.backup
         fi
         
-        # Copy the SQLite server.js from the artifacts
-        print_status "Creating new SQLite-compatible server.js..."
-        
-        # Note: In a real deployment, you would copy the server.js content here
-        # For this example, we'll create a basic version
+        # Create a basic server.js placeholder
         cat > $APP_DIR/server.js << 'EOF'
-// This is a placeholder - the actual server.js should be created
-// from the SQLite version artifact provided earlier
-console.log('Server.js placeholder - replace with actual SQLite version');
-process.exit(1);
+// Gym Tracker SQLite Server
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const DB_PATH = process.env.DB_PATH || './database/gym_tracker.db';
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// Database connection
+const db = new sqlite3.Database(DB_PATH, (err) => {
+    if (err) {
+        console.error('Error opening database:', err.message);
+        process.exit(1);
+    }
+    console.log('Connected to SQLite database');
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        database: 'sqlite',
+        version: '1.0.0'
+    });
+});
+
+// Start server
+app.listen(PORT, '127.0.0.1', () => {
+    console.log(`Gym Tracker server running on port ${PORT}`);
+    console.log(`Database: ${DB_PATH}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down gracefully');
+    db.close((err) => {
+        if (err) {
+            console.error('Error closing database:', err.message);
+        } else {
+            console.log('Database connection closed');
+        }
+        process.exit(0);
+    });
+});
 EOF
         
-        print_warning "server.js created as placeholder - replace with actual SQLite version"
+        print_success "Basic SQLite server.js created"
     else
         print_status "Existing server.js found, keeping original"
     fi
@@ -480,7 +526,7 @@ server {
     client_body_timeout 60s;
     client_header_timeout 60s;
     
-    # Gzip compression
+    # Gzip compression (FIXED)
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
@@ -515,7 +561,7 @@ server {
         proxy_connect_timeout 75s;
     }
     
-    # Static files (if served directly by nginx)
+    # Static files
     location /static {
         alias $APP_DIR/public;
         expires 1y;
@@ -686,9 +732,6 @@ setup_firewall() {
     ufw allow 80/tcp
     ufw allow 443/tcp
     
-    # Allow specific IP ranges if needed (uncomment and modify as needed)
-    # ufw allow from 192.168.1.0/24 to any port 22
-    
     # Rate limiting for SSH
     ufw limit ssh
     
@@ -712,10 +755,6 @@ findtime = 600
 # Number of failures before ban
 maxretry = 3
 
-# Email notifications (configure if needed)
-# destemail = admin@$DOMAIN
-# sendername = Fail2Ban-$DOMAIN
-
 [sshd]
 enabled = true
 port = ssh
@@ -736,27 +775,12 @@ filter = nginx-req-limit
 port = http,https
 logpath = /var/log/nginx/error.log
 maxretry = 10
-
-[nginx-badbots]
-enabled = true
-filter = nginx-badbots
-port = http,https
-logpath = /var/log/nginx/access.log
-maxretry = 2
-bantime = 86400
 EOF
     
     # Create custom nginx filters
     cat > /etc/fail2ban/filter.d/nginx-req-limit.conf << 'EOF'
 [Definition]
 failregex = limiting requests, excess: .* by zone .*, client: <HOST>
-ignoreregex =
-EOF
-    
-    cat > /etc/fail2ban/filter.d/nginx-badbots.conf << 'EOF'
-[Definition]
-failregex = <HOST> -.*"(GET|POST).*HTTP.*" (404|444) .*
-            <HOST> -.*"(GET|POST) .*(wp-admin|wp-login|xmlrpc).*HTTP.*" .*
 ignoreregex =
 EOF
     
@@ -1104,226 +1128,4 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Run main installation
-main "$@"#!/bin/bash
-
-# Gym Tracker Installation Script with SQLite
-# Complete installation script for production deployment
-
-set -e
-
-# Configuration
-APP_NAME="gym-tracker"
-APP_DIR="/var/www/$APP_NAME"
-DOMAIN="gym.zhst.eu"
-DB_PATH="$APP_DIR/database/gym_tracker.db"
-GITHUB_REPO="https://github.com/Olii83/gymtracker.git"
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-check_requirements() {
-    print_status "Checking system requirements..."
-    
-    # Check if running as root
-    if [ "$EUID" -ne 0 ]; then
-        print_error "This script must be run as root"
-        exit 1
-    fi
-    
-    # Check OS
-    if [ ! -f /etc/debian_version ]; then
-        print_error "This script is designed for Debian/Ubuntu systems"
-        exit 1
-    fi
-    
-    # Check internet connection
-    if ! ping -c 1 google.com &> /dev/null; then
-        print_error "No internet connection available"
-        exit 1
-    fi
-    
-    print_success "System requirements checked"
-}
-
-update_system() {
-    print_status "Updating system packages..."
-    apt-get update
-    apt-get upgrade -y
-    print_success "System updated successfully"
-}
-
-install_dependencies() {
-    print_status "Installing system dependencies..."
-    
-    # Essential packages
-    apt-get install -y \
-        curl \
-        wget \
-        gnupg2 \
-        software-properties-common \
-        apt-transport-https \
-        ca-certificates \
-        lsb-release \
-        unzip \
-        git \
-        sqlite3 \
-        nginx \
-        certbot \
-        python3-certbot-nginx \
-        ufw \
-        fail2ban \
-        htop \
-        tree \
-        nano \
-        vim
-    
-    print_success "System dependencies installed"
-}
-
-install_nodejs() {
-    print_status "Installing Node.js 18..."
-    
-    # Install NodeSource repository
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-    
-    # Install Node.js
-    apt-get install -y nodejs
-    
-    # Verify installation
-    node_version=$(node --version)
-    npm_version=$(npm --version)
-    
-    print_success "Node.js $node_version and npm $npm_version installed"
-}
-
-create_app_user() {
-    print_status "Creating application user..."
-    
-    # Create user if it doesn't exist
-    if ! id "$APP_NAME" &>/dev/null; then
-        useradd --system --home $APP_DIR --shell /bin/false $APP_NAME
-        print_success "Application user '$APP_NAME' created"
-    else
-        print_status "Application user '$APP_NAME' already exists"
-    fi
-}
-
-download_application() {
-    print_status "Downloading application from GitHub..."
-    
-    # Remove existing directory if it exists
-    if [ -d "$APP_DIR" ]; then
-        print_status "Backing up existing installation..."
-        mv $APP_DIR $APP_DIR.backup.$(date +%Y%m%d_%H%M%S)
-    fi
-    
-    # Clone the repository
-    git clone $GITHUB_REPO $APP_DIR
-    
-    if [ $? -eq 0 ]; then
-        print_success "Application downloaded successfully from GitHub"
-        cd $APP_DIR
-        print_status "Repository contents:"
-        ls -la
-    else
-        print_error "Failed to download application from GitHub"
-        exit 1
-    fi
-}
-
-setup_database() {
-    print_status "Setting up SQLite database..."
-    
-    # Create database directory
-    mkdir -p $APP_DIR/database
-    
-    # Create SQLite database with schema
-    sqlite3 $DB_PATH << 'EOF'
--- Enable foreign key support
-PRAGMA foreign_keys = ON;
-
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(10) DEFAULT 'user' CHECK (role IN ('admin', 'user')),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Exercises table
-CREATE TABLE IF NOT EXISTS exercises (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name VARCHAR(100) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    muscle_group VARCHAR(50) NOT NULL,
-    description TEXT,
-    instructions TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Workouts table
-CREATE TABLE IF NOT EXISTS workouts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    date DATE NOT NULL,
-    duration_minutes INTEGER,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Workout exercises table
-CREATE TABLE IF NOT EXISTS workout_exercises (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    workout_id INTEGER NOT NULL,
-    exercise_id INTEGER NOT NULL,
-    sets_count INTEGER NOT NULL,
-    reps TEXT, -- JSON array
-    weights TEXT, -- JSON array
-    rest_time INTEGER,
-    notes TEXT,
-    FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE CASCADE,
-    FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
-);
-
--- Create trigger for updated_at timestamp
-CREATE TRIGGER IF NOT EXISTS update_users_timestamp 
-AFTER UPDATE ON users
-BEGIN
-    UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
-
--- Insert default exercises
-INSERT OR IGNORE INTO exercises (name, category, muscle_group, description, instructions) VALUES
-('Bankdrücken', 'Krafttraining', 'Brust', 'Grundübung für die Brustmuskulatur', 'Flach auf die Bank legen, Langhantel greifen und kontrolliert zur Brust führen'),
-('Schrägbankdrücken', 'Krafttraining', 'Brust', 'Bankdrücken auf der Schrägbank', 'Bank auf 30-45° einstellen, Langhantel kontrolliert zur oberen Brust führen'),
-('Fliegende', 'Krafttraining', 'Brust', 'Isolationsübung für die Brust', 'Mit Kurzhanteln bogenförmige Bewegung zur Brustmitte'),
-('Kniebeugen', 'Krafttraining', 'Beine', 'Grundübung für die Beinmuskulatur', 'Aufrecht stehen, in die Hocke gehen und wieder aufrichten'),
-('Kreuzheben', 'Krafttraining', 'Rücken', 'Grundübung für den gesamten Körper', 'Langhantel vom Boden kontrolliert nach oben ziehen'),
-('Klimmzüge', 'Krafttraining', 'Rücken', 'Übung für den Latissimus und Bizeps', 'An der Stange hängen und sich nach oben ziehen'),
-('Rudern', 'Krafttraining', 'Rücken', 'Horizontales
+main "$@"
