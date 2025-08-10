@@ -542,7 +542,7 @@ create_scripts() {
     print_header "Creating Management Scripts"
     
     print_sub "Creating backup script..."
-    execute_command tee $APP_DIR/scripts/backup.js > /dev/null << 'EOF'
+    execute_command tee $APP_DIR/scripts/backup.js > /dev/null << \EOF
 #!/usr/bin/env node
 
 const fs = require('fs');
@@ -558,12 +558,12 @@ if (!fs.existsSync(BACKUP_DIR_LOCAL)) {
 
 // Create backup filename with timestamp
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const backupPath = path.join(BACKUP_DIR_LOCAL, `gym_tracker_${timestamp}.db`);
+const backupPath = path.join(BACKUP_DIR_LOCAL, 'gym_tracker_' + timestamp + '.db');
 
 try {
     // Copy database file
     fs.copyFileSync(DB_PATH, backupPath);
-    console.log(`✅ Database backup created: ${backupPath}`);
+    console.log('✅ Database backup created: ' + backupPath);
     
     // Keep only last 30 backups
     const backups = fs.readdirSync(BACKUP_DIR_LOCAL)
@@ -575,7 +575,7 @@ try {
         const oldBackups = backups.slice(30);
         oldBackups.forEach(backup => {
             fs.unlinkSync(path.join(BACKUP_DIR_LOCAL, backup));
-            console.log(`🗑️  Removed old backup: ${backup}`);
+            console.log('🗑️  Removed old backup: ' + backup);
         });
     }
     
