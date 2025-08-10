@@ -549,16 +549,16 @@ const fs = require('fs');
 const path = require('path');
 
 const DB_PATH = process.env.DB_PATH || './database/gym_tracker.db';
-const BACKUP_DIR = './backups';
+const BACKUP_DIR_LOCAL = './backups';
 
 // Create backup directory if it doesn't exist
-if (!fs.existsSync(BACKUP_DIR)) {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+if (!fs.existsSync(BACKUP_DIR_LOCAL)) {
+    fs.mkdirSync(BACKUP_DIR_LOCAL, { recursive: true });
 }
 
 // Create backup filename with timestamp
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const backupPath = path.join(BACKUP_DIR, `gym_tracker_${timestamp}.db`);
+const backupPath = path.join(BACKUP_DIR_LOCAL, `gym_tracker_${timestamp}.db`);
 
 try {
     // Copy database file
@@ -566,7 +566,7 @@ try {
     console.log(`✅ Database backup created: ${backupPath}`);
     
     // Keep only last 30 backups
-    const backups = fs.readdirSync(BACKUP_DIR)
+    const backups = fs.readdirSync(BACKUP_DIR_LOCAL)
         .filter(file => file.startsWith('gym_tracker_') && file.endsWith('.db'))
         .sort()
         .reverse();
@@ -574,7 +574,7 @@ try {
     if (backups.length > 30) {
         const oldBackups = backups.slice(30);
         oldBackups.forEach(backup => {
-            fs.unlinkSync(path.join(BACKUP_DIR, backup));
+            fs.unlinkSync(path.join(BACKUP_DIR_LOCAL, backup));
             console.log(`🗑️  Removed old backup: ${backup}`);
         });
     }
