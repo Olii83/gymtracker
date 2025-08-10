@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Tracker</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <h1 class="login-title">💪 Gym Tracker</h1>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
+                <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginUsername">Benutzername oder E-Mail</label>
+                    <input type="text" id="loginUsername" name="username" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Passwort</label>
+                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn" style="width: 100%; margin-bottom: 15px;">
+                    <span id="loginButtonText">Anmelden</span>
+                    <div id="loginLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                </button>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="registerUsername">Benutzername *</label>
+                    <input type="text" id="registerUsername" name="username" required minlength="3" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">E-Mail *</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerFirstName">Vorname</label>
+                    <input type="text" id="registerFirstName" name="first_name" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerLastName">Nachname</label>
+                    <input type="text" id="registerLastName" name="last_name" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Passwort *</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Passwort bestätigen *</label>
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password">
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%; margin-bottom: 15px;">
+                    <span id="registerButtonText">Registrieren</span>
+                    <div id="registerLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <div class="header">
+            <nav class="nav">
+                <div class="logo">
+                    💪 Gym Tracker
+                    <span id="userWelcome" style="font-size: 14px; color: #666; font-weight: normal;"></span>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn" onclick="App.showSection('dashboard')">📊 Dashboard</button>
+                    <button class="btn" onclick="App.showSection('workouts')">🏋️ Workouts</button>
+                    <button class="btn" onclick="App.showSection('exercises')">💪 Übungen</button>
+                    <button class="btn btn-success" onclick="App.showSection('newWorkout')">➕ Neues Training</button>
+                    <button id="adminButton" class="btn btn-admin hidden" onclick="App.showSection('admin')">👑 Admin</button>
+                    <button class="btn btn-info" onclick="Auth.showProfileModal()">👤 Profil</button>
+                    <button class="btn btn-secondary" onclick="Auth.logout()">🚪 Abmelden</button>
+                </div>
+            </nav>
+        </div>
+
+        <div class="container">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section">
+                <div class="grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalWorkouts">0</div>
+                        <div class="stat-label">Trainings gesamt</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="thisWeekWorkouts">0</div>
+                        <div class="stat-label">Diese Woche</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTime">0</div>
+                        <div class="stat-label">Minuten gesamt</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 style="margin-bottom: 20px; color: #333;">📈 Letzte Trainings</h2>
+                    <div id="recentWorkouts">
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <div class="loading"></div>
+                            <p style="margin-top: 10px;">Lade Trainings...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Section -->
+            <div id="admin" class="section hidden">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px; color: #333;">👑 Admin-Bereich</h2>
+                    
+                    <div class="grid" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalUsers">0</div>
+                            <div class="stat-label">Registrierte Benutzer</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="activeUsers">0</div>
+                            <div class="stat-label">Aktive Benutzer</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalAdminWorkouts">0</div>
+                            <div class="stat-label">Gesamte Workouts</div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 15px; color: #333;">👥 Benutzerverwaltung</h3>
+                    <div id="userManagement">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Benutzername</th>
+                                    <th>E-Mail</th>
+                                    <th>Name</th>
+                                    <th>Rolle</th>
+                                    <th>Status</th>
+                                    <th>Registriert</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">
+                                        <div class="loading"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workouts Section -->
+            <div id="workouts" class="section hidden">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #333;">🏋️ Meine Trainings</h2>
+                        <button class="btn btn-success" onclick="App.showSection('newWorkout')">➕ Neues Training</button>
+                    </div>
+                    <div id="workoutsList">
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <div class="loading"></div>
+                            <p style="margin-top: 10px;">Lade Trainings...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exercises Section -->
+            <div id="exercises" class="section hidden">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #333;">💪 Verfügbare Übungen</h2>
+                        <button class="btn btn-success" onclick="Exercises.showNewModal()">➕ Neue Übung</button>
+                    </div>
+                    <div id="exercisesList">
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <div class="loading"></div>
+                            <p style="margin-top: 10px;">Lade Übungen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Workout Section -->
+            <div id="newWorkout" class="section hidden">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px; color: #333;">➕ Neues Training erstellen</h2>
+                    <form id="newWorkoutForm" class="workout-form">
+                        <div class="form-group">
+                            <label for="workoutName">Trainingsname *</label>
+                            <input type="text" id="workoutName" required placeholder="z.B. Push-Tag, Beine, Cardio...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workoutDate">Datum *</label>
+                            <input type="date" id="workoutDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workoutDuration">Dauer (Minuten)</label>
+                            <input type="number" id="workoutDuration" min="1" max="300" placeholder="z.B. 60">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workoutNotes">Notizen</label>
+                            <textarea id="workoutNotes" rows="3" placeholder="Wie war das Training? Besonderheiten?"></textarea>
+                        </div>
+
+                        <div class="exercise-selector">
+                            <label>Übungen hinzufügen:</label>
+                            <select id="exerciseSelect" style="margin-top: 10px;">
+                                <option value="">-- Übung auswählen --</option>
+                            </select>
+                            <button type="button" class="btn" onclick="Workouts.addExercise()" style="margin-top: 10px;">Übung hinzufügen</button>
+                            
+                            <!-- Quick Add New Exercise -->
+                            <div class="quick-exercise-add">
+                                <h4 style="margin-bottom: 10px; color: #667eea;">🆕 Neue Übung schnell erstellen</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <input type="text" id="quickExerciseName" placeholder="Name der neuen Übung">
+                                    <select id="quickExerciseCategory">
+                                        <option value="">-- Kategorie --</option>
+                                        <option value="Krafttraining">Krafttraining</option>
+                                        <option value="Cardio">Cardio</option>
+                                        <option value="Stretching">Stretching</option>
+                                        <option value="Functional">Functional</option>
+                                    </select>
+                                    <select id="quickExerciseMuscle">
+                                        <option value="">-- Muskelgruppe --</option>
+                                        <option value="Brust">Brust</option>
+                                        <option value="Rücken">Rücken</option>
+                                        <option value="Schultern">Schultern</option>
+                                        <option value="Arme">Arme</option>
+                                        <option value="Beine">Beine</option>
+                                        <option value="Core">Core</option>
+                                        <option value="Cardio">Cardio</option>
+                                        <option value="Ganzkörper">Ganzkörper</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info" onclick="Exercises.quickAdd()">➕ Schnell hinzufügen</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="selectedExercises" class="selected-exercises">
+                            <!-- Selected exercises will be added here -->
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="submit" class="btn btn-success" style="flex: 1;">
+                                <span id="saveButtonText">💾 Training speichern</span>
+                                <div id="saveLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="App.showSection('dashboard')">❌ Abbrechen</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="Auth.closeProfileModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #333;">👤 Profil verwalten</h2>
+            
+            <form id="updateProfileForm" style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px; color: #667eea;">📝 Persönliche Informationen</h3>
+                
+                <div class="form-group">
+                    <label for="profileUsername">Benutzername *</label>
+                    <input type="text" id="profileUsername" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profileEmail">E-Mail *</label>
+                    <input type="email" id="profileEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profileFirstName">Vorname</label>
+                    <input type="text" id="profileFirstName" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="profileLastName">Nachname</label>
+                    <input type="text" id="profileLastName" maxlength="50">
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%;">
+                    <span id="updateProfileButtonText">💾 Profil aktualisieren</span>
+                    <div id="updateProfileLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                </button>
+            </form>
+            
+            <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <p><strong>Rolle:</strong> <span id="profileRole"></span></p>
+                <p><strong>Mitglied seit:</strong> <span id="profileMemberSince"></span></p>
+            </div>
+            
+            <form id="changePasswordForm">
+                <h3 style="margin-bottom: 15px; color: #333;">🔒 Passwort ändern</h3>
+                
+                <div class="form-group">
+                    <label for="currentPassword">Aktuelles Passwort *</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newPassword">Neues Passwort *</label>
+                    <input type="password" id="newPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
+                    <input type="password" id="confirmNewPassword" required minlength="6">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">
+                        <span id="changePasswordButtonText">🔒 Passwort ändern</span>
+                        <div id="changePasswordLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="Auth.closeProfileModal()">❌ Schließen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Exercise Modal -->
+    <div id="newExerciseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="Exercises.closeNewModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #333;">💪 Neue Übung erstellen</h2>
+            <form id="newExerciseForm">
+                <div class="form-group">
+                    <label for="exerciseName">Name *</label>
+                    <input type="text" id="exerciseName" required placeholder="z.B. Bankdrücken">
+                </div>
+                
+                <div class="form-group">
+                    <label for="exerciseCategory">Kategorie *</label>
+                    <select id="exerciseCategory" required>
+                        <option value="">-- Kategorie wählen --</option>
+                        <option value="Krafttraining">Krafttraining</option>
+                        <option value="Cardio">Cardio</option>
+                        <option value="Stretching">Stretching</option>
+                        <option value="Functional">Functional Training</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="exerciseMuscleGroup">Muskelgruppe *</label>
+                    <select id="exerciseMuscleGroup" required>
+                        <option value="">-- Muskelgruppe wählen --</option>
+                        <option value="Brust">Brust</option>
+                        <option value="Rücken">Rücken</option>
+                        <option value="Schultern">Schultern</option>
+                        <option value="Arme">Arme</option>
+                        <option value="Beine">Beine</option>
+                        <option value="Core">Core</option>
+                        <option value="Cardio">Cardio</option>
+                        <option value="Ganzkörper">Ganzkörper</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="exerciseDescription">Beschreibung</label>
+                    <textarea id="exerciseDescription" rows="2" placeholder="Kurze Beschreibung der Übung"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="exerciseInstructions">Ausführung</label>
+                    <textarea id="exerciseInstructions" rows="3" placeholder="Wie wird die Übung korrekt ausgeführt?"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">💾 Übung speichern</button>
+                    <button type="button" class="btn btn-secondary" onclick="Exercises.closeNewModal()">❌ Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Workout Detail Modal -->
+    <div id="workoutDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="Workouts.closeDetailModal()">&times;</span>
+            <div id="workoutDetailContent">
+                <!-- Workout details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset Modal (Admin) -->
+    <div id="passwordResetModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="Admin.closePasswordResetModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #333;">🔑 Passwort zurücksetzen</h2>
+            
+            <p style="margin-bottom: 20px;">Neues Passwort für Benutzer: <strong id="resetUsername"></strong></p>
+            
+            <form id="adminPasswordResetForm">
+                <input type="hidden" id="resetUserId">
+                
+                <div class="form-group">
+                    <label for="adminNewPassword">Neues Passwort *</label>
+                    <input type="password" id="adminNewPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminConfirmPassword">Passwort bestätigen *</label>
+                    <input type="password" id="adminConfirmPassword" required minlength="6">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-warning" style="flex: 1;">🔑 Passwort zurücksetzen</button>
+                    <button type="button" class="btn btn-secondary" onclick="Admin.closePasswordResetModal()">❌ Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete User Confirmation Modal -->
+    <div id="deleteUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="Admin.closeDeleteUserModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #dc3545;">🗑️ Benutzer löschen</h2>
+            
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8d7da; border-radius: 10px; border: 1px solid #f5c6cb;">
+                <p><strong>⚠️ WARNUNG:</strong> Diese Aktion kann nicht rückgängig gemacht werden!</p>
+                <p style="margin-top: 10px;">Alle Workouts und Daten des Benutzers werden permanent gelöscht.</p>
+            </div>
+            
+            <p style="margin-bottom: 20px;">Benutzer löschen: <strong id="deleteUsername"></strong></p>
+            
+            <form id="deleteUserForm">
+                <input type="hidden" id="deleteUserId">
+                
+                <div class="form-group">
+                    <label for="deleteConfirmation">Geben Sie "LÖSCHEN" ein, um zu bestätigen:</label>
+                    <input type="text" id="deleteConfirmation" required placeholder="LÖSCHEN">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-danger" style="flex: 1;">🗑️ Benutzer endgültig löschen</button>
+                    <button type="button" class="btn btn-secondary" onclick="Admin.closeDeleteUserModal()">❌ Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/workouts.js"></script>
+    <script src="js/exercises.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

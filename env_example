@@ -1,0 +1,26 @@
+# Application Configuration
+NODE_ENV=production
+PORT=3000
+
+# JWT Secret (Generate with: openssl rand -base64 64)
+JWT_SECRET=your_super_secret_jwt_key_here_generate_with_openssl_rand
+
+# SQLite Database Configuration
+DB_PATH=./database/gym_tracker.db
+
+# Application Settings
+APP_NAME=Gym Tracker
+APP_URL=https://gym.domain.eu
+
+# Optional: Admin Email for notifications
+ADMIN_EMAIL=admin@gym.domain.eu
+
+# Optional: CORS Origins (comma-separated)
+CORS_ORIGINS=https://gym.domain.eu,https://www.gym.domain.eu
+
+# Optional: Session Settings
+SESSION_TIMEOUT=24h
+
+# Optional: File Upload Settings
+MAX_FILE_SIZE=10MB
+UPLOAD_PATH=./uploads
