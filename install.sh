@@ -80,47 +80,63 @@ show_header() {
 
 # Parse command line arguments
 parse_args() {
+    echo "DEBUG: Received $# arguments"
+    local arg_count=1
+    
     while [[ $# -gt 0 ]]; do
-        # Remove any trailing whitespace/invisible characters
-        key=$(echo "$1" | tr -d '\r\n\t ' | sed 's/[[:space:]]*$//')
+        echo "DEBUG: Arg $arg_count: [$1] (length: ${#1})"
         
-        case "$key" in
+        # Clean the argument - remove any invisible characters
+        local clean_arg=$(printf '%s' "$1" | tr -cd '[:print:]' | sed 's/[[:space:]]*$//')
+        echo "DEBUG: Cleaned arg: [$clean_arg]"
+        
+        case "$clean_arg" in
             --domain=*)
-                DOMAIN="${key#*=}"
-                shift
+                DOMAIN="${clean_arg#*=}"
+                echo "DEBUG: Set DOMAIN to: $DOMAIN"
                 ;;
             --app-dir=*)
-                APP_DIR="${key#*=}"
+                APP_DIR="${clean_arg#*=}"
                 DB_PATH="$APP_DIR/database/gym_tracker.db"
-                shift
+                echo "DEBUG: Set APP_DIR to: $APP_DIR"
                 ;;
             --skip-ssl)
                 SKIP_SSL=true
-                shift
+                echo "DEBUG: Set SKIP_SSL to: true"
                 ;;
             --skip-firewall)
                 SKIP_FIREWALL=true
-                shift
+                echo "DEBUG: Set SKIP_FIREWALL to: true"
                 ;;
             --proxy-mode)
                 PROXY_MODE=true
-                shift
+                echo "DEBUG: Set PROXY_MODE to: true"
                 ;;
             --rollback)
                 ROLLBACK_MODE=true
-                shift
+                echo "DEBUG: Set ROLLBACK_MODE to: true"
                 ;;
             --dry-run)
                 DRY_RUN=true
-                shift
+                echo "DEBUG: Set DRY_RUN to: true"
                 ;;
             --help|--helps|-h)
                 show_help
                 exit 0
                 ;;
-            --*)
-                print_error "Unknown option: '$key'"
-                echo "Did you mean one of these?"
+            "")
+                echo "DEBUG: Skipping empty argument"
+                ;;
+            *)
+                echo "DEBUG: Unknown argument detected!"
+                echo "  Original: [$1]"
+                echo "  Cleaned:  [$clean_arg]"
+                echo "  Length:   ${#1} vs ${#clean_arg}"
+                echo "  Hex dump: $(echo -n "$1" | xxd -p)"
+                
+                print_error "Unknown argument: '$clean_arg'"
+                echo ""
+                echo "Available options:"
                 echo "  --domain=DOMAIN"
                 echo "  --app-dir=PATH" 
                 echo "  --skip-ssl"
@@ -131,17 +147,12 @@ parse_args() {
                 echo "  --help"
                 exit 1
                 ;;
-            "")
-                # Skip empty arguments
-                shift
-                ;;
-            *)
-                print_error "Unknown argument: '$key'"
-                echo "Use --help for usage information"
-                exit 1
-                ;;
         esac
+        shift
+        ((arg_count++))
     done
+    
+    echo "DEBUG: Finished parsing arguments"
 }
 
 show_help() {
