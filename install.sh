@@ -346,6 +346,30 @@ parse_args() {
     done
 }
 
+# Header
+show_header() {
+    clear
+    echo -e "${PURPLE}"
+    echo "🏋️‍♂️ ========================================================"
+    echo "🏋️‍♀️           GYM TRACKER INSTALLATION SCRIPT            "
+    echo "🏋️‍♂️                  COMPLETE EDITION v2.1               "
+    echo "🏋️‍♀️ ========================================================"
+    echo -e "${NC}"
+    echo "Features:"
+    echo "• 🗄️  SQLite database (no MySQL/MariaDB needed)"
+    echo "• 🚀 Node.js backend with Express"
+    echo "• 📱 Modern modular frontend"
+    echo "• 🔒 Nginx reverse proxy with SSL"
+    echo "• 🛡️  Security (UFW firewall, Fail2ban)"
+    echo "• 📊 Monitoring and automated backups"
+    echo "• 👑 Complete admin panel"
+    echo "• 👥 Multi-user support"
+    echo "• 🔄 Rollback functionality"
+    echo "• 🌐 Nginx Proxy Manager support"
+    echo "========================================================"
+    echo
+}
+
 show_help() {
     echo "Gym Tracker Installation Script v2.1"
     echo ""
