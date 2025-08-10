@@ -1,48 +1,4 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Tracker - Ihr persönlicher Fitness-Begleiter</title>
-    <meta name="description" content="Verfolgen Sie Ihre Workouts, überwachen Sie Ihren Fortschritt und erreichen Sie Ihre Fitnessziele mit Gym Tracker.">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-    <!-- Login/Register Screen -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1 class="login-title">💪 Gym Tracker</h1>
-                <p class="login-subtitle">Ihr persönlicher Fitness-Begleiter</p>
-            </div>
-            
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
-                <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
-            </div>
-            
-            <div id="alertContainer"></div>
-            
-            <!-- Login Form -->
-            <form id="loginForm" class="auth-form">
-                <div class="form-group">
-                    <label for="loginUsername">Benutzername oder E-Mail</label>
-                    <input type="text" id="loginUsername" name="username" required autocomplete="username" placeholder="Ihr Benutzername oder E-Mail">
-                </div>
-                
-                <div class="form-group">
-                    <label for="loginPassword">Passwort</label>
-                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Ihr Passwort">
-                </div>
-                
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
-                    <span id="loginButtonText">Anmelden</span>
-                    <div id="loginLoading" class="loading hidden"></div>
-                </button>
-                
-                <div class="auth-help">
-                    <p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin123</strong></p>
+<p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin123</strong></p>
                     <small>Bitte ändern Sie das Passwort nach der ersten Anmeldung!</small>
                 </div>
             </form>
@@ -141,9 +97,6 @@
         </div>
 
         <div class="main-container">
-            <!-- Global Alert Container -->
-            <div id="mainAlertContainer" class="main-alert-container"></div>
-            
             <!-- Dashboard Section -->
             <div id="dashboard" class="section">
                 <div class="section-header">
@@ -226,486 +179,207 @@
                 </div>
             </div>
 
-            <!-- Admin Section -->
+            <!-- Other sections (simplified for now) -->
             <div id="admin" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">👑 Admin-Bereich</h1>
-                    <p class="section-subtitle">Verwaltung von Benutzern und System</p>
                 </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card info">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="totalUsers">0</div>
-                            <div class="stat-label">Registrierte Benutzer</div>
-                        </div>
-                    </div>
-                    <div class="stat-card success">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="activeUsers">0</div>
-                            <div class="stat-label">Aktive Benutzer</div>
-                        </div>
-                    </div>
-                    <div class="stat-card primary">
-                        <div class="stat-icon">🏋️</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="totalAdminWorkouts">0</div>
-                            <div class="stat-label">Gesamte Workouts</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">👥 Benutzerverwaltung</h2>
-                        <div class="card-actions">
-                            <button class="btn btn-info btn-sm" onclick="Admin.exportUsers()">📥 Exportieren</button>
-                            <button class="btn btn-success btn-sm" onclick="Admin.loadDashboard()">🔄 Aktualisieren</button>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <div class="table-container">
-                            <table class="user-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Benutzername</th>
-                                        <th>E-Mail</th>
-                                        <th>Name</th>
-                                        <th>Rolle</th>
-                                        <th>Status</th>
-                                        <th>Registriert</th>
-                                        <th>Aktionen</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="userTableBody">
-                                    <tr>
-                                        <td colspan="8" class="loading-row">
-                                            <div class="loading"></div>
-                                            <span>Lade Benutzerdaten...</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <div id="admin                <div id="newWorkoutContent">
+                    <div class="loading-state">
+                        <div class="loading"></div>
+                        <p>Lade Formular...</p>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Workouts Section -->
+    <!-- Scripts - Kritische Reihenfolge für Auth -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/workouts.js"></script>
+    <script src="js/exercises.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Initialize Application -->
+    <script>
+        // WICHTIG: Sofort Login Screen anzeigen falls nicht authentifiziert
+        // Dies verhindert den "hängenden" Ladescreen
+        function showInitialScreen() {
+            const loginScreen = document.getElementById('loginScreen');
+            const mainApp = document.getElementById('mainApp');
+            
+            // Prüfe ob Token vorhanden ist
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                console.log('Initial: No token, showing login immediately');
+                if (loginScreen) {
+                    loginScreen.classList.remove('hidden');
+                    loginScreen.style.display = 'flex';
+                }
+                if (mainApp) {
+                    mainApp.classList.add('hidden');
+                    mainApp.style.display = 'none';
+                }
+            } else {
+                console.log('Initial: Token found, will verify...');
+                // Login screen bleibt versteckt bis Token verifiziert
+            }
+        }
+        
+        // Sofort ausführen, bevor DOM geladen ist
+        showInitialScreen();
+
+        // Wait for DOM to be fully loaded before initializing
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing Gym Tracker...');
+            
+            // Initialize all modules in correct order
+            try {
+                // Utils should be available immediately
+                if (typeof Utils === 'undefined') {
+                    console.error('Utils module not loaded!');
+                    return;
+                }
+                
+                // Initialize Auth first (most critical)
+                if (typeof Auth !== 'undefined') {
+                    Auth.init();
+                } else {
+                    console.error('Auth module not loaded!');
+                    return;
+                }
+                
+                // Initialize other modules
+                if (typeof Profile !== 'undefined') Profile.init();
+                if (typeof Settings !== 'undefined') Settings.init();
+                if (typeof Workouts !== 'undefined') Workouts.init();
+                if (typeof Exercises !== 'undefined') Exercises.init();
+                if (typeof Admin !== 'undefined') Admin.init();
+                
+                // Initialize main App last
+                if (typeof App !== 'undefined') {
+                    App.init();
+                } else {
+                    console.error('App module not loaded!');
+                }
+                
+                console.log('✅ Gym Tracker initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Initialization error:', error);
+                
+                // Show user-friendly error message
+                const alertContainer = document.getElementById('alertContainer');
+                if (alertContainer) {
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-error">
+                            Fehler beim Laden der Anwendung. Bitte laden Sie die Seite neu.
+                        </div>
+                    `;
+                }
+            }
+        });
+        
+        // Dropdown functionality
+        document.addEventListener('click', function(e) {
+            // Handle dropdown toggle
+            if (e.target.closest('.dropdown-toggle')) {
+                e.preventDefault();
+                const dropdown = e.target.closest('.nav-dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown-menu').forEach(m => {
+                    if (m !== menu) m.classList.remove('show');
+                });
+                
+                // Toggle current dropdown
+                menu.classList.toggle('show');
+            } else {
+                // Close all dropdowns when clicking outside
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Escape key to close dropdowns
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+            
+            // Only enable shortcuts when authenticated
+            if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated()) {
+                // Ctrl+N for new workout
+                if (e.ctrlKey && e.key === 'n') {
+                    e.preventDefault();
+                    if (typeof App !== 'undefined' && App.showSection) {
+                        App.showSection('newWorkout');
+                    }
+                }
+                
+                // Ctrl+D for dashboard
+                if (e.ctrlKey && e.key === 'd') {
+                    e.preventDefault();
+                    if (typeof App !== 'undefined' && App.showSection) {
+                        App.showSection('dashboard');
+                    }
+                }
+            }
+        });
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+    </script>
+</body>
+</html>">Loading...</div>
+            </div>
+            
             <div id="workouts" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">🏋️ Meine Trainings</h1>
-                    <div class="section-actions">
-                        <button class="btn btn-success" onclick="App.showSection('newWorkout')">
-                            <span class="btn-icon">➕</span>
-                            Neues Training
-                        </button>
-                    </div>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">📋 Trainingshistorie</h2>
-                        <div class="card-actions">
-                            <select id="workoutsFilter" class="filter-select">
-                                <option value="all">Alle Trainings</option>
-                                <option value="week">Diese Woche</option>
-                                <option value="month">Dieser Monat</option>
-                                <option value="year">Dieses Jahr</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <div id="workoutsList" class="workouts-grid">
-                            <div class="loading-state">
-                                <div class="loading"></div>
-                                <p>Lade Trainings...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="workoutsList">Loading...</div>
             </div>
-
-            <!-- Exercises Section -->
+            
             <div id="exercises" class="section hidden">
                 <div class="section-header">
-                    <h1 class="section-title">💪 Verfügbare Übungen</h1>
-                    <div class="section-actions">
-                        <button class="btn btn-success" onclick="Exercises.showNewModal()">
-                            <span class="btn-icon">➕</span>
-                            Neue Übung
-                        </button>
-                    </div>
+                    <h1 class="section-title">💪 Übungen</h1>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">🔍 Übungen durchsuchen</h2>
-                        <div class="card-actions">
-                            <input type="text" id="exerciseSearch" class="search-input" placeholder="Übungen suchen...">
-                            <select id="exerciseFilter" class="filter-select">
-                                <option value="all">Alle Kategorien</option>
-                                <option value="Krafttraining">Krafttraining</option>
-                                <option value="Cardio">Cardio</option>
-                                <option value="Stretching">Stretching</option>
-                                <option value="Functional">Functional</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <div id="exercisesList" class="exercises-container">
-                            <div class="loading-state">
-                                <div class="loading"></div>
-                                <p>Lade Übungen...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="exercisesList">Loading...</div>
             </div>
-
-            <!-- New Workout Section -->
+            
             <div id="newWorkout" class="section hidden">
                 <div class="section-header">
-                    <h1 class="section-title">➕ Neues Training erstellen</h1>
-                    <p class="section-subtitle">Erstellen Sie ein neues Training mit Übungen und Details</p>
+                    <h1 class="section-title">➕ Neues Training</h1>
                 </div>
-                
-                <form id="newWorkoutForm" class="workout-form">
-                    <div class="form-grid">
-                        <div class="form-section">
-                            <h3 class="form-section-title">📝 Grundinformationen</h3>
-                            
-                            <div class="form-group">
-                                <label for="workoutName">Trainingsname *</label>
-                                <input type="text" id="workoutName" required placeholder="z.B. Push-Tag, Beine, Cardio...">
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="workoutDate">Datum *</label>
-                                    <input type="date" id="workoutDate" required>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="workoutDuration">Dauer (Minuten)</label>
-                                    <input type="number" id="workoutDuration" min="1" max="300" placeholder="z.B. 60">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="workoutNotes">Notizen</label>
-                                <textarea id="workoutNotes" rows="3" placeholder="Wie war das Training? Besonderheiten?"></textarea>
-                            </div>
-                        </div>
-                        
-                        <div class="form-section">
-                            <h3 class="form-section-title">💪 Übungen hinzufügen</h3>
-                            
-                            <div class="exercise-selector">
-                                <div class="selector-row">
-                                    <select id="exerciseSelect" class="exercise-select">
-                                        <option value="">-- Übung auswählen --</option>
-                                    </select>
-                                    <button type="button" class="btn btn-primary" onclick="Workouts.addExercise()">Hinzufügen</button>
-                                </div>
-                                
-                                <!-- Quick Add New Exercise -->
-                                <div class="quick-exercise-add">
-                                    <h4 class="quick-add-title">🆕 Neue Übung schnell erstellen</h4>
-                                    <div class="quick-add-grid">
-                                        <input type="text" id="quickExerciseName" placeholder="Name der neuen Übung">
-                                        <select id="quickExerciseCategory">
-                                            <option value="">-- Kategorie --</option>
-                                            <option value="Krafttraining">Krafttraining</option>
-                                            <option value="Cardio">Cardio</option>
-                                            <option value="Stretching">Stretching</option>
-                                            <option value="Functional">Functional</option>
-                                        </select>
-                                        <select id="quickExerciseMuscle">
-                                            <option value="">-- Muskelgruppe --</option>
-                                            <option value="Brust">Brust</option>
-                                            <option value="Rücken">Rücken</option>
-                                            <option value="Schultern">Schultern</option>
-                                            <option value="Arme">Arme</option>
-                                            <option value="Beine">Beine</option>
-                                            <option value="Core">Core</option>
-                                            <option value="Cardio">Cardio</option>
-                                            <option value="Ganzkörper">Ganzkörper</option>
-                                        </select>
-                                        <button type="button" class="btn btn-info" onclick="Exercises.quickAdd()">Erstellen & Hinzufügen</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="selectedExercises" class="selected-exercises">
-                        <!-- Selected exercises will be added here -->
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <span id="saveButtonText">💾 Training speichern</span>
-                            <div id="saveLoading" class="loading hidden"></div>
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-lg" onclick="App.showSection('dashboard')">❌ Abbrechen</button>
-                    </div>
-                </form>
+                <div id="newWorkoutContent">Loading...</div>
             </div>
         </div>
     </div>
-
-    <!-- Modals -->
-    
-    <!-- Profile Modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h2 class="modal-title">👤 Profil verwalten</h2>
-                <span class="close" onclick="Auth.closeProfileModal()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <div class="modal-tabs">
-                    <button class="modal-tab active" onclick="showModalTab('profile')">📝 Profil</button>
-                    <button class="modal-tab" onclick="showModalTab('password')">🔒 Passwort</button>
-                </div>
-                
-                <div id="profileTab" class="modal-tab-content">
-                    <form id="updateProfileForm">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="profileFirstName">Vorname</label>
-                                <input type="text" id="profileFirstName" maxlength="50">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="profileLastName">Nachname</label>
-                                <input type="text" id="profileLastName" maxlength="50">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="profileUsername">Benutzername *</label>
-                            <input type="text" id="profileUsername" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="profileEmail">E-Mail *</label>
-                            <input type="email" id="profileEmail" required>
-                        </div>
-                        
-                        <div class="profile-info">
-                            <div class="info-item">
-                                <strong>Rolle:</strong> <span id="profileRole"></span>
-                            </div>
-                            <div class="info-item">
-                                <strong>Mitglied seit:</strong> <span id="profileMemberSince"></span>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-success">
-                            <span id="updateProfileButtonText">💾 Profil aktualisieren</span>
-                            <div id="updateProfileLoading" class="loading hidden"></div>
-                        </button>
-                    </form>
-                </div>
-                
-                <div id="passwordTab" class="modal-tab-content hidden">
-                    <form id="changePasswordForm">
-                        <div class="form-group">
-                            <label for="currentPassword">Aktuelles Passwort *</label>
-                            <input type="password" id="currentPassword" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="newPassword">Neues Passwort *</label>
-                            <input type="password" id="newPassword" required minlength="6">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
-                            <input type="password" id="confirmNewPassword" required minlength="6">
-                        </div>
-                        
-                        <button type="submit" class="btn btn-success">
-                            <span id="changePasswordButtonText">🔒 Passwort ändern</span>
-                            <div id="changePasswordLoading" class="loading hidden"></div>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- New Exercise Modal -->
-    <div id="newExerciseModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">💪 Neue Übung erstellen</h2>
-                <span class="close" onclick="Exercises.closeNewModal()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <form id="newExerciseForm">
-                    <div class="form-group">
-                        <label for="exerciseName">Name *</label>
-                        <input type="text" id="exerciseName" required placeholder="z.B. Bankdrücken">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="exerciseCategory">Kategorie *</label>
-                            <select id="exerciseCategory" required>
-                                <option value="">-- Kategorie wählen --</option>
-                                <option value="Krafttraining">Krafttraining</option>
-                                <option value="Cardio">Cardio</option>
-                                <option value="Stretching">Stretching</option>
-                                <option value="Functional">Functional Training</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="exerciseMuscleGroup">Muskelgruppe *</label>
-                            <select id="exerciseMuscleGroup" required>
-                                <option value="">-- Muskelgruppe wählen --</option>
-                                <option value="Brust">Brust</option>
-                                <option value="Rücken">Rücken</option>
-                                <option value="Schultern">Schultern</option>
-                                <option value="Arme">Arme</option>
-                                <option value="Beine">Beine</option>
-                                <option value="Core">Core</option>
-                                <option value="Cardio">Cardio</option>
-                                <option value="Ganzkörper">Ganzkörper</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="exerciseDescription">Beschreibung</label>
-                        <textarea id="exerciseDescription" rows="2" placeholder="Kurze Beschreibung der Übung"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="exerciseInstructions">Ausführung</label>
-                        <textarea id="exerciseInstructions" rows="3" placeholder="Wie wird die Übung korrekt ausgeführt?"></textarea>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-success">💾 Übung speichern</button>
-                        <button type="button" class="btn btn-secondary" onclick="Exercises.closeNewModal()">❌ Abbrechen</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Workout Detail Modal -->
-    <div id="workoutDetailModal" class="modal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h2 class="modal-title">🏋️ Training Details</h2>
-                <span class="close" onclick="Workouts.closeDetailModal()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <div id="workoutDetailContent">
-                    <!-- Workout details will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Modals -->
-    
-    <!-- Password Reset Modal -->
-    <div id="passwordResetModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">🔑 Passwort zurücksetzen</h2>
-                <span class="close" onclick="Admin.closePasswordResetModal()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <p class="reset-info">Neues Passwort für Benutzer: <strong id="resetUsername"></strong></p>
-                
-                <form id="adminPasswordResetForm">
-                    <input type="hidden" id="resetUserId">
-                    
-                    <div class="form-group">
-                        <label for="adminNewPassword">Neues Passwort *</label>
-                        <input type="password" id="adminNewPassword" required minlength="6">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="adminConfirmPassword">Passwort bestätigen *</label>
-                        <input type="password" id="adminConfirmPassword" required minlength="6">
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-warning">🔑 Passwort zurücksetzen</button>
-                        <button type="button" class="btn btn-secondary" onclick="Admin.closePasswordResetModal()">❌ Abbrechen</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete User Modal -->
-    <div id="deleteUserModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">🗑️ Benutzer löschen</h2>
-                <span class="close" onclick="Admin.closeDeleteUserModal()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <div class="warning-box">
-                    <div class="warning-icon">⚠️</div>
-                    <div class="warning-content">
-                        <h3>WARNUNG: Diese Aktion kann nicht rückgängig gemacht werden!</h3>
-                        <p>Alle Workouts und Daten des Benutzers werden permanent gelöscht.</p>
-                    </div>
-                </div>
-                
-                <p class="delete-info">Benutzer löschen: <strong id="deleteUsername"></strong></p>
-                
-                <form id="deleteUserForm">
-                    <input type="hidden" id="deleteUserId">
-                    
-                    <div class="form-group">
-                        <label for="deleteConfirmation">Geben Sie "LÖSCHEN" ein, um zu bestätigen:</label>
-                        <input type="text" id="deleteConfirmation" required placeholder="LÖSCHEN" class="confirmation-input">
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-danger">🗑️ Benutzer endgültig löschen</button>
-                        <button type="button" class="btn btn-secondary" onclick="Admin.closeDeleteUserModal()">❌ Abbrechen</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p id="loadingText">Lädt...</p>
-        </div>
-    </div>
-
-    <!-- Notification Container -->
-    <div id="notificationContainer" class="notification-container"></div>
 
     <!-- Scripts -->
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/workouts.js"></script>
     <script src="js/exercises.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/app.js"></script>
 
@@ -742,48 +416,6 @@
             });
         });
 
-        // Notification system
-        function showNotification(message, type = 'info', duration = 5000) {
-            const container = document.getElementById('notificationContainer');
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-            
-            const icons = {
-                success: '✅',
-                error: '❌',
-                warning: '⚠️',
-                info: 'ℹ️'
-            };
-            
-            notification.innerHTML = `
-                <div class="notification-content">
-                    <span class="notification-icon">${icons[type] || icons.info}</span>
-                    <span class="notification-message">${message}</span>
-                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-                </div>
-            `;
-            
-            container.appendChild(notification);
-            
-            // Auto remove after duration
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.classList.add('fade-out');
-                    setTimeout(() => notification.remove(), 300);
-                }
-            }, duration);
-        }
-
-        // Loading overlay
-        function showLoadingOverlay(text = 'Lädt...') {
-            document.getElementById('loadingText').textContent = text;
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-        }
-
-        function hideLoadingOverlay() {
-            document.getElementById('loadingOverlay').classList.add('hidden');
-        }
-
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             // Escape key to close modals and dropdowns
@@ -809,89 +441,28 @@
             }
         });
 
-        // Service Worker for PWA functionality (optional)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            });
-        }
-
         // Enhanced error handling
         window.addEventListener('error', function(e) {
             console.error('Global error:', e.error);
             if (Auth.isAuthenticated()) {
-                showNotification('Ein unerwarteter Fehler ist aufgetreten.', 'error');
+                Utils.showAlert('Ein unerwarteter Fehler ist aufgetreten.', 'error');
             }
         });
 
         window.addEventListener('unhandledrejection', function(e) {
             console.error('Unhandled promise rejection:', e.reason);
             if (Auth.isAuthenticated()) {
-                showNotification('Ein Netzwerkfehler ist aufgetreten.', 'error');
+                Utils.showAlert('Ein Netzwerkfehler ist aufgetreten.', 'error');
             }
         });
 
         // Online/Offline detection
         window.addEventListener('online', function() {
-            showNotification('Internetverbindung wiederhergestellt', 'success', 3000);
+            Utils.showAlert('Internetverbindung wiederhergestellt', 'success', 3000);
         });
 
         window.addEventListener('offline', function() {
-            showNotification('Internetverbindung verloren', 'warning', 10000);
-        });
-
-        // Auto-save functionality for forms (optional)
-        function enableAutoSave(formId, storageKey) {
-            const form = document.getElementById(formId);
-            if (!form) return;
-
-            // Load saved data
-            const savedData = localStorage.getItem(storageKey);
-            if (savedData) {
-                try {
-                    const data = JSON.parse(savedData);
-                    Object.keys(data).forEach(key => {
-                        const element = form.querySelector(`[name="${key}"], #${key}`);
-                        if (element && element.type !== 'password') {
-                            element.value = data[key];
-                        }
-                    });
-                } catch (e) {
-                    console.warn('Failed to load saved form data:', e);
-                }
-            }
-
-            // Save data on input
-            form.addEventListener('input', Utils.debounce(function() {
-                const formData = new FormData(form);
-                const data = {};
-                
-                for (let [key, value] of formData.entries()) {
-                    if (!form.querySelector(`[name="${key}"]`).type.includes('password')) {
-                        data[key] = value;
-                    }
-                }
-                
-                localStorage.setItem(storageKey, JSON.stringify(data));
-            }, 1000));
-
-            // Clear saved data on successful submit
-            form.addEventListener('submit', function() {
-                localStorage.removeItem(storageKey);
-            });
-        }
-
-        // Initialize auto-save for workout form
-        document.addEventListener('DOMContentLoaded', function() {
-            if (Auth.isAuthenticated()) {
-                enableAutoSave('newWorkoutForm', 'gym-tracker-workout-draft');
-            }
+            Utils.showAlert('Internetverbindung verloren', 'warning', 10000);
         });
 
         // Performance monitoring
@@ -911,4 +482,48 @@
         }
     </script>
 </body>
-</html>
+</html><!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Tracker - Ihr persönlicher Fitness-Begleiter</title>
+    <meta name="description" content="Verfolgen Sie Ihre Workouts, überwachen Sie Ihren Fortschritt und erreichen Sie Ihre Fitnessziele mit Gym Tracker.">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 class="login-title">💪 Gym Tracker</h1>
+                <p class="login-subtitle">Ihr persönlicher Fitness-Begleiter</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
+                <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginUsername">Benutzername oder E-Mail</label>
+                    <input type="text" id="loginUsername" name="username" required autocomplete="username" placeholder="Ihr Benutzername oder E-Mail">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Passwort</label>
+                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Ihr Passwort">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                    <span id="loginButtonText">Anmelden</span>
+                    <div id="loginLoading" class="loading hidden"></div>
+                </button>
+                
+                <div class="auth-help">
+                    <p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin
