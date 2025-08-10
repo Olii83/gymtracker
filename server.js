@@ -50,6 +50,9 @@ function createTables() {
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 role VARCHAR(10) DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+                first_name VARCHAR(50),
+                last_name VARCHAR(50),
+                is_active BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )`,
@@ -195,14 +198,22 @@ function authenticateToken(req, res, next) {
     const token = authHeader && authHeader.split(' ')[1];
     
     if (!token) {
-        return res.sendStatus(401);
+        return res.status(401).json({ error: 'No token provided' });
     }
     
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403);
+    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+        if (err) return res.status(403).json({ error: 'Invalid token' });
         req.user = user;
         next();
     });
+}
+
+// Admin middleware
+function requireAdmin(req, res, next) {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
 }
 
 // Auth routes
@@ -211,7 +222,7 @@ app.post('/api/auth/login', async (req, res) => {
         const { username, password } = req.body;
         
         db.get(
-            'SELECT * FROM users WHERE username = ? OR email = ?',
+            'SELECT * FROM users WHERE (username = ? OR email = ?) AND is_active = 1',
             [username, username],
             async (err, user) => {
                 if (err) {
@@ -232,7 +243,7 @@ app.post('/api/auth/login', async (req, res) => {
                     
                     const token = jwt.sign(
                         { id: user.id, username: user.username, role: user.role },
-                        process.env.JWT_SECRET,
+                        process.env.JWT_SECRET || 'your-secret-key',
                         { expiresIn: '24h' }
                     );
                     
@@ -242,7 +253,9 @@ app.post('/api/auth/login', async (req, res) => {
                             id: user.id,
                             username: user.username,
                             email: user.email,
-                            role: user.role
+                            role: user.role,
+                            first_name: user.first_name,
+                            last_name: user.last_name
                         }
                     });
                 } catch (bcryptError) {
@@ -259,17 +272,17 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, first_name, last_name } = req.body;
         
         if (!username || !email || !password) {
-            return res.status(400).json({ error: 'All fields are required' });
+            return res.status(400).json({ error: 'Username, email and password are required' });
         }
         
         const hashedPassword = await bcrypt.hash(password, 12);
         
         db.run(
-            'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-            [username, email, hashedPassword],
+            'INSERT INTO users (username, email, password_hash, first_name, last_name) VALUES (?, ?, ?, ?, ?)',
+            [username, email, hashedPassword, first_name || null, last_name || null],
             function(err) {
                 if (err) {
                     if (err.message.includes('UNIQUE constraint failed')) {
@@ -289,9 +302,102 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+// Admin routes
+app.get('/api/admin/users', authenticateToken, requireAdmin, (req, res) => {
+    db.all(
+        'SELECT id, username, email, first_name, last_name, role, is_active, created_at FROM users ORDER BY created_at DESC',
+        (err, users) => {
+            if (err) {
+                console.error('Get users error:', err);
+                res.status(500).json({ error: 'Internal server error' });
+            } else {
+                res.json(users);
+            }
+        }
+    );
+});
+
+app.get('/api/admin/stats', authenticateToken, requireAdmin, (req, res) => {
+    const stats = {};
+    
+    db.get('SELECT COUNT(*) as count FROM users', (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+        stats.totalUsers = result.count;
+        
+        db.get('SELECT COUNT(*) as count FROM users WHERE is_active = 1', (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            stats.activeUsers = result.count;
+            
+            db.get('SELECT COUNT(*) as count FROM workouts', (err, result) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Internal server error' });
+                }
+                stats.totalWorkouts = result.count;
+                
+                res.json(stats);
+            });
+        });
+    });
+});
+
+app.post('/api/admin/users/:userId/reset-password', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { newPassword } = req.body;
+        
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+        
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        
+        db.run(
+            'UPDATE users SET password_hash = ? WHERE id = ?',
+            [hashedPassword, userId],
+            function(err) {
+                if (err) {
+                    console.error('Password reset error:', err);
+                    res.status(500).json({ error: 'Internal server error' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'User not found' });
+                } else {
+                    res.json({ message: 'Password reset successfully' });
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Password reset error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.put('/api/admin/users/:userId/status', authenticateToken, requireAdmin, (req, res) => {
+    const { userId } = req.params;
+    const { is_active } = req.body;
+    
+    db.run(
+        'UPDATE users SET is_active = ? WHERE id = ?',
+        [is_active ? 1 : 0, userId],
+        function(err) {
+            if (err) {
+                console.error('Update user status error:', err);
+                res.status(500).json({ error: 'Internal server error' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'User not found' });
+            } else {
+                res.json({ message: 'User status updated' });
+            }
+        }
+    );
+});
+
 // Exercise routes
 app.get('/api/exercises', authenticateToken, (req, res) => {
-    db.all('SELECT * FROM exercises ORDER BY name', (err, exercises) => {
+    db.all('SELECT * FROM exercises ORDER BY category, name', (err, exercises) => {
         if (err) {
             console.error('Get exercises error:', err);
             res.status(500).json({ error: 'Internal server error' });
@@ -310,7 +416,7 @@ app.post('/api/exercises', authenticateToken, (req, res) => {
     
     db.run(
         'INSERT INTO exercises (name, category, muscle_group, description, instructions) VALUES (?, ?, ?, ?, ?)',
-        [name, category, muscle_group, description, instructions],
+        [name, category, muscle_group, description || null, instructions || null],
         function(err) {
             if (err) {
                 console.error('Create exercise error:', err);
@@ -360,7 +466,7 @@ app.post('/api/workouts', authenticateToken, (req, res) => {
     
     db.run(
         'INSERT INTO workouts (user_id, name, date, duration_minutes, notes) VALUES (?, ?, ?, ?, ?)',
-        [req.user.id, name, date, duration_minutes, notes],
+        [req.user.id, name, date, duration_minutes || null, notes || null],
         function(err) {
             if (err) {
                 console.error('Create workout error:', err);
@@ -368,7 +474,7 @@ app.post('/api/workouts', authenticateToken, (req, res) => {
             } else {
                 const workoutId = this.lastID;
                 
-                // Add exercises to workout
+                // Add exercises to workout if provided
                 if (exercises && exercises.length > 0) {
                     const stmt = db.prepare(
                         'INSERT INTO workout_exercises (workout_id, exercise_id, sets_count, reps, weights, rest_time, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -378,17 +484,18 @@ app.post('/api/workouts', authenticateToken, (req, res) => {
                         stmt.run([
                             workoutId,
                             exercise.exercise_id,
-                            exercise.sets_count,
+                            exercise.sets_count || 1,
                             JSON.stringify(exercise.reps || []),
                             JSON.stringify(exercise.weights || []),
-                            exercise.rest_time,
-                            exercise.notes
+                            exercise.rest_time || null,
+                            exercise.notes || null
                         ]);
                     });
                     
                     stmt.finalize((err) => {
                         if (err) {
                             console.error('Add workout exercises error:', err);
+                            // Note: Workout is already created, just log the error
                         }
                     });
                 }
@@ -410,6 +517,7 @@ app.get('/api/workouts/:id', authenticateToken, (req, res) => {
             } else if (!workout) {
                 res.status(404).json({ error: 'Workout not found' });
             } else {
+                // Get exercises for this workout
                 db.all(`
                     SELECT we.*, e.name as exercise_name, e.category, e.muscle_group
                     FROM workout_exercises we
@@ -438,7 +546,7 @@ app.put('/api/workouts/:id', authenticateToken, (req, res) => {
     
     db.run(
         'UPDATE workouts SET name = ?, date = ?, duration_minutes = ?, notes = ? WHERE id = ? AND user_id = ?',
-        [name, date, duration_minutes, notes, req.params.id, req.user.id],
+        [name, date, duration_minutes || null, notes || null, req.params.id, req.user.id],
         function(err) {
             if (err) {
                 console.error('Update workout error:', err);
@@ -535,7 +643,7 @@ app.get('/api/dashboard/stats', authenticateToken, (req, res) => {
 // User profile routes
 app.get('/api/user/profile', authenticateToken, (req, res) => {
     db.get(
-        'SELECT id, username, email, role, created_at FROM users WHERE id = ?',
+        'SELECT id, username, email, role, first_name, last_name, created_at FROM users WHERE id = ?',
         [req.user.id],
         (err, user) => {
             if (err) {
@@ -551,15 +659,15 @@ app.get('/api/user/profile', authenticateToken, (req, res) => {
 });
 
 app.put('/api/user/profile', authenticateToken, async (req, res) => {
-    const { username, email } = req.body;
+    const { username, email, first_name, last_name } = req.body;
     
     if (!username || !email) {
         return res.status(400).json({ error: 'Username and email are required' });
     }
     
     db.run(
-        'UPDATE users SET username = ?, email = ? WHERE id = ?',
-        [username, email, req.user.id],
+        'UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ? WHERE id = ?',
+        [username, email, first_name || null, last_name || null, req.user.id],
         function(err) {
             if (err) {
                 if (err.message.includes('UNIQUE constraint failed')) {
@@ -580,6 +688,10 @@ app.put('/api/user/password', authenticateToken, async (req, res) => {
     
     if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: 'Current and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters' });
     }
     
     db.get('SELECT password_hash FROM users WHERE id = ?', [req.user.id], async (err, user) => {
@@ -672,4 +784,5 @@ app.listen(PORT, () => {
     console.log(`📱 Access the application at: http://localhost:${PORT}`);
     console.log(`💾 Database: ${DB_PATH}`);
     console.log(`🔐 Default admin: admin/admin123`);
+    console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? 'Configured' : 'Using default (not secure!)'}`);
 });

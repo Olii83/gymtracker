@@ -1,4 +1,1021 @@
-<!DOCTYPE html>
+    <script>
+        let currentUser = null;
+        let authToken = null;
+        let exercises = [];
+        let selectedExercisesForWorkout = [];
+
+        // API Base URL
+        const API_BASE = '/api';
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                authToken = token;
+                verifyTokenAndLogin();
+            }
+            
+            // Set today's date as default for new workout
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('workoutDate').value = today;
+        });
+
+        // Verify token and load user data
+        async function verifyTokenAndLogin() {
+            try {
+                const user = await apiCall('/user/profile');
+                if (user) {
+                    currentUser = {
+                        id: user.id,
+                        username: user.username,
+                        email: user.email,
+                        role: user.role,
+                        first_name: user.first_name,
+                        last_name: user.last_name
+                    };
+                    showMainApp();
+                    loadDashboard();
+                }
+            } catch (error) {
+                localStorage.removeItem('authToken');
+                authToken = null;
+            }
+        }
+
+        // Auth Tab switching
+        function showAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const forms = document.querySelectorAll('.auth-form');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.add('hidden'));
+            
+            document.querySelector(`.auth-tab:${tab === 'login' ? 'first' : 'last'}-child`).classList.add('active');
+            document.getElementById(`${tab}Form`).classList.remove('hidden');
+        }
+
+        // Utility functions
+        function showAlert(message, type = 'info', containerId = 'alertContainer') {
+            const alertContainer = document.getElementById(containerId) || document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            if (alertContainer) {
+                alertContainer.innerHTML = '';
+                alertContainer.appendChild(alert);
+                
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('de-DE', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('de-DE', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // API functions
+        async function apiCall(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                }
+            };
+
+            try {
+                const response = await fetch(url, { ...defaultOptions, ...options });
+                
+                if (response.status === 401) {
+                    logout();
+                    return null;
+                }
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || 'API Error');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loginButton = document.getElementById('loginButtonText');
+            const loginLoading = document.getElementById('loginLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                loginButton.style.display = 'none';
+                loginLoading.classList.remove('hidden');
+                
+                const credentials = {
+                    username: document.getElementById('loginUsername').value,
+                    password: document.getElementById('loginPassword').value
+                };
+
+                const response = await apiCall('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify(credentials)
+                });
+
+                if (response) {
+                    authToken = response.token;
+                    currentUser = response.user;
+                    localStorage.setItem('authToken', authToken);
+                    
+                    showMainApp();
+                    loadDashboard();
+                }
+            } catch (error) {
+                showAlert(error.message || 'Anmeldung fehlgeschlagen', 'error');
+            } finally {
+                submitButton.disabled = false;
+                loginButton.style.display = 'inline';
+                loginLoading.classList.add('hidden');
+            }
+        });
+
+        // Register functionality
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const registerButton = document.getElementById('registerButtonText');
+            const registerLoading = document.getElementById('registerLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                registerButton.style.display = 'none';
+                registerLoading.classList.remove('hidden');
+                
+                const password = document.getElementById('registerPassword').value;
+                const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+
+                if (password !== passwordConfirm) {
+                    throw new Error('Passwörter stimmen nicht überein');
+                }
+
+                const userData = {
+                    username: document.getElementById('registerUsername').value,
+                    email: document.getElementById('registerEmail').value,
+                    password: password,
+                    first_name: document.getElementById('registerFirstName').value || null,
+                    last_name: document.getElementById('registerLastName').value || null
+                };
+
+                const response = await apiCall('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify(userData)
+                });
+
+                if (response) {
+                    showAlert('Registrierung erfolgreich! Sie können sich jetzt anmelden.', 'success');
+                    showAuthTab('login');
+                    document.getElementById('registerForm').reset();
+                }
+            } catch (error) {
+                showAlert(error.message || 'Registrierung fehlgeschlagen', 'error');
+            } finally {
+                submitButton.disabled = false;
+                registerButton.style.display = 'inline';
+                registerLoading.classList.add('hidden');
+            }
+        });
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            
+            document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
+            document.getElementById('alertContainer').innerHTML = '';
+            
+            showAuthTab('login');
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            if (currentUser) {
+                const displayName = currentUser.first_name && currentUser.last_name 
+                    ? `${currentUser.first_name} ${currentUser.last_name}`
+                    : currentUser.username;
+                document.getElementById('userWelcome').textContent = `Willkommen, ${displayName}!`;
+                
+                // Show admin button if user is admin
+                if (currentUser.role === 'admin') {
+                    document.getElementById('adminButton').classList.remove('hidden');
+                }
+            }
+            
+            loadExercises();
+        }
+
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            document.getElementById(sectionName).classList.remove('hidden');
+            
+            switch(sectionName) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'workouts':
+                    loadWorkouts();
+                    break;
+                case 'exercises':
+                    loadExercisesList();
+                    break;
+                case 'newWorkout':
+                    resetWorkoutForm();
+                    break;
+                case 'admin':
+                    if (currentUser.role === 'admin') {
+                        loadAdminDashboard();
+                    } else {
+                        showAlert('Keine Berechtigung für Admin-Bereich', 'error');
+                        showSection('dashboard');
+                    }
+                    break;
+            }
+        }
+
+        // Admin functions
+        async function loadAdminDashboard() {
+            try {
+                const users = await apiCall('/admin/users');
+                const stats = await apiCall('/admin/stats');
+                
+                if (stats) {
+                    document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+                    document.getElementById('activeUsers').textContent = stats.activeUsers || 0;
+                    document.getElementById('totalAdminWorkouts').textContent = stats.totalWorkouts || 0;
+                }
+                
+                if (users) {
+                    displayUsersTable(users);
+                }
+            } catch (error) {
+                showAlert('Fehler beim Laden der Admin-Daten: ' + error.message, 'error');
+            }
+        }
+
+        function displayUsersTable(users) {
+            const tbody = document.getElementById('userTableBody');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Keine Benutzer gefunden</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${user.first_name || ''} ${user.last_name || ''}</td>
+                    <td><span class="user-badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}">${user.role}</span></td>
+                    <td><span class="user-badge ${user.is_active ? 'badge-active' : 'badge-inactive'}">${user.is_active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                    <td>${formatDate(user.created_at)}</td>
+                    <td>
+                        <div class="user-actions">
+                            <button class="btn btn-warning" onclick="showPasswordResetModal(${user.id}, '${user.username}')" style="padding: 5px 10px; font-size: 12px;">🔑 Passwort</button>
+                            <button class="btn ${user.is_active ? 'btn-danger' : 'btn-success'}" onclick="toggleUserStatus(${user.id}, ${!user.is_active})" style="padding: 5px 10px; font-size: 12px;">
+                                ${user.is_active ? '🚫 Deaktivieren' : '✅ Aktivieren'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showPasswordResetModal(userId, username) {
+            document.getElementById('resetUserId').value = userId;
+            document.getElementById('resetUsername').textContent = username;
+            document.getElementById('passwordResetModal').style.display = 'block';
+        }
+
+        function closePasswordResetModal() {
+            document.getElementById('passwordResetModal').style.display = 'none';
+            document.getElementById('adminPasswordResetForm').reset();
+        }
+
+        document.getElementById('adminPasswordResetForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('adminNewPassword').value;
+            const confirmPassword = document.getElementById('adminConfirmPassword').value;
+            const userId = document.getElementById('resetUserId').value;
+            
+            if (newPassword !== confirmPassword) {
+                showAlert('Passwörter stimmen nicht überein', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall(`/admin/users/${userId}/reset-password`, {
+                    method: 'POST',
+                    body: JSON.stringify({ newPassword })
+                });
+                
+                showAlert('Passwort erfolgreich zurückgesetzt', 'success');
+                closePasswordResetModal();
+            } catch (error) {
+                showAlert('Fehler beim Zurücksetzen des Passworts: ' + error.message, 'error');
+            }
+        });
+
+        async function toggleUserStatus(userId, activate) {
+            try {
+                await apiCall(`/admin/users/${userId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ is_active: activate })
+                });
+                
+                showAlert(`Benutzer ${activate ? 'aktiviert' : 'deaktiviert'}`, 'success');
+                loadAdminDashboard();
+            } catch (error) {
+                showAlert('Fehler beim Ändern des Benutzerstatus: ' + error.message, 'error');
+            }
+        }
+
+        // Dashboard functions
+        async function loadDashboard() {
+            try {
+                const stats = await apiCall('/dashboard/stats');
+                
+                if (stats) {
+                    document.getElementById('totalWorkouts').textContent = stats.totalWorkouts || 0;
+                    document.getElementById('thisWeekWorkouts').textContent = stats.thisWeekWorkouts || 0;
+                    document.getElementById('totalTime').textContent = stats.totalTime || 0;
+                    
+                    displayRecentWorkouts(stats.recentWorkouts || []);
+                }
+            } catch (error) {
+                showAlert('Fehler beim Laden der Dashboard-Daten: ' + error.message, 'error');
+            }
+        }
+
+        function displayRecentWorkouts(workouts) {
+            const container = document.getElementById('recentWorkouts');
+            
+            if (workouts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p>🏃‍♀️ Noch keine Trainings vorhanden</p>
+                        <p style="margin-top: 10px;">
+                            <button class="btn btn-success" onclick="showSection('newWorkout')">
+                                ➕ Erstes Training erstellen
+                            </button>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = workouts.map(workout => `
+                <div class="workout-item" onclick="showWorkoutDetail(${workout.id})">
+                    <div class="workout-date">${formatDate(workout.date)}</div>
+                    <div class="workout-name">${workout.name}</div>
+                    <div class="workout-duration">
+                        ${workout.duration_minutes ? `⏱️ ${workout.duration_minutes} Minuten` : '⏱️ Dauer nicht erfasst'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function showWorkoutDetail(workoutId) {
+            try {
+                const workout = await apiCall(`/workouts/${workoutId}`);
+                
+                const modal = document.getElementById('workoutDetailModal');
+                const content = document.getElementById('workoutDetailContent');
+                
+                content.innerHTML = `
+                    <h2 style="margin-bottom: 20px; color: #333;">${workout.name}</h2>
+                    <div style="margin-bottom: 20px;">
+                        <p><strong>📅 Datum:</strong> ${formatDate(workout.date)}</p>
+                        <p><strong>⏱️ Dauer:</strong> ${workout.duration_minutes ? workout.duration_minutes + ' Minuten' : 'Nicht erfasst'}</p>
+                        ${workout.notes ? `<p><strong>📝 Notizen:</strong> ${workout.notes}</p>` : ''}
+                    </div>
+                    
+                    ${workout.exercises && workout.exercises.length > 0 ? `
+                        <h3 style="margin-bottom: 15px; color: #333;">💪 Übungen</h3>
+                        <div>
+                            ${workout.exercises.map(ex => `
+                                <div class="exercise-item">
+                                    <div class="exercise-name">${ex.exercise_name}</div>
+                                    <div class="exercise-details">
+                                        <span class="exercise-tag">${ex.category}</span>
+                                        <span class="exercise-tag">${ex.muscle_group}</span>
+                                        <span class="exercise-tag">${ex.sets_count} Sätze</span>
+                                    </div>
+                                    ${ex.reps && ex.reps.length > 0 ? `
+                                        <div style="margin-top: 10px;">
+                                            <strong>Wiederholungen:</strong> ${ex.reps.join(', ')}
+                                        </div>
+                                    ` : ''}
+                                    ${ex.weights && ex.weights.length > 0 ? `
+                                        <div>
+                                            <strong>Gewichte (kg):</strong> ${ex.weights.join(', ')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p style="color: #666;">Keine Übungen erfasst.</p>'}
+                    
+                    <div style="margin-top: 30px; display: flex; gap: 10px;">
+                        <button class="btn btn-danger" onclick="deleteWorkout(${workout.id})">🗑️ Löschen</button>
+                        <button class="btn btn-secondary" onclick="closeWorkoutDetailModal()">❌ Schließen</button>
+                    </div>
+                `;
+                
+                modal.style.display = 'block';
+            } catch (error) {
+                showAlert('Fehler beim Laden der Trainingsdetails: ' + error.message, 'error');
+            }
+        }
+
+        function closeWorkoutDetailModal() {
+            document.getElementById('workoutDetailModal').style.display = 'none';
+        }
+
+        async function deleteWorkout(workoutId) {
+            if (!confirm('Sind Sie sicher, dass Sie dieses Training löschen möchten?')) {
+                return;
+            }
+
+            try {
+                await apiCall(`/workouts/${workoutId}`, { method: 'DELETE' });
+                showAlert('Training erfolgreich gelöscht!', 'success');
+                closeWorkoutDetailModal();
+                loadWorkouts();
+            } catch (error) {
+                showAlert('Fehler beim Löschen des Trainings: ' + error.message, 'error');
+            }
+        }
+
+        // Profile functions
+        async function showProfileModal() {
+            try {
+                const profile = await apiCall('/user/profile');
+                
+                if (profile) {
+                    document.getElementById('profileUsername').value = profile.username;
+                    document.getElementById('profileEmail').value = profile.email;
+                    document.getElementById('profileFirstName').value = profile.first_name || '';
+                    document.getElementById('profileLastName').value = profile.last_name || '';
+                    document.getElementById('profileRole').textContent = profile.role === 'admin' ? 'Administrator' : 'Benutzer';
+                    document.getElementById('profileMemberSince').textContent = formatDate(profile.created_at);
+                    
+                    document.getElementById('profileModal').style.display = 'block';
+                }
+            } catch (error) {
+                showAlert('Fehler beim Laden des Profils: ' + error.message, 'error');
+            }
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('updateProfileForm').reset();
+        }
+
+        // Update Profile functionality
+        document.getElementById('updateProfileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const updateButton = document.getElementById('updateProfileButtonText');
+            const updateLoading = document.getElementById('updateProfileLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                updateButton.style.display = 'none';
+                updateLoading.classList.remove('hidden');
+                
+                const profileData = {
+                    username: document.getElementById('profileUsername').value,
+                    email: document.getElementById('profileEmail').value,
+                    first_name: document.getElementById('profileFirstName').value || null,
+                    last_name: document.getElementById('profileLastName').value || null
+                };
+
+                await apiCall('/user/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify(profileData)
+                });
+
+                // Update current user data
+                currentUser.username = profileData.username;
+                currentUser.email = profileData.email;
+                currentUser.first_name = profileData.first_name;
+                currentUser.last_name = profileData.last_name;
+                
+                // Update welcome message
+                const displayName = profileData.first_name && profileData.last_name 
+                    ? `${profileData.first_name} ${profileData.last_name}`
+                    : profileData.username;
+                document.getElementById('userWelcome').textContent = `Willkommen, ${displayName}!`;
+
+                showAlert('Profil erfolgreich aktualisiert!', 'success');
+            } catch (error) {
+                showAlert(error.message || 'Fehler beim Aktualisieren des Profils', 'error');
+            } finally {
+                submitButton.disabled = false;
+                updateButton.style.display = 'inline';
+                updateLoading.classList.add('hidden');
+            }
+        });
+
+        // Change Password functionality
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const changePasswordButton = document.getElementById('changePasswordButtonText');
+            const changePasswordLoading = document.getElementById('changePasswordLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                changePasswordButton.style.display = 'none';
+                changePasswordLoading.classList.remove('hidden');
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+                
+                if (newPassword !== confirmNewPassword) {
+                    throw new Error('Neue Passwörter stimmen nicht überein');
+                }
+
+                await apiCall('/user/password', {
+                    method: 'PUT',
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                showAlert('Passwort erfolgreich geändert!', 'success');
+                document.getElementById('changePasswordForm').reset();
+            } catch (error) {
+                showAlert(error.message || 'Fehler beim Ändern des Passworts', 'error');
+            } finally {
+                submitButton.disabled = false;
+                changePasswordButton.style.display = 'inline';
+                changePasswordLoading.classList.add('hidden');
+            }
+        });
+
+        // Exercises functions
+        async function loadExercises() {
+            try {
+                const response = await apiCall('/exercises');
+                exercises = response || [];
+                updateExerciseSelect();
+            } catch (error) {
+                console.error('Fehler beim Laden der Übungen:', error);
+                exercises = [];
+            }
+        }
+
+        async function loadExercisesList() {
+            try {
+                const exercisesList = await apiCall('/exercises');
+                displayExercisesList(exercisesList || []);
+            } catch (error) {
+                showAlert('Fehler beim Laden der Übungen: ' + error.message, 'error');
+            }
+        }
+
+        function displayExercisesList(exercisesList) {
+            const container = document.getElementById('exercisesList');
+            
+            if (exercisesList.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p>💪 Noch keine Übungen vorhanden</p>
+                        <p style="margin-top: 10px;">
+                            <button class="btn btn-success" onclick="showNewExerciseModal()">
+                                ➕ Erste Übung erstellen
+                            </button>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            const groupedExercises = exercisesList.reduce((groups, exercise) => {
+                const category = exercise.category;
+                if (!groups[category]) {
+                    groups[category] = [];
+                }
+                groups[category].push(exercise);
+                return groups;
+            }, {});
+
+            container.innerHTML = Object.keys(groupedExercises).map(category => `
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">
+                        ${category}
+                    </h3>
+                    <div>
+                        ${groupedExercises[category].map(exercise => `
+                            <div class="exercise-item">
+                                <div class="exercise-name">${exercise.name}</div>
+                                <div class="exercise-details">
+                                    <span class="exercise-tag">${exercise.muscle_group}</span>
+                                </div>
+                                ${exercise.description ? `
+                                    <div class="exercise-description">${exercise.description}</div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateExerciseSelect() {
+            const select = document.getElementById('exerciseSelect');
+            select.innerHTML = '<option value="">-- Übung auswählen --</option>';
+            
+            exercises.forEach(exercise => {
+                const option = document.createElement('option');
+                option.value = exercise.id;
+                option.textContent = `${exercise.name} (${exercise.muscle_group})`;
+                select.appendChild(option);
+            });
+        }
+
+        // New Exercise Modal
+        function showNewExerciseModal() {
+            document.getElementById('newExerciseModal').style.display = 'block';
+        }
+
+        function closeNewExerciseModal() {
+            document.getElementById('newExerciseModal').style.display = 'none';
+            document.getElementById('newExerciseForm').reset();
+        }
+
+        document.getElementById('newExerciseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const exerciseData = {
+                name: document.getElementById('exerciseName').value,
+                category: document.getElementById('exerciseCategory').value,
+                muscle_group: document.getElementById('exerciseMuscleGroup').value,
+                description: document.getElementById('exerciseDescription').value || null,
+                instructions: document.getElementById('exerciseInstructions').value || null
+            };
+
+            try {
+                await apiCall('/exercises', {
+                    method: 'POST',
+                    body: JSON.stringify(exerciseData)
+                });
+
+                showAlert('Übung erfolgreich erstellt!', 'success');
+                closeNewExerciseModal();
+                await loadExercises();
+                loadExercisesList();
+            } catch (error) {
+                showAlert('Fehler beim Erstellen der Übung: ' + error.message, 'error');
+            }
+        });
+
+        // Quick Add Exercise (in workout form)
+        async function quickAddExercise() {
+            const name = document.getElementById('quickExerciseName').value.trim();
+            const category = document.getElementById('quickExerciseCategory').value;
+            const muscle_group = document.getElementById('quickExerciseMuscle').value;
+            
+            if (!name || !category || !muscle_group) {
+                showAlert('Bitte alle Felder für die neue Übung ausfüllen', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await apiCall('/exercises', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name,
+                        category,
+                        muscle_group,
+                        description: null,
+                        instructions: null
+                    })
+                });
+                
+                if (response && response.exerciseId) {
+                    // Add the new exercise to the list and select it
+                    await loadExercises();
+                    
+                    // Add to workout
+                    const newExercise = {
+                        id: response.exerciseId,
+                        name,
+                        category,
+                        muscle_group
+                    };
+                    
+                    const workoutExercise = {
+                        exercise_id: newExercise.id,
+                        exercise_name: newExercise.name,
+                        muscle_group: newExercise.muscle_group,
+                        sets_count: 3,
+                        reps: [10, 10, 10],
+                        weights: [0, 0, 0],
+                        rest_time: 90,
+                        notes: ''
+                    };
+                    
+                    selectedExercisesForWorkout.push(workoutExercise);
+                    updateSelectedExercisesDisplay();
+                    
+                    // Clear quick add fields
+                    document.getElementById('quickExerciseName').value = '';
+                    document.getElementById('quickExerciseCategory').value = '';
+                    document.getElementById('quickExerciseMuscle').value = '';
+                    
+                    showAlert('Übung erstellt und hinzugefügt!', 'success');
+                }
+            } catch (error) {
+                showAlert('Fehler beim Erstellen der Übung: ' + error.message, 'error');
+            }
+        }
+
+        // New Workout functions
+        function resetWorkoutForm() {
+            document.getElementById('newWorkoutForm').reset();
+            document.getElementById('selectedExercises').innerHTML = '';
+            selectedExercisesForWorkout = [];
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('workoutDate').value = today;
+        }
+
+        function addExerciseToWorkout() {
+            const select = document.getElementById('exerciseSelect');
+            const exerciseId = parseInt(select.value);
+            
+            if (!exerciseId) {
+                showAlert('Bitte wählen Sie eine Übung aus.', 'error');
+                return;
+            }
+
+            if (selectedExercisesForWorkout.find(ex => ex.exercise_id === exerciseId)) {
+                showAlert('Diese Übung ist bereits hinzugefügt.', 'error');
+                return;
+            }
+
+            const exercise = exercises.find(ex => ex.id === exerciseId);
+            if (!exercise) {
+                showAlert('Übung nicht gefunden.', 'error');
+                return;
+            }
+
+            const workoutExercise = {
+                exercise_id: exerciseId,
+                exercise_name: exercise.name,
+                muscle_group: exercise.muscle_group,
+                sets_count: 3,
+                reps: [10, 10, 10],
+                weights: [0, 0, 0],
+                rest_time: 90,
+                notes: ''
+            };
+
+            selectedExercisesForWorkout.push(workoutExercise);
+            updateSelectedExercisesDisplay();
+            
+            select.value = '';
+        }
+
+        function updateSelectedExercisesDisplay() {
+            const container = document.getElementById('selectedExercises');
+            
+            if (selectedExercisesForWorkout.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = `
+                <h3 style="margin-bottom: 15px; color: #333;">Ausgewählte Übungen:</h3>
+                ${selectedExercisesForWorkout.map((exercise, index) => `
+                    <div class="selected-exercise">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #333;">${exercise.exercise_name}</h4>
+                            <button type="button" class="btn btn-danger" onclick="removeExerciseFromWorkout(${index})" style="padding: 5px 10px; font-size: 12px;">
+                                🗑️ Entfernen
+                            </button>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label>Anzahl Sätze:</label>
+                            <input type="number" min="1" max="10" value="${exercise.sets_count}" 
+                                   onchange="updateExerciseSets(${index}, this.value)" 
+                                   style="width: 80px; margin-left: 10px; padding: 5px;">
+                        </div>
+                        
+                        <div class="sets-input" id="sets-${index}">
+                            <!-- Sets will be generated here -->
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <label>Pause zwischen Sätzen (Sekunden):</label>
+                            <input type="number" min="0" max="600" value="${exercise.rest_time}" 
+                                   onchange="selectedExercisesForWorkout[${index}].rest_time = parseInt(this.value)"
+                                   style="width: 80px; margin-left: 10px; padding: 5px;">
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <label>Notizen:</label>
+                            <input type="text" placeholder="Besonderheiten, Technik-Tipps..." 
+                                   value="${exercise.notes}"
+                                   onchange="selectedExercisesForWorkout[${index}].notes = this.value"
+                                   style="width: 100%; margin-top: 5px; padding: 8px;">
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+
+            selectedExercisesForWorkout.forEach((exercise, index) => {
+                updateSetsDisplay(index);
+            });
+        }
+
+        function updateExerciseSets(exerciseIndex, setsCount) {
+            const count = parseInt(setsCount);
+            if (count < 1 || count > 10) return;
+
+            const exercise = selectedExercisesForWorkout[exerciseIndex];
+            exercise.sets_count = count;
+            
+            while (exercise.reps.length < count) {
+                exercise.reps.push(exercise.reps[exercise.reps.length - 1] || 10);
+                exercise.weights.push(exercise.weights[exercise.weights.length - 1] || 0);
+            }
+            
+            exercise.reps = exercise.reps.slice(0, count);
+            exercise.weights = exercise.weights.slice(0, count);
+            
+            updateSetsDisplay(exerciseIndex);
+        }
+
+        function updateSetsDisplay(exerciseIndex) {
+            const exercise = selectedExercisesForWorkout[exerciseIndex];
+            const container = document.getElementById(`sets-${exerciseIndex}`);
+            
+            container.innerHTML = Array.from({ length: exercise.sets_count }, (_, setIndex) => `
+                <div class="set-input">
+                    <label>Satz ${setIndex + 1}</label>
+                    <input type="number" placeholder="Wdh." min="1" max="100" 
+                           value="${exercise.reps[setIndex] || ''}"
+                           onchange="selectedExercisesForWorkout[${exerciseIndex}].reps[${setIndex}] = parseInt(this.value) || 0">
+                    <input type="number" placeholder="Gewicht (kg)" min="0" max="1000" step="0.5"
+                           value="${exercise.weights[setIndex] || ''}"
+                           onchange="selectedExercisesForWorkout[${exerciseIndex}].weights[${setIndex}] = parseFloat(this.value) || 0">
+                </div>
+            `).join('');
+        }
+
+        function removeExerciseFromWorkout(index) {
+            selectedExercisesForWorkout.splice(index, 1);
+            updateSelectedExercisesDisplay();
+        }
+
+        document.getElementById('newWorkoutForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const saveButton = document.getElementById('saveButtonText');
+            const saveLoading = document.getElementById('saveLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                saveButton.style.display = 'none';
+                saveLoading.classList.remove('hidden');
+                
+                const workoutData = {
+                    name: document.getElementById('workoutName').value,
+                    date: document.getElementById('workoutDate').value,
+                    duration_minutes: parseInt(document.getElementById('workoutDuration').value) || null,
+                    notes: document.getElementById('workoutNotes').value || null,
+                    exercises: selectedExercisesForWorkout
+                };
+
+                await apiCall('/workouts', {
+                    method: 'POST',
+                    body: JSON.stringify(workoutData)
+                });
+
+                showAlert('Training erfolgreich gespeichert!', 'success');
+                showSection('dashboard');
+            } catch (error) {
+                showAlert('Fehler beim Speichern des Trainings: ' + error.message, 'error');
+            } finally {
+                submitButton.disabled = false;
+                saveButton.style.display = 'inline';
+                saveLoading.classList.add('hidden');
+            }
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = ['newExerciseModal', 'workoutDetailModal', 'profileModal', 'passwordResetModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>).join('');
+        }
+
+        // Workouts functions
+        async function loadWorkouts() {
+            try {
+                const workouts = await apiCall('/workouts');
+                displayWorkouts(workouts || []);
+            } catch (error) {
+                showAlert('Fehler beim Laden der Trainings: ' + error.message, 'error');
+            }
+        }
+
+        function displayWorkouts(workouts) {
+            const container = document.getElementById('workoutsList');
+            
+            if (workouts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p>🏃‍♀️ Noch keine Trainings vorhanden</p>
+                        <p style="margin-top: 10px;">
+                            <button class="btn btn-success" onclick="showSection('newWorkout')">
+                                ➕ Erstes Training erstellen
+                            </button>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = workouts.map(workout => `
+                <div class="workout-item" onclick="showWorkoutDetail(${workout.id})">
+                    <div class="workout-date">${formatDate(workout.date)}</div>
+                    <div class="workout-name">${workout.name}</div>
+                    <div class="workout-duration">
+                        ${workout.duration_minutes ? `⏱️ ${workout.duration_minutes} Minuten` : '⏱️ Dauer nicht erfasst'}
+                    </div>
+                </div>
+            `<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -92,6 +1109,14 @@
 
         .btn-info {
             background: linear-gradient(45deg, #17a2b8, #20c997);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f7971e, #ffd200);
+        }
+
+        .btn-admin {
+            background: linear-gradient(45deg, #8E2DE2, #4A00E0);
         }
 
         .card {
@@ -320,6 +1345,12 @@
             color: #0c5460;
         }
 
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
+
         .loading {
             display: inline-block;
             width: 20px;
@@ -350,6 +1381,8 @@
             border-radius: 15px;
             width: 90%;
             max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
             box-shadow: 0 15px 35px rgba(31, 38, 135, 0.37);
             animation: modalSlideIn 0.3s ease;
         }
@@ -409,6 +1442,71 @@
             font-size: 12px;
         }
 
+        /* Admin specific styles */
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .user-table th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .user-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background-color: #8E2DE2;
+            color: white;
+        }
+
+        .badge-user {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .badge-active {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-inactive {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .quick-exercise-add {
+            padding: 15px;
+            background: #f0f4ff;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 2px dashed #667eea;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -452,26 +1550,12 @@
                 padding: 20px;
             }
 
-            .exercise-details {
+            .user-table {
+                font-size: 12px;
+            }
+
+            .user-actions {
                 flex-direction: column;
-                gap: 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .nav-buttons {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .btn {
-                flex: 1;
-                text-align: center;
-                min-width: auto;
-            }
-
-            .logo {
-                justify-content: center;
             }
         }
     </style>
@@ -493,17 +1577,17 @@
             <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="loginUsername">Benutzername oder E-Mail</label>
-                    <input type="text" id="loginUsername" name="username" required>
+                    <input type="text" id="loginUsername" name="username" required autocomplete="username">
                 </div>
                 
                 <div class="form-group">
                     <label for="loginPassword">Passwort</label>
-                    <input type="password" id="loginPassword" name="password" required>
+                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password">
                 </div>
                 
                 <button type="submit" class="btn" style="width: 100%; margin-bottom: 15px;">
                     <span id="loginButtonText">Anmelden</span>
-                    <div id="loginLoading" class="loading hidden" style="margin-left: 10px;"></div>
+                    <div id="loginLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
                 </button>
             </form>
             
@@ -520,29 +1604,30 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="registerFirstName">Vorname</label>
+                    <input type="text" id="registerFirstName" name="first_name" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerLastName">Nachname</label>
+                    <input type="text" id="registerLastName" name="last_name" maxlength="50">
+                </div>
+                
+                <div class="form-group">
                     <label for="registerPassword">Passwort *</label>
-                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                    <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password">
                 </div>
                 
                 <div class="form-group">
                     <label for="registerPasswordConfirm">Passwort bestätigen *</label>
-                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6">
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password">
                 </div>
                 
                 <button type="submit" class="btn btn-success" style="width: 100%; margin-bottom: 15px;">
                     <span id="registerButtonText">Registrieren</span>
-                    <div id="registerLoading" class="loading hidden" style="margin-left: 10px;"></div>
+                    <div id="registerLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
                 </button>
             </form>
-            
-            <div id="adminHint" style="text-align: center; color: #666; margin-top: 20px;">
-                <p><strong>Standard Admin-Zugang:</strong></p>
-                <p>Benutzername: <code>admin</code></p>
-                <p>Passwort: <code>admin123</code></p>
-                <p style="font-size: 12px; margin-top: 10px; color: #999;">
-                    ⚠️ Bitte ändern Sie das Passwort nach dem ersten Login!
-                </p>
-            </div>
         </div>
     </div>
 
@@ -559,6 +1644,7 @@
                     <button class="btn" onclick="showSection('workouts')">🏋️ Workouts</button>
                     <button class="btn" onclick="showSection('exercises')">💪 Übungen</button>
                     <button class="btn btn-success" onclick="showSection('newWorkout')">➕ Neues Training</button>
+                    <button id="adminButton" class="btn btn-admin hidden" onclick="showSection('admin')">👑 Admin</button>
                     <button class="btn btn-info" onclick="showProfileModal()">👤 Profil</button>
                     <button class="btn btn-secondary" onclick="logout()">🚪 Abmelden</button>
                 </div>
@@ -590,6 +1676,53 @@
                             <div class="loading"></div>
                             <p style="margin-top: 10px;">Lade Trainings...</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Section -->
+            <div id="admin" class="section hidden">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px; color: #333;">👑 Admin-Bereich</h2>
+                    
+                    <div class="grid" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalUsers">0</div>
+                            <div class="stat-label">Registrierte Benutzer</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="activeUsers">0</div>
+                            <div class="stat-label">Aktive Benutzer</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalAdminWorkouts">0</div>
+                            <div class="stat-label">Gesamte Workouts</div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 15px; color: #333;">👥 Benutzerverwaltung</h3>
+                    <div id="userManagement">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Benutzername</th>
+                                    <th>E-Mail</th>
+                                    <th>Name</th>
+                                    <th>Rolle</th>
+                                    <th>Status</th>
+                                    <th>Registriert</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">
+                                        <div class="loading"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -657,6 +1790,33 @@
                                 <option value="">-- Übung auswählen --</option>
                             </select>
                             <button type="button" class="btn" onclick="addExerciseToWorkout()" style="margin-top: 10px;">Übung hinzufügen</button>
+                            
+                            <!-- Quick Add New Exercise -->
+                            <div class="quick-exercise-add">
+                                <h4 style="margin-bottom: 10px; color: #667eea;">🆕 Neue Übung schnell erstellen</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <input type="text" id="quickExerciseName" placeholder="Name der neuen Übung">
+                                    <select id="quickExerciseCategory">
+                                        <option value="">-- Kategorie --</option>
+                                        <option value="Krafttraining">Krafttraining</option>
+                                        <option value="Cardio">Cardio</option>
+                                        <option value="Stretching">Stretching</option>
+                                        <option value="Functional">Functional</option>
+                                    </select>
+                                    <select id="quickExerciseMuscle">
+                                        <option value="">-- Muskelgruppe --</option>
+                                        <option value="Brust">Brust</option>
+                                        <option value="Rücken">Rücken</option>
+                                        <option value="Schultern">Schultern</option>
+                                        <option value="Arme">Arme</option>
+                                        <option value="Beine">Beine</option>
+                                        <option value="Core">Core</option>
+                                        <option value="Cardio">Cardio</option>
+                                        <option value="Ganzkörper">Ganzkörper</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info" onclick="quickAddExercise()">➕ Schnell hinzufügen</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="selectedExercises" class="selected-exercises">
@@ -666,7 +1826,7 @@
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button type="submit" class="btn btn-success" style="flex: 1;">
                                 <span id="saveButtonText">💾 Training speichern</span>
-                                <div id="saveLoading" class="loading hidden" style="margin-left: 10px;"></div>
+                                <div id="saveLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="showSection('dashboard')">❌ Abbrechen</button>
                         </div>
@@ -682,10 +1842,36 @@
             <span class="close" onclick="closeProfileModal()">&times;</span>
             <h2 style="margin-bottom: 20px; color: #333;">👤 Profil verwalten</h2>
             
+            <form id="updateProfileForm" style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px; color: #667eea;">📝 Persönliche Informationen</h3>
+                
+                <div class="form-group">
+                    <label for="profileUsername">Benutzername *</label>
+                    <input type="text" id="profileUsername" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profileEmail">E-Mail *</label>
+                    <input type="email" id="profileEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profileFirstName">Vorname</label>
+                    <input type="text" id="profileFirstName" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="profileLastName">Nachname</label>
+                    <input type="text" id="profileLastName" maxlength="50">
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%;">
+                    <span id="updateProfileButtonText">💾 Profil aktualisieren</span>
+                    <div id="updateProfileLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                </button>
+            </form>
+            
             <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                <h3 style="margin-bottom: 10px; color: #667eea;">Aktuelle Informationen</h3>
-                <p><strong>Benutzername:</strong> <span id="profileUsername"></span></p>
-                <p><strong>E-Mail:</strong> <span id="profileEmail"></span></p>
                 <p><strong>Rolle:</strong> <span id="profileRole"></span></p>
                 <p><strong>Mitglied seit:</strong> <span id="profileMemberSince"></span></p>
             </div>
@@ -711,7 +1897,7 @@
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-success" style="flex: 1;">
                         <span id="changePasswordButtonText">🔒 Passwort ändern</span>
-                        <div id="changePasswordLoading" class="loading hidden" style="margin-left: 10px;"></div>
+                        <div id="changePasswordLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">❌ Schließen</button>
                 </div>
@@ -784,1139 +1970,81 @@
         </div>
     </div>
 
+    <!-- Password Reset Modal (Admin) -->
+    <div id="passwordResetModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePasswordResetModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #333;">🔑 Passwort zurücksetzen</h2>
+            
+            <p style="margin-bottom: 20px;">Neues Passwort für Benutzer: <strong id="resetUsername"></strong></p>
+            
+            <form id="adminPasswordResetForm">
+                <input type="hidden" id="resetUserId">
+                
+                <div class="form-group">
+                    <label for="adminNewPassword">Neues Passwort *</label>
+                    <input type="password" id="adminNewPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminConfirmPassword">Passwort bestätigen *</label>
+                    <input type="password" id="adminConfirmPassword" required minlength="6">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-warning" style="flex: 1;">🔑 Passwort zurücksetzen</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePasswordResetModal()">❌ Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        let currentUser = null;
-        let authToken = null;
-        let exercises = [];
-        let selectedExercisesForWorkout = [];
-
-        // API Base URL
-        const API_BASE = '/api';
-
-        // Check if user is already logged in
-        document.addEventListener('DOMContentLoaded', function() {
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                authToken = token;
-                showMainApp();
-                loadDashboard();
-            }
-            
-            // Set today's date as default for new workout
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('workoutDate').value = today;
-        });
-
-        // Auth Tab switching
-        function showAuthTab(tab) {
-            const tabs = document.querySelectorAll('.auth-tab');
-            const forms = document.querySelectorAll('.auth-form');
-            
-            tabs.forEach(t => t.classList.remove('active'));
-            forms.forEach(f => f.classList.add('hidden'));
-            
-            // Activate selected tab
-            document.querySelector(`.auth-tab:${tab === 'login' ? 'first' : 'last'}-child`).classList.add('active');
-            document.getElementById(`${tab}Form`).classList.remove('hidden');
-            
-            // Show/hide admin hint only for login
-            const adminHint = document.getElementById('adminHint');
-            if (tab === 'login') {
-                adminHint.style.display = 'block';
-            } else {
-                adminHint.style.display = 'none';
-            }
-        }
-
-        // Utility functions
-        function showAlert(message, type = 'info') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            
-            alertContainer.innerHTML = '';
-            alertContainer.appendChild(alert);
-            
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                if (alert.parentElement) {
-                    alert.remove();
-                }
-            }, 5000);
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('de-DE', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-
-        function formatDateTime(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('de-DE', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        // API functions
-        async function apiCall(endpoint, options = {}) {
-            const url = `${API_BASE}${endpoint}`;
-            const defaultOptions = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(authToken && { 'Authorization': `Bearer ${authToken}` })
-                }
-            };
-
-            const response = await fetch(url, { ...defaultOptions, ...options });
-            
-            if (response.status === 401) {
-                // Token expired or invalid
-                logout();
-                return null;
-            }
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'API Error');
-            }
-            
-            return data;
-        }
-
-        // Login functionality
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const loginButton = document.getElementById('loginButtonText');
-            const loginLoading = document.getElementById('loginLoading');
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            
-            try {
-                submitButton.disabled = true;
-                loginButton.textContent = '';
-                loginLoading.classList.remove('hidden');
                 
-                const formData = new FormData(e.target);
-                const credentials = {
-                    username: formData.get('username') || document.getElementById('loginUsername').value,
-                    password: formData.get('password') || document.getElementById('loginPassword').value
-                };
-
-                const response = await apiCall('/auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify(credentials)
-                });
-
-                if (response) {
-                    authToken = response.token;
-                    currentUser = response.user;
-                    localStorage.setItem('authToken', authToken);
-                    
-                    showMainApp();
-                    loadDashboard();
-                    showAlert('Erfolgreich angemeldet!', 'success');
-                }
-            } catch (error) {
-                showAlert(error.message, 'error');
-            } finally {
-                submitButton.disabled = false;
-                loginButton.textContent = 'Anmelden';
-                loginLoading.classList.add('hidden');
-            }
-        });
-
-        // Register functionality
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const registerButton = document.getElementById('registerButtonText');
-            const registerLoading = document.getElementById('registerLoading');
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            
-            try {
-                submitButton.disabled = true;
-                registerButton.textContent = '';
-                registerLoading.classList.remove('hidden');
-                
-                const formData = new FormData(e.target);
-                const username = formData.get('username') || document.getElementById('registerUsername').value;
-                const email = formData.get('email') || document.getElementById('registerEmail').value;
-                const password = formData.get('password') || document.getElementById('registerPassword').value;
-                const passwordConfirm = formData.get('passwordConfirm') || document.getElementById('registerPasswordConfirm').value;
-
-                // Validate passwords match
-                if (password !== passwordConfirm) {
-                    throw new Error('Passwörter stimmen nicht überein');
-                }
-
-                const userData = { username, email, password };
-
-                const response = await apiCall('/auth/register', {
-                    method: 'POST',
-                    body: JSON.stringify(userData)
-                });
-
-                if (response) {
-                    showAlert('Registrierung erfolgreich! Sie können sich jetzt anmelden.', 'success');
-                    showAuthTab('login');
-                    document.getElementById('registerForm').reset();
-                }
-            } catch (error) {
-                showAlert(error.message, 'error');
-            } finally {
-                submitButton.disabled = false;
-                registerButton.textContent = 'Registrieren';
-                registerLoading.classList.add('hidden');
-            }
-        });
-
-        function logout() {
-            authToken = null;
-            currentUser = null;
-            localStorage.removeItem('authToken');
-            
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            
-            // Reset forms
-            document.getElementById('loginForm').reset();
-            document.getElementById('registerForm').reset();
-            document.getElementById('alertContainer').innerHTML = '';
-            
-            // Show login tab by default
-            showAuthTab('login');
-        }
-
-        function showMainApp() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            
-            if (currentUser) {
-                document.getElementById('userWelcome').textContent = `Willkommen, ${currentUser.username}!`;
-            }
-            
-            // Load exercises for the workout form
-            loadExercises();
-        }
-
-        function showSection(sectionName) {
-            // Hide all sections
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.add('hidden');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionName).classList.remove('hidden');
-            
-            // Load data based on section
-            switch(sectionName) {
-                case 'dashboard':
-                    loadDashboard();
-                    break;
-                case 'workouts':
-                    loadWorkouts();
-                    break;
-                case 'exercises':
-                    loadExercisesList();
-                    break;
-                case 'newWorkout':
-                    resetWorkoutForm();
-                    break;
-            }
-        }
-
-        // Dashboard functions
-        async function loadDashboard() {
-            try {
-                const stats = await apiCall('/dashboard/stats');
-                
-                if (stats) {
-                    document.getElementById('totalWorkouts').textContent = stats.totalWorkouts;
-                    document.getElementById('thisWeekWorkouts').textContent = stats.thisWeekWorkouts;
-                    document.getElementById('totalTime').textContent = stats.totalTime;
-                    
-                    displayRecentWorkouts(stats.recentWorkouts);
-                }
-            } catch (error) {
-                showAlert('Fehler beim Laden der Dashboard-Daten: ' + error.message, 'error');
-            }
-        }
-
-        function displayRecentWorkouts(workouts) {
-            const container = document.getElementById('recentWorkouts');
-            
-            if (workouts.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: #666; padding: 40px;">
-                        <p>🏃‍♀️ Noch keine Trainings vorhanden</p>
-                        <p style="margin-top: 10px;">
-                            <button class="btn btn-success" onclick="showSection('newWorkout')">
-                                ➕ Erstes Training erstellen
-                            </button>
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = workouts.map(workout => `
-                <div class="workout-item" onclick="showWorkoutDetail(${workout.id})">
-                    <div class="workout-date">${formatDate(workout.date)}</div>
-                    <div class="workout-name">${workout.name}</div>
-                    <div class="workout-duration">
-                        ${workout.duration_minutes ? `⏱️ ${workout.duration_minutes} Minuten` : '⏱️ Dauer nicht erfasst'}
-                        ${workout.notes ? ` • 📝 ${workout.notes.substring(0, 100)}${workout.notes.length > 100 ? '...' : ''}` : ''}
-                    </div>
-                    <div style="margin-top: 10px; font-size: 12px; color: #888;">
-                        Erstellt: ${formatDateTime(workout.created_at)}
-                    </div>
+                <div class="form-group">
+                    <label for="profileFirstName">Vorname</label>
+                    <input type="text" id="profileFirstName" maxlength="50">
                 </div>
-            `).join('');
-        }
-
-        // Workouts functions
-        async function loadWorkouts() {
-            try {
-                const workouts = await apiCall('/workouts');
-                displayWorkouts(workouts);
-            } catch (error) {
-                showAlert('Fehler beim Laden der Trainings: ' + error.message, 'error');
-            }
-        }
-
-        function displayWorkouts(workouts) {
-            const container = document.getElementById('workoutsList');
-            
-            if (workouts.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: #666; padding: 40px;">
-                        <p>🏃‍♀️ Noch keine Trainings vorhanden</p>
-                        <p style="margin-top: 10px;">
-                            <button class="btn btn-success" onclick="showSection('newWorkout')">
-                                ➕ Erstes Training erstellen
-                            </button>
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = workouts.map(workout => `
-                <div class="workout-item" onclick="showWorkoutDetail(${workout.id})">
-                    <div class="workout-date">${formatDate(workout.date)}</div>
-                    <div class="workout-name">${workout.name}</div>
-                    <div class="workout-duration">
-                        ${workout.duration_minutes ? `⏱️ ${workout.duration_minutes} Minuten` : '⏱️ Dauer nicht erfasst'}
-                        ${workout.notes ? ` • 📝 ${workout.notes.substring(0, 50)}${workout.notes.length > 50 ? '...' : ''}` : ''}
-                    </div>
+                
+                <div class="form-group">
+                    <label for="profileLastName">Nachname</label>
+                    <input type="text" id="profileLastName" maxlength="50">
                 </div>
-            `).join('');
-        }
-
-        async function showWorkoutDetail(workoutId) {
-            try {
-                const workout = await apiCall(`/workouts/${workoutId}`);
                 
-                const modal = document.getElementById('workoutDetailModal');
-                const content = document.getElementById('workoutDetailContent');
-                
-                content.innerHTML = `
-                    <h2 style="margin-bottom: 20px; color: #333;">${workout.name}</h2>
-                    <div style="margin-bottom: 20px;">
-                        <p><strong>📅 Datum:</strong> ${formatDate(workout.date)}</p>
-                        <p><strong>⏱️ Dauer:</strong> ${workout.duration_minutes ? workout.duration_minutes + ' Minuten' : 'Nicht erfasst'}</p>
-                        ${workout.notes ? `<p><strong>📝 Notizen:</strong> ${workout.notes}</p>` : ''}
-                    </div>
-                    
-                    ${workout.exercises && workout.exercises.length > 0 ? `
-                        <h3 style="margin-bottom: 15px; color: #333;">💪 Übungen</h3>
-                        <div>
-                            ${workout.exercises.map(ex => `
-                                <div class="exercise-item">
-                                    <div class="exercise-name">${ex.exercise_name}</div>
-                                    <div class="exercise-details">
-                                        <span class="exercise-tag">${ex.category}</span>
-                                        <span class="exercise-tag">${ex.muscle_group}</span>
-                                        <span class="exercise-tag">${ex.sets_count} Sätze</span>
-                                    </div>
-                                    ${ex.reps && ex.reps.length > 0 ? `
-                                        <div style="margin-top: 10px;">
-                                            <strong>Wiederholungen:</strong> ${ex.reps.join(', ')}
-                                        </div>
-                                    ` : ''}
-                                    ${ex.weights && ex.weights.length > 0 ? `
-                                        <div>
-                                            <strong>Gewichte (kg):</strong> ${ex.weights.join(', ')}
-                                        </div>
-                                    ` : ''}
-                                    ${ex.rest_time ? `
-                                        <div>
-                                            <strong>Pause:</strong> ${ex.rest_time} Sekunden
-                                        </div>
-                                    ` : ''}
-                                    ${ex.notes ? `
-                                        <div style="margin-top: 5px; font-style: italic; color: #666;">
-                                            ${ex.notes}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : '<p style="color: #666;">Keine Übungen erfasst.</p>'}
-                    
-                    <div style="margin-top: 30px; display: flex; gap: 10px;">
-                        <button class="btn btn-danger" onclick="deleteWorkout(${workout.id})">🗑️ Löschen</button>
-                        <button class="btn btn-secondary" onclick="closeWorkoutDetailModal()">❌ Schließen</button>
-                    </div>
-                `;
-                
-                modal.style.display = 'block';
-            } catch (error) {
-                showAlert('Fehler beim Laden der Trainingsdetails: ' + error.message, 'error');
-            }
-        }
-
-        function closeWorkoutDetailModal() {
-            document.getElementById('workoutDetailModal').style.display = 'none';
-        }
-
-        async function deleteWorkout(workoutId) {
-            if (!confirm('Sind Sie sicher, dass Sie dieses Training löschen möchten?')) {
-                return;
-            }
-
-            try {
-                await apiCall(`/workouts/${workoutId}`, { method: 'DELETE' });
-                showAlert('Training erfolgreich gelöscht!', 'success');
-                closeWorkoutDetailModal();
-                
-                // Refresh current view
-                const currentSection = document.querySelector('.section:not(.hidden)');
-                if (currentSection.id === 'workouts') {
-                    loadWorkouts();
-                } else if (currentSection.id === 'dashboard') {
-                    loadDashboard();
-                }
-            } catch (error) {
-                showAlert('Fehler beim Löschen des Trainings: ' + error.message, 'error');
-            }
-        }
-
-        // Profile functions
-        async function showProfileModal() {
-            try {
-                const profile = await apiCall('/user/profile');
-                
-                if (profile) {
-                    document.getElementById('profileUsername').textContent = profile.username;
-                    document.getElementById('profileEmail').textContent = profile.email;
-                    document.getElementById('profileRole').textContent = profile.role === 'admin' ? 'Administrator' : 'Benutzer';
-                    document.getElementById('profileMemberSince').textContent = formatDate(profile.created_at);
-                    
-                    document.getElementById('profileModal').style.display = 'block';
-                }
-            } catch (error) {
-                showAlert('Fehler beim Laden des Profils: ' + error.message, 'error');
-            }
-        }
-
-        function closeProfileModal() {
-            document.getElementById('profileModal').style.display = 'none';
-            document.getElementById('changePasswordForm').reset();
-        }
-
-        // Change Password functionality
-        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+                <button type="submit" class="btn btn-success" style="width: 100%;">
+                    <span id="updateProfileButtonText">💾 Profil aktualisieren</span>
+                    <div id="updateProfileLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                </button>
+            </form>
             
-            const changePasswordButton = document.getElementById('changePasswordButtonText');
-            const changePasswordLoading = document.getElementById('changePasswordLoading');
-            const submitButton = e.target.querySelector('button[type="submit"]');
+            <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <p><strong>Rolle:</strong> <span id="profileRole"></span></p>
+                <p><strong>Mitglied seit:</strong> <span id="profileMemberSince"></span></p>
+            </div>
             
-            try {
-                submitButton.disabled = true;
-                changePasswordButton.textContent = '';
-                changePasswordLoading.classList.remove('hidden');
+            <form id="changePasswordForm">
+                <h3 style="margin-bottom: 15px; color: #333;">🔒 Passwort ändern</h3>
                 
-                const currentPassword = document.getElementById('currentPassword').value;
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-                
-                // Validate passwords match
-                if (newPassword !== confirmNewPassword) {
-                    throw new Error('Neue Passwörter stimmen nicht überein');
-                }
-                
-                if (newPassword.length < 6) {
-                    throw new Error('Das neue Passwort muss mindestens 6 Zeichen lang sein');
-                }
-
-                const passwordData = { currentPassword, newPassword };
-
-                await apiCall('/user/password', {
-                    method: 'PUT',
-                    body: JSON.stringify(passwordData)
-                });
-
-                showAlert('Passwort erfolgreich geändert!', 'success');
-                closeProfileModal();
-            } catch (error) {
-                showAlert(error.message, 'error');
-            } finally {
-                submitButton.disabled = false;
-                changePasswordButton.textContent = '🔒 Passwort ändern';
-                changePasswordLoading.classList.add('hidden');
-            }
-        });
-
-        // Exercises functions
-        async function loadExercises() {
-            try {
-                exercises = await apiCall('/exercises');
-                updateExerciseSelect();
-            } catch (error) {
-                console.error('Fehler beim Laden der Übungen:', error);
-            }
-        }
-
-        async function loadExercisesList() {
-            try {
-                const exercisesList = await apiCall('/exercises');
-                displayExercisesList(exercisesList);
-            } catch (error) {
-                showAlert('Fehler beim Laden der Übungen: ' + error.message, 'error');
-            }
-        }
-
-        function displayExercisesList(exercisesList) {
-            const container = document.getElementById('exercisesList');
-            
-            if (exercisesList.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: #666; padding: 40px;">
-                        <p>💪 Noch keine Übungen vorhanden</p>
-                        <p style="margin-top: 10px;">
-                            <button class="btn btn-success" onclick="showNewExerciseModal()">
-                                ➕ Erste Übung erstellen
-                            </button>
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Group exercises by category
-            const groupedExercises = exercisesList.reduce((groups, exercise) => {
-                const category = exercise.category;
-                if (!groups[category]) {
-                    groups[category] = [];
-                }
-                groups[category].push(exercise);
-                return groups;
-            }, {});
-
-            container.innerHTML = Object.keys(groupedExercises).map(category => `
-                <div style="margin-bottom: 30px;">
-                    <h3 style="color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">
-                        ${category}
-                    </h3>
-                    <div>
-                        ${groupedExercises[category].map(exercise => `
-                            <div class="exercise-item">
-                                <div class="exercise-name">${exercise.name}</div>
-                                <div class="exercise-details">
-                                    <span class="exercise-tag">${exercise.muscle_group}</span>
-                                </div>
-                                ${exercise.description ? `
-                                    <div class="exercise-description">${exercise.description}</div>
-                                ` : ''}
-                                ${exercise.instructions ? `
-                                    <div style="margin-top: 10px; font-size: 14px; color: #555;">
-                                        <strong>Ausführung:</strong> ${exercise.instructions}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
+                <div class="form-group">
+                    <label for="currentPassword">Aktuelles Passwort *</label>
+                    <input type="password" id="currentPassword" required>
                 </div>
-            `).join('');
-        }
-
-        function updateExerciseSelect() {
-            const select = document.getElementById('exerciseSelect');
-            select.innerHTML = '<option value="">-- Übung auswählen --</option>';
-            
-            exercises.forEach(exercise => {
-                const option = document.createElement('option');
-                option.value = exercise.id;
-                option.textContent = `${exercise.name} (${exercise.muscle_group})`;
-                select.appendChild(option);
-            });
-        }
-
-        // New Exercise Modal
-        function showNewExerciseModal() {
-            document.getElementById('newExerciseModal').style.display = 'block';
-        }
-
-        function closeNewExerciseModal() {
-            document.getElementById('newExerciseModal').style.display = 'none';
-            document.getElementById('newExerciseForm').reset();
-        }
-
-        document.getElementById('newExerciseForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const exerciseData = {
-                name: document.getElementById('exerciseName').value,
-                category: document.getElementById('exerciseCategory').value,
-                muscle_group: document.getElementById('exerciseMuscleGroup').value,
-                description: document.getElementById('exerciseDescription').value,
-                instructions: document.getElementById('exerciseInstructions').value
-            };
-
-            try {
-                await apiCall('/exercises', {
-                    method: 'POST',
-                    body: JSON.stringify(exerciseData)
-                });
-
-                showAlert('Übung erfolgreich erstellt!', 'success');
-                closeNewExerciseModal();
                 
-                // Reload exercises
-                await loadExercises();
-                
-                // Refresh exercises list if currently viewing
-                const currentSection = document.querySelector('.section:not(.hidden)');
-                if (currentSection.id === 'exercises') {
-                    loadExercisesList();
-                }
-            } catch (error) {
-                showAlert('Fehler beim Erstellen der Übung: ' + error.message, 'error');
-            }
-        });
-
-        // New Workout functions
-        function resetWorkoutForm() {
-            document.getElementById('newWorkoutForm').reset();
-            document.getElementById('selectedExercises').innerHTML = '';
-            selectedExercisesForWorkout = [];
-            
-            // Set today's date
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('workoutDate').value = today;
-        }
-
-        function addExerciseToWorkout() {
-            const select = document.getElementById('exerciseSelect');
-            const exerciseId = parseInt(select.value);
-            
-            if (!exerciseId) {
-                showAlert('Bitte wählen Sie eine Übung aus.', 'error');
-                return;
-            }
-
-            // Check if exercise is already added
-            if (selectedExercisesForWorkout.find(ex => ex.exercise_id === exerciseId)) {
-                showAlert('Diese Übung ist bereits hinzugefügt.', 'error');
-                return;
-            }
-
-            const exercise = exercises.find(ex => ex.id === exerciseId);
-            if (!exercise) {
-                showAlert('Übung nicht gefunden.', 'error');
-                return;
-            }
-
-            const workoutExercise = {
-                exercise_id: exerciseId,
-                exercise_name: exercise.name,
-                muscle_group: exercise.muscle_group,
-                sets_count: 3,
-                reps: [10, 10, 10],
-                weights: [0, 0, 0],
-                rest_time: 90,
-                notes: ''
-            };
-
-            selectedExercisesForWorkout.push(workoutExercise);
-            updateSelectedExercisesDisplay();
-            
-            // Reset select
-            select.value = '';
-        }
-
-        function updateSelectedExercisesDisplay() {
-            const container = document.getElementById('selectedExercises');
-            
-            if (selectedExercisesForWorkout.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-
-            container.innerHTML = `
-                <h3 style="margin-bottom: 15px; color: #333;">Ausgewählte Übungen:</h3>
-                ${selectedExercisesForWorkout.map((exercise, index) => `
-                    <div class="selected-exercise">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h4 style="color: #333;">${exercise.exercise_name}</h4>
-                            <button type="button" class="btn btn-danger" onclick="removeExerciseFromWorkout(${index})" style="padding: 5px 10px; font-size: 12px;">
-                                🗑️ Entfernen
-                            </button>
-                        </div>
-                        
-                        <div style="margin-bottom: 15px;">
-                            <label>Anzahl Sätze:</label>
-                            <input type="number" min="1" max="10" value="${exercise.sets_count}" 
-                                   onchange="updateExerciseSets(${index}, this.value)" 
-                                   style="width: 80px; margin-left: 10px; padding: 5px;">
-                        </div>
-                        
-                        <div class="sets-input" id="sets-${index}">
-                            <!-- Sets will be generated here -->
-                        </div>
-                        
-                        <div style="margin-top: 15px;">
-                            <label>Pause zwischen Sätzen (Sekunden):</label>
-                            <input type="number" min="0" max="600" value="${exercise.rest_time}" 
-                                   onchange="selectedExercisesForWorkout[${index}].rest_time = parseInt(this.value)"
-                                   style="width: 80px; margin-left: 10px; padding: 5px;">
-                        </div>
-                        
-                        <div style="margin-top: 15px;">
-                            <label>Notizen:</label>
-                            <input type="text" placeholder="Besonderheiten, Technik-Tipps..." 
-                                   value="${exercise.notes}"
-                                   onchange="selectedExercisesForWorkout[${index}].notes = this.value"
-                                   style="width: 100%; margin-top: 5px; padding: 8px;">
-                        </div>
-                    </div>
-                `).join('')}
-            `;
-
-            // Generate sets inputs for each exercise
-            selectedExercisesForWorkout.forEach((exercise, index) => {
-                updateSetsDisplay(index);
-            });
-        }
-
-        function updateExerciseSets(exerciseIndex, setsCount) {
-            const count = parseInt(setsCount);
-            if (count < 1 || count > 10) return;
-
-            const exercise = selectedExercisesForWorkout[exerciseIndex];
-            exercise.sets_count = count;
-            
-            // Adjust reps and weights arrays
-            while (exercise.reps.length < count) {
-                exercise.reps.push(exercise.reps[exercise.reps.length - 1] || 10);
-                exercise.weights.push(exercise.weights[exercise.weights.length - 1] || 0);
-            }
-            
-            exercise.reps = exercise.reps.slice(0, count);
-            exercise.weights = exercise.weights.slice(0, count);
-            
-            updateSetsDisplay(exerciseIndex);
-        }
-
-        function updateSetsDisplay(exerciseIndex) {
-            const exercise = selectedExercisesForWorkout[exerciseIndex];
-            const container = document.getElementById(`sets-${exerciseIndex}`);
-            
-            container.innerHTML = Array.from({ length: exercise.sets_count }, (_, setIndex) => `
-                <div class="set-input">
-                    <label>Satz ${setIndex + 1}</label>
-                    <input type="number" placeholder="Wdh." min="1" max="100" 
-                           value="${exercise.reps[setIndex] || ''}"
-                           onchange="selectedExercisesForWorkout[${exerciseIndex}].reps[${setIndex}] = parseInt(this.value) || 0">
-                    <input type="number" placeholder="Gewicht (kg)" min="0" max="1000" step="0.5"
-                           value="${exercise.weights[setIndex] || ''}"
-                           onchange="selectedExercisesForWorkout[${exerciseIndex}].weights[${setIndex}] = parseFloat(this.value) || 0">
+                <div class="form-group">
+                    <label for="newPassword">Neues Passwort *</label>
+                    <input type="password" id="newPassword" required minlength="6">
                 </div>
-            `).join('');
-        }
-
-        function removeExerciseFromWorkout(index) {
-            selectedExercisesForWorkout.splice(index, 1);
-            updateSelectedExercisesDisplay();
-        }
-
-        document.getElementById('newWorkoutForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const saveButton = document.getElementById('saveButtonText');
-            const saveLoading = document.getElementById('saveLoading');
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            
-            try {
-                submitButton.disabled = true;
-                saveButton.textContent = '';
-                saveLoading.classList.remove('hidden');
                 
-                const workoutData = {
-                    name: document.getElementById('workoutName').value,
-                    date: document.getElementById('workoutDate').value,
-                    duration_minutes: parseInt(document.getElementById('workoutDuration').value) || null,
-                    notes: document.getElementById('workoutNotes').value,
-                    exercises: selectedExercisesForWorkout
-                };
-
-                if (!workoutData.name || !workoutData.date) {
-                    throw new Error('Name und Datum sind erforderlich.');
-                }
-
-                await apiCall('/workouts', {
-                    method: 'POST',
-                    body: JSON.stringify(workoutData)
-                });
-
-                showAlert('Training erfolgreich gespeichert!', 'success');
-                showSection('dashboard');
-            } catch (error) {
-                showAlert('Fehler beim Speichern des Trainings: ' + error.message, 'error');
-            } finally {
-                submitButton.disabled = false;
-                saveButton.textContent = '💾 Training speichern';
-                saveLoading.classList.add('hidden');
-            }
-        });
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const exerciseModal = document.getElementById('newExerciseModal');
-            const workoutModal = document.getElementById('workoutDetailModal');
-            const profileModal = document.getElementById('profileModal');
-            
-            if (event.target === exerciseModal) {
-                closeNewExerciseModal();
-            }
-            if (event.target === workoutModal) {
-                closeWorkoutDetailModal();
-            }
-            if (event.target === profileModal) {
-                closeProfileModal();
-            }
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // ESC to close modals
-            if (e.key === 'Escape') {
-                closeNewExerciseModal();
-                closeWorkoutDetailModal();
-                closeProfileModal();
-            }
-            
-            // Ctrl+N for new workout (when logged in)
-            if (e.ctrlKey && e.key === 'n' && authToken) {
-                e.preventDefault();
-                showSection('newWorkout');
-            }
-        });
-
-        // Auto-save draft (optional feature)
-        let draftTimeout;
-        function saveDraft() {
-            clearTimeout(draftTimeout);
-            draftTimeout = setTimeout(() => {
-                const workoutName = document.getElementById('workoutName').value;
-                const workoutDate = document.getElementById('workoutDate').value;
-                const workoutDuration = document.getElementById('workoutDuration').value;
-                const workoutNotes = document.getElementById('workoutNotes').value;
+                <div class="form-group">
+                    <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
+                    <input type="password" id="confirmNewPassword" required minlength="6">
+                </div>
                 
-                if (workoutName || workoutNotes || selectedExercisesForWorkout.length > 0) {
-                    const draft = {
-                        name: workoutName,
-                        date: workoutDate,
-                        duration_minutes: workoutDuration,
-                        notes: workoutNotes,
-                        exercises: selectedExercisesForWorkout,
-                        timestamp: Date.now()
-                    };
-                    
-                    localStorage.setItem('workoutDraft', JSON.stringify(draft));
-                }
-            }, 2000);
-        }
-
-        // Load draft if exists
-        function loadDraft() {
-            const draft = localStorage.getItem('workoutDraft');
-            if (draft) {
-                try {
-                    const draftData = JSON.parse(draft);
-                    
-                    // Check if draft is less than 24 hours old
-                    if (Date.now() - draftData.timestamp < 24 * 60 * 60 * 1000) {
-                        if (confirm('Es wurde ein Entwurf gefunden. Möchten Sie ihn laden?')) {
-                            document.getElementById('workoutName').value = draftData.name || '';
-                            document.getElementById('workoutDate').value = draftData.date || '';
-                            document.getElementById('workoutDuration').value = draftData.duration_minutes || '';
-                            document.getElementById('workoutNotes').value = draftData.notes || '';
-                            selectedExercisesForWorkout = draftData.exercises || [];
-                            updateSelectedExercisesDisplay();
-                        }
-                    }
-                    
-                    // Clear old draft
-                    localStorage.removeItem('workoutDraft');
-                } catch (error) {
-                    console.error('Error loading draft:', error);
-                    localStorage.removeItem('workoutDraft');
-                }
-            }
-        }
-
-        // Add event listeners for draft saving
-        ['workoutName', 'workoutDate', 'workoutDuration', 'workoutNotes'].forEach(id => {
-            document.getElementById(id).addEventListener('input', saveDraft);
-        });
-
-        // Clear draft when workout is successfully saved
-        function clearDraft() {
-            localStorage.removeItem('workoutDraft');
-        }
-
-        // Override showSection to load draft for new workout
-        const originalShowSection = showSection;
-        showSection = function(sectionName) {
-            originalShowSection(sectionName);
-            if (sectionName === 'newWorkout') {
-                setTimeout(loadDraft, 100);
-            }
-        };
-
-        // Password validation
-        function validatePassword(password) {
-            return password.length >= 6;
-        }
-
-        // Form validation helpers
-        function validateEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
-
-        function validateUsername(username) {
-            return username.length >= 3 && username.length <= 50;
-        }
-
-        // Add real-time validation to registration form
-        document.getElementById('registerPassword').addEventListener('input', function() {
-            const password = this.value;
-            const confirmField = document.getElementById('registerPasswordConfirm');
-            
-            if (password.length > 0 && password.length < 6) {
-                this.style.borderColor = '#dc3545';
-            } else {
-                this.style.borderColor = '#e1e5e9';
-            }
-            
-            // Check confirm password if it has content
-            if (confirmField.value.length > 0) {
-                if (password === confirmField.value) {
-                    confirmField.style.borderColor = '#28a745';
-                } else {
-                    confirmField.style.borderColor = '#dc3545';
-                }
-            }
-        });
-
-        document.getElementById('registerPasswordConfirm').addEventListener('input', function() {
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword.length > 0) {
-                if (password === confirmPassword) {
-                    this.style.borderColor = '#28a745';
-                } else {
-                    this.style.borderColor = '#dc3545';
-                }
-            } else {
-                this.style.borderColor = '#e1e5e9';
-            }
-        });
-
-        document.getElementById('registerEmail').addEventListener('input', function() {
-            const email = this.value;
-            
-            if (email.length > 0 && !validateEmail(email)) {
-                this.style.borderColor = '#dc3545';
-            } else {
-                this.style.borderColor = '#e1e5e9';
-            }
-        });
-
-        document.getElementById('registerUsername').addEventListener('input', function() {
-            const username = this.value;
-            
-            if (username.length > 0 && !validateUsername(username)) {
-                this.style.borderColor = '#dc3545';
-            } else {
-                this.style.borderColor = '#e1e5e9';
-            }
-        });
-
-        // Same validation for password change form
-        document.getElementById('newPassword').addEventListener('input', function() {
-            const password = this.value;
-            const confirmField = document.getElementById('confirmNewPassword');
-            
-            if (password.length > 0 && password.length < 6) {
-                this.style.borderColor = '#dc3545';
-            } else {
-                this.style.borderColor = '#e1e5e9';
-            }
-            
-            // Check confirm password if it has content
-            if (confirmField.value.length > 0) {
-                if (password === confirmField.value) {
-                    confirmField.style.borderColor = '#28a745';
-                } else {
-                    confirmField.style.borderColor = '#dc3545';
-                }
-            }
-        });
-
-        document.getElementById('confirmNewPassword').addEventListener('input', function() {
-            const password = document.getElementById('newPassword').value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword.length > 0) {
-                if (password === confirmPassword) {
-                    this.style.borderColor = '#28a745';
-                } else {
-                    this.style.borderColor = '#dc3545';
-                }
-            } else {
-                this.style.borderColor = '#e1e5e9';
-            }
-        });
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is already logged in
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                authToken = token;
-                
-                // Verify token by making a test request
-                apiCall('/user/profile').then(user => {
-                    if (user) {
-                        currentUser = {
-                            id: user.id,
-                            username: user.username,
-                            email: user.email,
-                            role: user.role
-                        };
-                        showMainApp();
-                        loadDashboard();
-                    }
-                }).catch(() => {
-                    // Token is invalid, remove it
-                    localStorage.removeItem('authToken');
-                    authToken = null;
-                });
-            }
-            
-            // Set today's date as default for new workout
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('workoutDate').value = today;
-            
-            // Show login tab by default
-            showAuthTab('login');
-        });
-
-        // Service Worker registration (optional - for offline support)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('SW registered: ', registration);
-                }).catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
-                });
-            });
-        }
-
-        // Add print functionality
-        function printWorkout(workoutId) {
-            showWorkoutDetail(workoutId).then(() => {
-                setTimeout(() => {
-                    window.print();
-                }, 500);
-            });
-        }
-
-        // Export workout data (simple JSON export)
-        async function exportWorkouts() {
-            try {
-                const workouts = await apiCall('/workouts');
-                const dataStr = JSON.stringify(workouts, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(dataBlob);
-                link.download = `gym-tracker-workouts-${new Date().toISOString().split('T')[0]}.json`;
-                link.click();
-                
-                showAlert('Trainings erfolgreich exportiert!', 'success');
-            } catch (error) {
-                showAlert('Fehler beim Exportieren: ' + error.message, 'error');
-            }
-        }
-
-        // Quick stats calculation
-        function calculateQuickStats(workouts) {
-            if (!workouts || workouts.length === 0) return null;
-            
-            const totalWorkouts = workouts.length;
-            const totalTime = workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0);
-            const avgDuration = totalTime / totalWorkouts;
-            
-            const today = new Date();
-            const thisWeek = workouts.filter(w => {
-                const workoutDate = new Date(w.date);
-                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                return workoutDate >= weekAgo;
-            }).length;
-            
-            const thisMonth = workouts.filter(w => {
-                const workoutDate = new Date(w.date);
-                return workoutDate.getMonth() === today.getMonth() && 
-                       workoutDate.getFullYear() === today.getFullYear();
-            }).length;
-            
-            return {
-                totalWorkouts,
-                totalTime,
-                avgDuration: Math.round(avgDuration),
-                thisWeek,
-                thisMonth
-            };
-        }
-
-        // Theme switching (optional enhancement)
-        function toggleTheme() {
-            document.body.classList.toggle('dark-theme');
-            localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
-        }
-
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-theme');
-        }
-    </script>
-</body>
-</html>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">
+                        <span id="changePasswordButtonText">🔒 Passwort ändern</span>
+                        <div id="changePasswordLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">❌ Schließen</button>
+                </div>
+            </form>
