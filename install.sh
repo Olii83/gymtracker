@@ -81,8 +81,10 @@ show_header() {
 # Parse command line arguments
 parse_args() {
     while [[ $# -gt 0 ]]; do
-        key="$1"
-        case $key in
+        # Remove any trailing whitespace/invisible characters
+        key=$(echo "$1" | tr -d '\r\n\t ' | sed 's/[[:space:]]*$//')
+        
+        case "$key" in
             --domain=*)
                 DOMAIN="${key#*=}"
                 shift
@@ -112,17 +114,15 @@ parse_args() {
                 DRY_RUN=true
                 shift
                 ;;
-            --help|-h)
+            --help|--helps|-h)
                 show_help
                 exit 0
                 ;;
-            -*)
-                print_error "Unknown option: $key"
-                echo "Use --help for usage information"
-                echo ""
-                echo "Available options:"
+            --*)
+                print_error "Unknown option: '$key'"
+                echo "Did you mean one of these?"
                 echo "  --domain=DOMAIN"
-                echo "  --app-dir=PATH"
+                echo "  --app-dir=PATH" 
                 echo "  --skip-ssl"
                 echo "  --skip-firewall"
                 echo "  --proxy-mode"
@@ -131,8 +131,12 @@ parse_args() {
                 echo "  --help"
                 exit 1
                 ;;
+            "")
+                # Skip empty arguments
+                shift
+                ;;
             *)
-                print_error "Unknown argument: $key"
+                print_error "Unknown argument: '$key'"
                 echo "Use --help for usage information"
                 exit 1
                 ;;
