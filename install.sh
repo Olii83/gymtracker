@@ -1812,7 +1812,11 @@ display_summary() {
 # Main installation function
 main() {
     show_header
-    parse_args "$@"
+    
+    # Parse arguments if any were provided
+    if [ $# -gt 0 ]; then
+        parse_args "$@"
+    fi
     
     # Handle rollback mode
     if [ "$ROLLBACK_MODE" = true ]; then
@@ -1891,7 +1895,7 @@ main() {
 set -e
 trap 'print_error "Installation failed at line $LINENO. Check the output above for details."' ERR
 
-# Execute main function
+# Execute main function with all arguments
 main "$@"s;
     }
     
