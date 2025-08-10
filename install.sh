@@ -81,13 +81,14 @@ show_header() {
 # Parse command line arguments
 parse_args() {
     while [[ $# -gt 0 ]]; do
-        case $1 in
+        key="$1"
+        case $key in
             --domain=*)
-                DOMAIN="${1#*=}"
+                DOMAIN="${key#*=}"
                 shift
                 ;;
             --app-dir=*)
-                APP_DIR="${1#*=}"
+                APP_DIR="${key#*=}"
                 DB_PATH="$APP_DIR/database/gym_tracker.db"
                 shift
                 ;;
@@ -111,12 +112,27 @@ parse_args() {
                 DRY_RUN=true
                 shift
                 ;;
-            --help)
+            --help|-h)
                 show_help
                 exit 0
                 ;;
+            -*)
+                print_error "Unknown option: $key"
+                echo "Use --help for usage information"
+                echo ""
+                echo "Available options:"
+                echo "  --domain=DOMAIN"
+                echo "  --app-dir=PATH"
+                echo "  --skip-ssl"
+                echo "  --skip-firewall"
+                echo "  --proxy-mode"
+                echo "  --rollback"
+                echo "  --dry-run"
+                echo "  --help"
+                exit 1
+                ;;
             *)
-                print_error "Unknown option: $1"
+                print_error "Unknown argument: $key"
                 echo "Use --help for usage information"
                 exit 1
                 ;;
