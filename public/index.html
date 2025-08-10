@@ -1,5 +1,143 @@
-<p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin123</strong></p>
-                    <small>Bitte ändern Sie das Passwort nach der ersten Anmeldung!</small>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Tracker - Ihr persönlicher Fitness-Begleiter</title>
+    <meta name="description" content="Verfolgen Sie Ihre Workouts, überwachen Sie Ihren Fortschritt und erreichen Sie Ihre Fitnessziele mit Gym Tracker.">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Fallback styles in case CSS file doesn't load */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .loading {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 class="login-title">💪 Gym Tracker</h1>
+                <p class="login-subtitle">Ihr persönlicher Fitness-Begleiter</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
+                <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginUsername">Benutzername oder E-Mail</label>
+                    <input type="text" id="loginUsername" name="username" required autocomplete="username" placeholder="Ihr Benutzername oder E-Mail">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Passwort</label>
+                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Ihr Passwort">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                    <span id="loginButtonText">Anmelden</span>
+                    <div id="loginLoading" class="loading hidden"></div>
+                </button>
+                
+                <div class="auth-help">
+                    <small><a href="#" onclick="Auth.showForgotPassword()">Passwort vergessen?</a></small>
                 </div>
             </form>
             
@@ -179,12 +317,48 @@
                 </div>
             </div>
 
-            <!-- Other sections (simplified for now) -->
+            <!-- Admin Section -->
             <div id="admin" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">👑 Admin-Bereich</h1>
                 </div>
-                <div id="admin                <div id="newWorkoutContent">
+                <div id="adminContent">
+                    <div class="loading-state">
+                        <div class="loading"></div>
+                        <p>Lade Admin-Bereich...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="workouts" class="section hidden">
+                <div class="section-header">
+                    <h1 class="section-title">🏋️ Meine Trainings</h1>
+                </div>
+                <div id="workoutsList">
+                    <div class="loading-state">
+                        <div class="loading"></div>
+                        <p>Lade Trainings...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="exercises" class="section hidden">
+                <div class="section-header">
+                    <h1 class="section-title">💪 Übungen</h1>
+                </div>
+                <div id="exercisesList">
+                    <div class="loading-state">
+                        <div class="loading"></div>
+                        <p>Lade Übungen...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="newWorkout" class="section hidden">
+                <div class="section-header">
+                    <h1 class="section-title">➕ Neues Training</h1>
+                </div>
+                <div id="newWorkoutContent">
                     <div class="loading-state">
                         <div class="loading"></div>
                         <p>Lade Formular...</p>
@@ -345,124 +519,18 @@
         window.addEventListener('unhandledrejection', function(e) {
             console.error('Unhandled promise rejection:', e.reason);
         });
-    </script>
-</body>
-</html>">Loading...</div>
-            </div>
-            
-            <div id="workouts" class="section hidden">
-                <div class="section-header">
-                    <h1 class="section-title">🏋️ Meine Trainings</h1>
-                </div>
-                <div id="workoutsList">Loading...</div>
-            </div>
-            
-            <div id="exercises" class="section hidden">
-                <div class="section-header">
-                    <h1 class="section-title">💪 Übungen</h1>
-                </div>
-                <div id="exercisesList">Loading...</div>
-            </div>
-            
-            <div id="newWorkout" class="section hidden">
-                <div class="section-header">
-                    <h1 class="section-title">➕ Neues Training</h1>
-                </div>
-                <div id="newWorkoutContent">Loading...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="js/utils.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/workouts.js"></script>
-    <script src="js/exercises.js"></script>
-    <script src="js/profile.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/app.js"></script>
-
-    <!-- Additional Utility Scripts -->
-    <script>
-        // Modal tab switching
-        function showModalTab(tabName) {
-            document.querySelectorAll('.modal-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.modal-tab-content').forEach(content => content.classList.add('hidden'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName + 'Tab').classList.remove('hidden');
-        }
-
-        // Dropdown functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropdowns = document.querySelectorAll('.nav-dropdown');
-            
-            dropdowns.forEach(dropdown => {
-                const toggle = dropdown.querySelector('.dropdown-toggle');
-                const menu = dropdown.querySelector('.dropdown-menu');
-                
-                toggle.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    menu.classList.toggle('show');
-                });
-            });
-
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function() {
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.classList.remove('show');
-                });
-            });
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Escape key to close modals and dropdowns
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.style.display = 'none';
-                });
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.classList.remove('show');
-                });
-            }
-            
-            // Ctrl+N for new workout
-            if (e.ctrlKey && e.key === 'n' && Auth.isAuthenticated()) {
-                e.preventDefault();
-                App.showSection('newWorkout');
-            }
-            
-            // Ctrl+D for dashboard
-            if (e.ctrlKey && e.key === 'd' && Auth.isAuthenticated()) {
-                e.preventDefault();
-                App.showSection('dashboard');
-            }
-        });
-
-        // Enhanced error handling
-        window.addEventListener('error', function(e) {
-            console.error('Global error:', e.error);
-            if (Auth.isAuthenticated()) {
-                Utils.showAlert('Ein unerwarteter Fehler ist aufgetreten.', 'error');
-            }
-        });
-
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('Unhandled promise rejection:', e.reason);
-            if (Auth.isAuthenticated()) {
-                Utils.showAlert('Ein Netzwerkfehler ist aufgetreten.', 'error');
-            }
-        });
 
         // Online/Offline detection
         window.addEventListener('online', function() {
-            Utils.showAlert('Internetverbindung wiederhergestellt', 'success', 3000);
+            if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                Utils.showAlert('Internetverbindung wiederhergestellt', 'success', 3000);
+            }
         });
 
         window.addEventListener('offline', function() {
-            Utils.showAlert('Internetverbindung verloren', 'warning', 10000);
+            if (typeof Utils !== 'undefined' && Utils.showAlert) {
+                Utils.showAlert('Internetverbindung verloren', 'warning', 10000);
+            }
         });
 
         // Performance monitoring
@@ -482,48 +550,4 @@
         }
     </script>
 </body>
-</html><!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Tracker - Ihr persönlicher Fitness-Begleiter</title>
-    <meta name="description" content="Verfolgen Sie Ihre Workouts, überwachen Sie Ihren Fortschritt und erreichen Sie Ihre Fitnessziele mit Gym Tracker.">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-    <!-- Login/Register Screen -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1 class="login-title">💪 Gym Tracker</h1>
-                <p class="login-subtitle">Ihr persönlicher Fitness-Begleiter</p>
-            </div>
-            
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
-                <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
-            </div>
-            
-            <div id="alertContainer"></div>
-            
-            <!-- Login Form -->
-            <form id="loginForm" class="auth-form">
-                <div class="form-group">
-                    <label for="loginUsername">Benutzername oder E-Mail</label>
-                    <input type="text" id="loginUsername" name="username" required autocomplete="username" placeholder="Ihr Benutzername oder E-Mail">
-                </div>
-                
-                <div class="form-group">
-                    <label for="loginPassword">Passwort</label>
-                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Ihr Passwort">
-                </div>
-                
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
-                    <span id="loginButtonText">Anmelden</span>
-                    <div id="loginLoading" class="loading hidden"></div>
-                </button>
-                
-                <div class="auth-help">
-                    <p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin
+</html>
