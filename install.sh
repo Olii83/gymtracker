@@ -542,7 +542,7 @@ create_scripts() {
     print_header "Creating Management Scripts"
     
     print_sub "Creating backup script..."
-    execute_command bash -c "cat > $APP_DIR/scripts/backup.js" << 'JSEOF'
+    execute_command bash -c "cat > $APP_DIR/scripts/backup.js" << 'BACKUP_SCRIPT_EOF'
 #!/usr/bin/env node
 
 const fs = require('fs');
@@ -551,24 +551,22 @@ const path = require('path');
 const DB_PATH = process.env.DB_PATH || './database/gym_tracker.db';
 const BACKUP_DIR_LOCAL = './backups';
 
-// Create backup directory if it does not exist
+console.log('Starting database backup...');
+
 try {
+    // Create backup directory if it does not exist
     if (!fs.existsSync(BACKUP_DIR_LOCAL)) {
         fs.mkdirSync(BACKUP_DIR_LOCAL, { recursive: true });
+        console.log('Created backup directory:', BACKUP_DIR_LOCAL);
     }
-} catch (err) {
-    console.error('Failed to create backup directory:', err.message);
-    process.exit(1);
-}
 
-// Create backup filename with timestamp
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const backupPath = path.join(BACKUP_DIR_LOCAL, 'gym_tracker_' + timestamp + '.db');
+    // Create backup filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = path.join(BACKUP_DIR_LOCAL, 'gym_tracker_' + timestamp + '.db');
 
-try {
     // Copy database file
     fs.copyFileSync(DB_PATH, backupPath);
-    console.log('Database backup created: ' + backupPath);
+    console.log('Database backup created:', backupPath);
     
     // Keep only last 30 backups
     const backups = fs.readdirSync(BACKUP_DIR_LOCAL)
@@ -578,241 +576,169 @@ try {
         .sort()
         .reverse();
     
+    console.log('Found', backups.length, 'existing backups');
+    
     if (backups.length > 30) {
         const oldBackups = backups.slice(30);
+        console.log('Removing', oldBackups.length, 'old backups');
         oldBackups.forEach(function(backup) {
             fs.unlinkSync(path.join(BACKUP_DIR_LOCAL, backup));
-            console.log('Removed old backup: ' + backup);
+            console.log('Removed old backup:', backup);
         });
     }
+    
+    console.log('Backup completed successfully');
     
 } catch (error) {
     console.error('Backup failed:', error.message);
     process.exit(1);
 }
-JSEOF
+BACKUP_SCRIPT_EOF
     
     execute_command chmod +x $APP_DIR/scripts/backup.js
     
     print_sub "Creating monitoring script..."
-    execute_command tee $APP_DIR/scripts/monitor.sh > /dev/null << 'EOF'
+    execute_command bash -c "cat > $APP_DIR/scripts/monitor.sh" << 'MONITOR_SCRIPT_EOF'
 #!/bin/bash
 
 APP_NAME="gym-tracker"
 LOG_FILE="/var/log/gym-tracker-monitor.log"
-MAX_LOG_SIZE=10485760  # 10MB
+MAX_LOG_SIZE=10485760
 
-# Function to log with timestamp
 log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> $LOG_FILE
 }
 
-# Rotate log if it gets too big
 if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE") -gt $MAX_LOG_SIZE ]; then
     mv "$LOG_FILE" "${LOG_FILE}.old"
     touch "$LOG_FILE"
     log_message "Log rotated due to size limit"
 fi
 
-# Check if service is running
 if ! systemctl is-active --quiet $APP_NAME; then
     log_message "ERROR: $APP_NAME service is not running, attempting restart..."
     systemctl restart $APP_NAME
     
-    # Wait a bit and check again
     sleep 10
     if systemctl is-active --quiet $APP_NAME; then
         log_message "SUCCESS: $APP_NAME service restarted successfully"
     else
         log_message "CRITICAL: Failed to restart $APP_NAME service"
-        # Send alert email if configured
         if command -v mail &> /dev/null; then
             echo "Gym Tracker service failed to restart on $(hostname)" | mail -s "Gym Tracker Alert" admin@localhost
         fi
     fi
 fi
 
-# Check if application responds
 if ! curl -f -s http://localhost:3000/api/health > /dev/null; then
     log_message "WARNING: Application health check failed"
 fi
 
-# Check disk space
 DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
 if [ $DISK_USAGE -gt 90 ]; then
     log_message "WARNING: Disk usage is at ${DISK_USAGE}%"
 fi
 
-# Check memory usage
 MEMORY_USAGE=$(free | grep Mem | awk '{printf("%.1f", $3/$2 * 100.0)}')
-if (( $(echo "$MEMORY_USAGE > 90" | bc -l) )); then
+if command -v bc &> /dev/null && (( $(echo "$MEMORY_USAGE > 90" | bc -l) )); then
     log_message "WARNING: Memory usage is at ${MEMORY_USAGE}%"
 fi
-
-# Check database size and integrity
-if [ -f "$APP_DIR/database/gym_tracker.db" ]; then
-    DB_SIZE=$(du -h $APP_DIR/database/gym_tracker.db | cut -f1)
-    log_message "INFO: Database size: $DB_SIZE"
-    
-    # Check database integrity (once per day)
-    LAST_CHECK_FILE="/tmp/gym-tracker-db-check"
-    if [ ! -f "$LAST_CHECK_FILE" ] || [ $(find "$LAST_CHECK_FILE" -mtime +1) ]; then
-        if sqlite3 $APP_DIR/database/gym_tracker.db "PRAGMA integrity_check;" | grep -q "ok"; then
-            log_message "INFO: Database integrity check passed"
-            touch "$LAST_CHECK_FILE"
-        else
-            log_message "ERROR: Database integrity check failed"
-        fi
-    fi
-fi
-
-# Check SSL certificate expiration (if not in proxy mode)
-if [ "$PROXY_MODE" != "true" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    CERT_EXPIRY=$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem | cut -d= -f2)
-    CERT_EXPIRY_TIMESTAMP=$(date -d "$CERT_EXPIRY" +%s)
-    CURRENT_TIMESTAMP=$(date +%s)
-    DAYS_UNTIL_EXPIRY=$(( (CERT_EXPIRY_TIMESTAMP - CURRENT_TIMESTAMP) / 86400 ))
-    
-    if [ $DAYS_UNTIL_EXPIRY -lt 30 ]; then
-        log_message "WARNING: SSL certificate expires in $DAYS_UNTIL_EXPIRY days"
-    fi
-fi
-EOF
+MONITOR_SCRIPT_EOF
     
     execute_command chmod +x $APP_DIR/scripts/monitor.sh
     
     print_sub "Creating update script..."
-    execute_command tee $APP_DIR/scripts/update.sh > /dev/null << 'EOF'
+    execute_command bash -c "cat > $APP_DIR/scripts/update.sh" << 'UPDATE_SCRIPT_EOF'
 #!/bin/bash
 
 APP_NAME="gym-tracker"
 APP_DIR="/var/www/$APP_NAME"
 
-echo "🔄 Starting Gym Tracker update..."
+echo "Starting Gym Tracker update..."
 
-# Create backup before update
-echo "📦 Creating backup..."
+echo "Creating backup..."
 cd $APP_DIR && node scripts/backup.js
 
-# Stop service
-echo "⏹️  Stopping service..."
+echo "Stopping service..."
 systemctl stop $APP_NAME
 
-# Update code
-echo "📥 Updating code..."
+echo "Updating code..."
 cd $APP_DIR
 git pull origin main
 
-# Update dependencies
-echo "📦 Updating dependencies..."
+echo "Updating dependencies..."
 npm install --production
 
-# Restart service
-echo "▶️  Starting service..."
+echo "Starting service..."
 systemctl start $APP_NAME
 
-# Check if service is running
 if systemctl is-active --quiet $APP_NAME; then
-    echo "✅ Update completed successfully!"
+    echo "Update completed successfully!"
 else
-    echo "❌ Update failed - service not running"
+    echo "Update failed - service not running"
     exit 1
 fi
-EOF
+UPDATE_SCRIPT_EOF
     
     execute_command chmod +x $APP_DIR/scripts/update.sh
     
     print_sub "Creating status script..."
-    execute_command tee $APP_DIR/scripts/status.sh > /dev/null << 'EOF'
+    execute_command bash -c "cat > $APP_DIR/scripts/status.sh" << 'STATUS_SCRIPT_EOF'
 #!/bin/bash
 
 APP_NAME="gym-tracker"
 APP_DIR="/var/www/$APP_NAME"
 
-echo "🏋️‍♂️ Gym Tracker System Status"
+echo "Gym Tracker System Status"
 echo "==============================="
 echo
 
-# Service status
-echo "📊 Service Status:"
+echo "Service Status:"
 if systemctl is-active --quiet $APP_NAME; then
-    echo "  ✅ Application: Running"
+    echo "  Application: Running"
 else
-    echo "  ❌ Application: Stopped"
+    echo "  Application: Stopped"
 fi
 
 if systemctl is-active --quiet nginx; then
-    echo "  ✅ Nginx: Running"
+    echo "  Nginx: Running"
 else
-    echo "  ❌ Nginx: Stopped"
+    echo "  Nginx: Stopped"
 fi
 
-# System resources
 echo
-echo "💻 System Resources:"
+echo "System Resources:"
 echo "  Memory: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
 echo "  Disk: $(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')"
 echo "  Load: $(uptime | awk -F'load average:' '{print $2}')"
 
-# Database status
 echo
-echo "💾 Database Status:"
+echo "Database Status:"
 if [ -f "$APP_DIR/database/gym_tracker.db" ]; then
     DB_SIZE=$(du -h "$APP_DIR/database/gym_tracker.db" | cut -f1)
-    echo "  ✅ Database: $DB_SIZE"
+    echo "  Database: $DB_SIZE"
     
-    # Check database integrity
     if sqlite3 "$APP_DIR/database/gym_tracker.db" "PRAGMA integrity_check;" | grep -q "ok"; then
-        echo "  ✅ Integrity: OK"
+        echo "  Integrity: OK"
     else
-        echo "  ❌ Integrity: Failed"
+        echo "  Integrity: Failed"
     fi
 else
-    echo "  ❌ Database: Not found"
+    echo "  Database: Not found"
 fi
 
-# Network status
 echo
-echo "🌐 Network Status:"
+echo "Network Status:"
 if curl -f -s http://localhost:3000/api/health > /dev/null; then
-    echo "  ✅ Health Check: Passed"
+    echo "  Health Check: Passed"
 else
-    echo "  ❌ Health Check: Failed"
-fi
-
-# SSL certificate status (if not in proxy mode)
-if [ "$PROXY_MODE" != "true" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    echo
-    echo "🔒 SSL Certificate:"
-    CERT_EXPIRY=$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem | cut -d= -f2)
-    CERT_EXPIRY_TIMESTAMP=$(date -d "$CERT_EXPIRY" +%s)
-    CURRENT_TIMESTAMP=$(date +%s)
-    DAYS_UNTIL_EXPIRY=$(( (CERT_EXPIRY_TIMESTAMP - CURRENT_TIMESTAMP) / 86400 ))
-    
-    if [ $DAYS_UNTIL_EXPIRY -gt 30 ]; then
-        echo "  ✅ Expires in $DAYS_UNTIL_EXPIRY days"
-    elif [ $DAYS_UNTIL_EXPIRY -gt 7 ]; then
-        echo "  ⚠️  Expires in $DAYS_UNTIL_EXPIRY days (renewal recommended)"
-    else
-        echo "  ❌ Expires in $DAYS_UNTIL_EXPIRY days (urgent renewal needed)"
-    fi
-fi
-
-# Recent errors
-echo
-echo "⚠️  Recent Errors (last 24h):"
-ERROR_COUNT=$(journalctl -u $APP_NAME --since "24 hours ago" --grep "ERROR" --no-pager -q | wc -l)
-if [ $ERROR_COUNT -eq 0 ]; then
-    echo "  ✅ No errors found"
-else
-    echo "  ⚠️  $ERROR_COUNT errors found in logs"
-    echo "     Check with: journalctl -u $APP_NAME --since '24 hours ago' --grep ERROR"
+    echo "  Health Check: Failed"
 fi
 
 echo
 echo "==============================="
 echo "Last updated: $(date)"
-EOF
+STATUS_SCRIPT_EOF
     
     execute_command chmod +x $APP_DIR/scripts/status.sh
     
