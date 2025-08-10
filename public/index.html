@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Tracker</title>
+    <title>Gym Tracker - Ihr persönlicher Fitness-Begleiter</title>
+    <meta name="description" content="Verfolgen Sie Ihre Workouts, überwachen Sie Ihren Fortschritt und erreichen Sie Ihre Fitnessziele mit Gym Tracker.">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -11,7 +12,10 @@
     <!-- Login/Register Screen -->
     <div id="loginScreen" class="login-container">
         <div class="login-card">
-            <h1 class="login-title">💪 Gym Tracker</h1>
+            <div class="login-header">
+                <h1 class="login-title">💪 Gym Tracker</h1>
+                <p class="login-subtitle">Ihr persönlicher Fitness-Begleiter</p>
+            </div>
             
             <div class="auth-tabs">
                 <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
@@ -24,56 +28,67 @@
             <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="loginUsername">Benutzername oder E-Mail</label>
-                    <input type="text" id="loginUsername" name="username" required autocomplete="username">
+                    <input type="text" id="loginUsername" name="username" required autocomplete="username" placeholder="Ihr Benutzername oder E-Mail">
                 </div>
                 
                 <div class="form-group">
                     <label for="loginPassword">Passwort</label>
-                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password">
+                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Ihr Passwort">
                 </div>
                 
-                <button type="submit" class="btn" style="width: 100%; margin-bottom: 15px;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
                     <span id="loginButtonText">Anmelden</span>
-                    <div id="loginLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                    <div id="loginLoading" class="loading hidden"></div>
                 </button>
+                
+                <div class="auth-help">
+                    <p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin123</strong></p>
+                    <small>Bitte ändern Sie das Passwort nach der ersten Anmeldung!</small>
+                </div>
             </form>
             
             <!-- Register Form -->
             <form id="registerForm" class="auth-form hidden">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="registerFirstName">Vorname</label>
+                        <input type="text" id="registerFirstName" name="first_name" maxlength="50" placeholder="Ihr Vorname">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerLastName">Nachname</label>
+                        <input type="text" id="registerLastName" name="last_name" maxlength="50" placeholder="Ihr Nachname">
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="registerUsername">Benutzername *</label>
-                    <input type="text" id="registerUsername" name="username" required minlength="3" maxlength="50">
+                    <input type="text" id="registerUsername" name="username" required minlength="3" maxlength="50" placeholder="Wählen Sie einen Benutzernamen">
                 </div>
                 
                 <div class="form-group">
-                    <label for="registerEmail">E-Mail *</label>
-                    <input type="email" id="registerEmail" name="email" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="registerFirstName">Vorname</label>
-                    <input type="text" id="registerFirstName" name="first_name" maxlength="50">
-                </div>
-                
-                <div class="form-group">
-                    <label for="registerLastName">Nachname</label>
-                    <input type="text" id="registerLastName" name="last_name" maxlength="50">
+                    <label for="registerEmail">E-Mail-Adresse *</label>
+                    <input type="email" id="registerEmail" name="email" required placeholder="ihre.email@domain.de">
                 </div>
                 
                 <div class="form-group">
                     <label for="registerPassword">Passwort *</label>
-                    <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password">
+                    <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password" placeholder="Mindestens 6 Zeichen">
                 </div>
                 
                 <div class="form-group">
                     <label for="registerPasswordConfirm">Passwort bestätigen *</label>
-                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password">
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password" placeholder="Passwort wiederholen">
                 </div>
                 
                 <button type="submit" class="btn btn-success" style="width: 100%; margin-bottom: 15px;">
-                    <span id="registerButtonText">Registrieren</span>
-                    <div id="registerLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
+                    <span id="registerButtonText">Konto erstellen</span>
+                    <div id="registerLoading" class="loading hidden"></div>
                 </button>
+                
+                <div class="auth-help">
+                    <small>Mit der Registrierung stimmen Sie den Nutzungsbedingungen zu.</small>
+                </div>
             </form>
         </div>
     </div>
@@ -83,45 +98,129 @@
         <div class="header">
             <nav class="nav">
                 <div class="logo">
-                    💪 Gym Tracker
-                    <span id="userWelcome" style="font-size: 14px; color: #666; font-weight: normal;"></span>
+                    <span class="logo-icon">💪</span>
+                    <span class="logo-text">Gym Tracker</span>
+                    <span id="userWelcome" class="user-welcome"></span>
                 </div>
                 <div class="nav-buttons">
-                    <button class="btn" onclick="App.showSection('dashboard')">📊 Dashboard</button>
-                    <button class="btn" onclick="App.showSection('workouts')">🏋️ Workouts</button>
-                    <button class="btn" onclick="App.showSection('exercises')">💪 Übungen</button>
-                    <button class="btn btn-success" onclick="App.showSection('newWorkout')">➕ Neues Training</button>
-                    <button id="adminButton" class="btn btn-admin hidden" onclick="App.showSection('admin')">👑 Admin</button>
-                    <button class="btn btn-info" onclick="Auth.showProfileModal()">👤 Profil</button>
-                    <button class="btn btn-secondary" onclick="Auth.logout()">🚪 Abmelden</button>
+                    <button class="btn nav-btn" onclick="App.showSection('dashboard')" data-section="dashboard">
+                        <span class="btn-icon">📊</span>
+                        <span class="btn-text">Dashboard</span>
+                    </button>
+                    <button class="btn nav-btn" onclick="App.showSection('workouts')" data-section="workouts">
+                        <span class="btn-icon">🏋️</span>
+                        <span class="btn-text">Workouts</span>
+                    </button>
+                    <button class="btn nav-btn" onclick="App.showSection('exercises')" data-section="exercises">
+                        <span class="btn-icon">💪</span>
+                        <span class="btn-text">Übungen</span>
+                    </button>
+                    <button class="btn btn-success nav-btn" onclick="App.showSection('newWorkout')" data-section="newWorkout">
+                        <span class="btn-icon">➕</span>
+                        <span class="btn-text">Neues Training</span>
+                    </button>
+                    <button id="adminButton" class="btn btn-admin nav-btn hidden" onclick="App.showSection('admin')" data-section="admin">
+                        <span class="btn-icon">👑</span>
+                        <span class="btn-text">Admin</span>
+                    </button>
+                    <div class="nav-dropdown">
+                        <button class="btn btn-info dropdown-toggle">
+                            <span class="btn-icon">👤</span>
+                            <span class="btn-text">Profil</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" onclick="Auth.showProfileModal()">👤 Profil bearbeiten</a>
+                            <a href="#" onclick="App.exportData()">💾 Daten exportieren</a>
+                            <hr>
+                            <a href="#" onclick="Auth.logout()" class="logout-link">🚪 Abmelden</a>
+                        </div>
+                    </div>
                 </div>
             </nav>
         </div>
 
-        <div class="container">
+        <div class="main-container">
+            <!-- Global Alert Container -->
+            <div id="mainAlertContainer" class="main-alert-container"></div>
+            
             <!-- Dashboard Section -->
             <div id="dashboard" class="section">
-                <div class="grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalWorkouts">0</div>
-                        <div class="stat-label">Trainings gesamt</div>
+                <div class="section-header">
+                    <h1 class="section-title">📊 Dashboard</h1>
+                    <p class="section-subtitle">Übersicht über Ihre Fitness-Fortschritte</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">🏋️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalWorkouts">0</div>
+                            <div class="stat-label">Trainings gesamt</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="thisWeekWorkouts">0</div>
-                        <div class="stat-label">Diese Woche</div>
+                    <div class="stat-card secondary">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="thisWeekWorkouts">0</div>
+                            <div class="stat-label">Diese Woche</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalTime">0</div>
-                        <div class="stat-label">Minuten gesamt</div>
+                    <div class="stat-card accent">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalTime">0</div>
+                            <div class="stat-label">Minuten gesamt</div>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="currentStreak">0</div>
+                            <div class="stat-label">Tage in Folge</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <h2 style="margin-bottom: 20px; color: #333;">📈 Letzte Trainings</h2>
-                    <div id="recentWorkouts">
-                        <div style="text-align: center; color: #666; padding: 40px;">
-                            <div class="loading"></div>
-                            <p style="margin-top: 10px;">Lade Trainings...</p>
+                <div class="dashboard-grid">
+                    <div class="card recent-workouts">
+                        <div class="card-header">
+                            <h2 class="card-title">📈 Letzte Trainings</h2>
+                            <button class="btn btn-sm btn-outline" onclick="App.showSection('workouts')">Alle anzeigen</button>
+                        </div>
+                        <div class="card-content">
+                            <div id="recentWorkouts" class="workouts-list">
+                                <div class="loading-state">
+                                    <div class="loading"></div>
+                                    <p>Lade Trainings...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card quick-actions">
+                        <div class="card-header">
+                            <h2 class="card-title">⚡ Schnellaktionen</h2>
+                        </div>
+                        <div class="card-content">
+                            <div class="quick-actions-grid">
+                                <button class="quick-action-btn" onclick="App.showSection('newWorkout')">
+                                    <span class="quick-action-icon">➕</span>
+                                    <span class="quick-action-text">Neues Training</span>
+                                </button>
+                                <button class="quick-action-btn" onclick="Exercises.showNewModal()">
+                                    <span class="quick-action-icon">💪</span>
+                                    <span class="quick-action-text">Neue Übung</span>
+                                </button>
+                                <button class="quick-action-btn" onclick="App.exportData()">
+                                    <span class="quick-action-icon">💾</span>
+                                    <span class="quick-action-text">Daten exportieren</span>
+                                </button>
+                                <button class="quick-action-btn" onclick="Auth.showProfileModal()">
+                                    <span class="quick-action-icon">👤</span>
+                                    <span class="quick-action-text">Profil bearbeiten</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -129,62 +228,102 @@
 
             <!-- Admin Section -->
             <div id="admin" class="section hidden">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px; color: #333;">👑 Admin-Bereich</h2>
-                    
-                    <div class="grid" style="margin-bottom: 30px;">
-                        <div class="stat-card">
+                <div class="section-header">
+                    <h1 class="section-title">👑 Admin-Bereich</h1>
+                    <p class="section-subtitle">Verwaltung von Benutzern und System</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card info">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
                             <div class="stat-number" id="totalUsers">0</div>
                             <div class="stat-label">Registrierte Benutzer</div>
                         </div>
-                        <div class="stat-card">
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
                             <div class="stat-number" id="activeUsers">0</div>
                             <div class="stat-label">Aktive Benutzer</div>
                         </div>
-                        <div class="stat-card">
+                    </div>
+                    <div class="stat-card primary">
+                        <div class="stat-icon">🏋️</div>
+                        <div class="stat-content">
                             <div class="stat-number" id="totalAdminWorkouts">0</div>
                             <div class="stat-label">Gesamte Workouts</div>
                         </div>
                     </div>
+                </div>
 
-                    <h3 style="margin-bottom: 15px; color: #333;">👥 Benutzerverwaltung</h3>
-                    <div id="userManagement">
-                        <table class="user-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Benutzername</th>
-                                    <th>E-Mail</th>
-                                    <th>Name</th>
-                                    <th>Rolle</th>
-                                    <th>Status</th>
-                                    <th>Registriert</th>
-                                    <th>Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userTableBody">
-                                <tr>
-                                    <td colspan="8" style="text-align: center;">
-                                        <div class="loading"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">👥 Benutzerverwaltung</h2>
+                        <div class="card-actions">
+                            <button class="btn btn-info btn-sm" onclick="Admin.exportUsers()">📥 Exportieren</button>
+                            <button class="btn btn-success btn-sm" onclick="Admin.loadDashboard()">🔄 Aktualisieren</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="table-container">
+                            <table class="user-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Benutzername</th>
+                                        <th>E-Mail</th>
+                                        <th>Name</th>
+                                        <th>Rolle</th>
+                                        <th>Status</th>
+                                        <th>Registriert</th>
+                                        <th>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody">
+                                    <tr>
+                                        <td colspan="8" class="loading-row">
+                                            <div class="loading"></div>
+                                            <span>Lade Benutzerdaten...</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Workouts Section -->
             <div id="workouts" class="section hidden">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="color: #333;">🏋️ Meine Trainings</h2>
-                        <button class="btn btn-success" onclick="App.showSection('newWorkout')">➕ Neues Training</button>
+                <div class="section-header">
+                    <h1 class="section-title">🏋️ Meine Trainings</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-success" onclick="App.showSection('newWorkout')">
+                            <span class="btn-icon">➕</span>
+                            Neues Training
+                        </button>
                     </div>
-                    <div id="workoutsList">
-                        <div style="text-align: center; color: #666; padding: 40px;">
-                            <div class="loading"></div>
-                            <p style="margin-top: 10px;">Lade Trainings...</p>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📋 Trainingshistorie</h2>
+                        <div class="card-actions">
+                            <select id="workoutsFilter" class="filter-select">
+                                <option value="all">Alle Trainings</option>
+                                <option value="week">Diese Woche</option>
+                                <option value="month">Dieser Monat</option>
+                                <option value="year">Dieses Jahr</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="workoutsList" class="workouts-grid">
+                            <div class="loading-state">
+                                <div class="loading"></div>
+                                <p>Lade Trainings...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,15 +331,36 @@
 
             <!-- Exercises Section -->
             <div id="exercises" class="section hidden">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="color: #333;">💪 Verfügbare Übungen</h2>
-                        <button class="btn btn-success" onclick="Exercises.showNewModal()">➕ Neue Übung</button>
+                <div class="section-header">
+                    <h1 class="section-title">💪 Verfügbare Übungen</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-success" onclick="Exercises.showNewModal()">
+                            <span class="btn-icon">➕</span>
+                            Neue Übung
+                        </button>
                     </div>
-                    <div id="exercisesList">
-                        <div style="text-align: center; color: #666; padding: 40px;">
-                            <div class="loading"></div>
-                            <p style="margin-top: 10px;">Lade Übungen...</p>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">🔍 Übungen durchsuchen</h2>
+                        <div class="card-actions">
+                            <input type="text" id="exerciseSearch" class="search-input" placeholder="Übungen suchen...">
+                            <select id="exerciseFilter" class="filter-select">
+                                <option value="all">Alle Kategorien</option>
+                                <option value="Krafttraining">Krafttraining</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Stretching">Stretching</option>
+                                <option value="Functional">Functional</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="exercisesList" class="exercises-container">
+                            <div class="loading-state">
+                                <div class="loading"></div>
+                                <p>Lade Übungen...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -208,272 +368,338 @@
 
             <!-- New Workout Section -->
             <div id="newWorkout" class="section hidden">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px; color: #333;">➕ Neues Training erstellen</h2>
-                    <form id="newWorkoutForm" class="workout-form">
-                        <div class="form-group">
-                            <label for="workoutName">Trainingsname *</label>
-                            <input type="text" id="workoutName" required placeholder="z.B. Push-Tag, Beine, Cardio...">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workoutDate">Datum *</label>
-                            <input type="date" id="workoutDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workoutDuration">Dauer (Minuten)</label>
-                            <input type="number" id="workoutDuration" min="1" max="300" placeholder="z.B. 60">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workoutNotes">Notizen</label>
-                            <textarea id="workoutNotes" rows="3" placeholder="Wie war das Training? Besonderheiten?"></textarea>
-                        </div>
-
-                        <div class="exercise-selector">
-                            <label>Übungen hinzufügen:</label>
-                            <select id="exerciseSelect" style="margin-top: 10px;">
-                                <option value="">-- Übung auswählen --</option>
-                            </select>
-                            <button type="button" class="btn" onclick="Workouts.addExercise()" style="margin-top: 10px;">Übung hinzufügen</button>
+                <div class="section-header">
+                    <h1 class="section-title">➕ Neues Training erstellen</h1>
+                    <p class="section-subtitle">Erstellen Sie ein neues Training mit Übungen und Details</p>
+                </div>
+                
+                <form id="newWorkoutForm" class="workout-form">
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h3 class="form-section-title">📝 Grundinformationen</h3>
                             
-                            <!-- Quick Add New Exercise -->
-                            <div class="quick-exercise-add">
-                                <h4 style="margin-bottom: 10px; color: #667eea;">🆕 Neue Übung schnell erstellen</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <input type="text" id="quickExerciseName" placeholder="Name der neuen Übung">
-                                    <select id="quickExerciseCategory">
-                                        <option value="">-- Kategorie --</option>
-                                        <option value="Krafttraining">Krafttraining</option>
-                                        <option value="Cardio">Cardio</option>
-                                        <option value="Stretching">Stretching</option>
-                                        <option value="Functional">Functional</option>
+                            <div class="form-group">
+                                <label for="workoutName">Trainingsname *</label>
+                                <input type="text" id="workoutName" required placeholder="z.B. Push-Tag, Beine, Cardio...">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="workoutDate">Datum *</label>
+                                    <input type="date" id="workoutDate" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="workoutDuration">Dauer (Minuten)</label>
+                                    <input type="number" id="workoutDuration" min="1" max="300" placeholder="z.B. 60">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="workoutNotes">Notizen</label>
+                                <textarea id="workoutNotes" rows="3" placeholder="Wie war das Training? Besonderheiten?"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3 class="form-section-title">💪 Übungen hinzufügen</h3>
+                            
+                            <div class="exercise-selector">
+                                <div class="selector-row">
+                                    <select id="exerciseSelect" class="exercise-select">
+                                        <option value="">-- Übung auswählen --</option>
                                     </select>
-                                    <select id="quickExerciseMuscle">
-                                        <option value="">-- Muskelgruppe --</option>
-                                        <option value="Brust">Brust</option>
-                                        <option value="Rücken">Rücken</option>
-                                        <option value="Schultern">Schultern</option>
-                                        <option value="Arme">Arme</option>
-                                        <option value="Beine">Beine</option>
-                                        <option value="Core">Core</option>
-                                        <option value="Cardio">Cardio</option>
-                                        <option value="Ganzkörper">Ganzkörper</option>
-                                    </select>
-                                    <button type="button" class="btn btn-info" onclick="Exercises.quickAdd()">➕ Schnell hinzufügen</button>
+                                    <button type="button" class="btn btn-primary" onclick="Workouts.addExercise()">Hinzufügen</button>
+                                </div>
+                                
+                                <!-- Quick Add New Exercise -->
+                                <div class="quick-exercise-add">
+                                    <h4 class="quick-add-title">🆕 Neue Übung schnell erstellen</h4>
+                                    <div class="quick-add-grid">
+                                        <input type="text" id="quickExerciseName" placeholder="Name der neuen Übung">
+                                        <select id="quickExerciseCategory">
+                                            <option value="">-- Kategorie --</option>
+                                            <option value="Krafttraining">Krafttraining</option>
+                                            <option value="Cardio">Cardio</option>
+                                            <option value="Stretching">Stretching</option>
+                                            <option value="Functional">Functional</option>
+                                        </select>
+                                        <select id="quickExerciseMuscle">
+                                            <option value="">-- Muskelgruppe --</option>
+                                            <option value="Brust">Brust</option>
+                                            <option value="Rücken">Rücken</option>
+                                            <option value="Schultern">Schultern</option>
+                                            <option value="Arme">Arme</option>
+                                            <option value="Beine">Beine</option>
+                                            <option value="Core">Core</option>
+                                            <option value="Cardio">Cardio</option>
+                                            <option value="Ganzkörper">Ganzkörper</option>
+                                        </select>
+                                        <button type="button" class="btn btn-info" onclick="Exercises.quickAdd()">Erstellen & Hinzufügen</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div id="selectedExercises" class="selected-exercises">
-                            <!-- Selected exercises will be added here -->
+                    <div id="selectedExercises" class="selected-exercises">
+                        <!-- Selected exercises will be added here -->
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <span id="saveButtonText">💾 Training speichern</span>
+                            <div id="saveLoading" class="loading hidden"></div>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-lg" onclick="App.showSection('dashboard')">❌ Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 class="modal-title">👤 Profil verwalten</h2>
+                <span class="close" onclick="Auth.closeProfileModal()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div class="modal-tabs">
+                    <button class="modal-tab active" onclick="showModalTab('profile')">📝 Profil</button>
+                    <button class="modal-tab" onclick="showModalTab('password')">🔒 Passwort</button>
+                </div>
+                
+                <div id="profileTab" class="modal-tab-content">
+                    <form id="updateProfileForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profileFirstName">Vorname</label>
+                                <input type="text" id="profileFirstName" maxlength="50">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="profileLastName">Nachname</label>
+                                <input type="text" id="profileLastName" maxlength="50">
+                            </div>
                         </div>
                         
-                        <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button type="submit" class="btn btn-success" style="flex: 1;">
-                                <span id="saveButtonText">💾 Training speichern</span>
-                                <div id="saveLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="App.showSection('dashboard')">❌ Abbrechen</button>
+                        <div class="form-group">
+                            <label for="profileUsername">Benutzername *</label>
+                            <input type="text" id="profileUsername" required>
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="profileEmail">E-Mail *</label>
+                            <input type="email" id="profileEmail" required>
+                        </div>
+                        
+                        <div class="profile-info">
+                            <div class="info-item">
+                                <strong>Rolle:</strong> <span id="profileRole"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Mitglied seit:</strong> <span id="profileMemberSince"></span>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">
+                            <span id="updateProfileButtonText">💾 Profil aktualisieren</span>
+                            <div id="updateProfileLoading" class="loading hidden"></div>
+                        </button>
+                    </form>
+                </div>
+                
+                <div id="passwordTab" class="modal-tab-content hidden">
+                    <form id="changePasswordForm">
+                        <div class="form-group">
+                            <label for="currentPassword">Aktuelles Passwort *</label>
+                            <input type="password" id="currentPassword" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newPassword">Neues Passwort *</label>
+                            <input type="password" id="newPassword" required minlength="6">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
+                            <input type="password" id="confirmNewPassword" required minlength="6">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">
+                            <span id="changePasswordButtonText">🔒 Passwort ändern</span>
+                            <div id="changePasswordLoading" class="loading hidden"></div>
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Profile Modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="Auth.closeProfileModal()">&times;</span>
-            <h2 style="margin-bottom: 20px; color: #333;">👤 Profil verwalten</h2>
-            
-            <form id="updateProfileForm" style="margin-bottom: 30px;">
-                <h3 style="margin-bottom: 15px; color: #667eea;">📝 Persönliche Informationen</h3>
-                
-                <div class="form-group">
-                    <label for="profileUsername">Benutzername *</label>
-                    <input type="text" id="profileUsername" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="profileEmail">E-Mail *</label>
-                    <input type="email" id="profileEmail" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="profileFirstName">Vorname</label>
-                    <input type="text" id="profileFirstName" maxlength="50">
-                </div>
-                
-                <div class="form-group">
-                    <label for="profileLastName">Nachname</label>
-                    <input type="text" id="profileLastName" maxlength="50">
-                </div>
-                
-                <button type="submit" class="btn btn-success" style="width: 100%;">
-                    <span id="updateProfileButtonText">💾 Profil aktualisieren</span>
-                    <div id="updateProfileLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
-                </button>
-            </form>
-            
-            <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                <p><strong>Rolle:</strong> <span id="profileRole"></span></p>
-                <p><strong>Mitglied seit:</strong> <span id="profileMemberSince"></span></p>
-            </div>
-            
-            <form id="changePasswordForm">
-                <h3 style="margin-bottom: 15px; color: #333;">🔒 Passwort ändern</h3>
-                
-                <div class="form-group">
-                    <label for="currentPassword">Aktuelles Passwort *</label>
-                    <input type="password" id="currentPassword" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="newPassword">Neues Passwort *</label>
-                    <input type="password" id="newPassword" required minlength="6">
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
-                    <input type="password" id="confirmNewPassword" required minlength="6">
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-success" style="flex: 1;">
-                        <span id="changePasswordButtonText">🔒 Passwort ändern</span>
-                        <div id="changePasswordLoading" class="loading hidden" style="margin-left: 10px; display: inline-block;"></div>
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="Auth.closeProfileModal()">❌ Schließen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- New Exercise Modal -->
     <div id="newExerciseModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="Exercises.closeNewModal()">&times;</span>
-            <h2 style="margin-bottom: 20px; color: #333;">💪 Neue Übung erstellen</h2>
-            <form id="newExerciseForm">
-                <div class="form-group">
-                    <label for="exerciseName">Name *</label>
-                    <input type="text" id="exerciseName" required placeholder="z.B. Bankdrücken">
-                </div>
-                
-                <div class="form-group">
-                    <label for="exerciseCategory">Kategorie *</label>
-                    <select id="exerciseCategory" required>
-                        <option value="">-- Kategorie wählen --</option>
-                        <option value="Krafttraining">Krafttraining</option>
-                        <option value="Cardio">Cardio</option>
-                        <option value="Stretching">Stretching</option>
-                        <option value="Functional">Functional Training</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="exerciseMuscleGroup">Muskelgruppe *</label>
-                    <select id="exerciseMuscleGroup" required>
-                        <option value="">-- Muskelgruppe wählen --</option>
-                        <option value="Brust">Brust</option>
-                        <option value="Rücken">Rücken</option>
-                        <option value="Schultern">Schultern</option>
-                        <option value="Arme">Arme</option>
-                        <option value="Beine">Beine</option>
-                        <option value="Core">Core</option>
-                        <option value="Cardio">Cardio</option>
-                        <option value="Ganzkörper">Ganzkörper</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="exerciseDescription">Beschreibung</label>
-                    <textarea id="exerciseDescription" rows="2" placeholder="Kurze Beschreibung der Übung"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="exerciseInstructions">Ausführung</label>
-                    <textarea id="exerciseInstructions" rows="3" placeholder="Wie wird die Übung korrekt ausgeführt?"></textarea>
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-success" style="flex: 1;">💾 Übung speichern</button>
-                    <button type="button" class="btn btn-secondary" onclick="Exercises.closeNewModal()">❌ Abbrechen</button>
-                </div>
-            </form>
+            <div class="modal-header">
+                <h2 class="modal-title">💪 Neue Übung erstellen</h2>
+                <span class="close" onclick="Exercises.closeNewModal()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="newExerciseForm">
+                    <div class="form-group">
+                        <label for="exerciseName">Name *</label>
+                        <input type="text" id="exerciseName" required placeholder="z.B. Bankdrücken">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="exerciseCategory">Kategorie *</label>
+                            <select id="exerciseCategory" required>
+                                <option value="">-- Kategorie wählen --</option>
+                                <option value="Krafttraining">Krafttraining</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Stretching">Stretching</option>
+                                <option value="Functional">Functional Training</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="exerciseMuscleGroup">Muskelgruppe *</label>
+                            <select id="exerciseMuscleGroup" required>
+                                <option value="">-- Muskelgruppe wählen --</option>
+                                <option value="Brust">Brust</option>
+                                <option value="Rücken">Rücken</option>
+                                <option value="Schultern">Schultern</option>
+                                <option value="Arme">Arme</option>
+                                <option value="Beine">Beine</option>
+                                <option value="Core">Core</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Ganzkörper">Ganzkörper</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="exerciseDescription">Beschreibung</label>
+                        <textarea id="exerciseDescription" rows="2" placeholder="Kurze Beschreibung der Übung"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="exerciseInstructions">Ausführung</label>
+                        <textarea id="exerciseInstructions" rows="3" placeholder="Wie wird die Übung korrekt ausgeführt?"></textarea>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-success">💾 Übung speichern</button>
+                        <button type="button" class="btn btn-secondary" onclick="Exercises.closeNewModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Workout Detail Modal -->
     <div id="workoutDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <span class="close" onclick="Workouts.closeDetailModal()">&times;</span>
-            <div id="workoutDetailContent">
-                <!-- Workout details will be loaded here -->
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 class="modal-title">🏋️ Training Details</h2>
+                <span class="close" onclick="Workouts.closeDetailModal()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div id="workoutDetailContent">
+                    <!-- Workout details will be loaded here -->
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Password Reset Modal (Admin) -->
+    <!-- Admin Modals -->
+    
+    <!-- Password Reset Modal -->
     <div id="passwordResetModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="Admin.closePasswordResetModal()">&times;</span>
-            <h2 style="margin-bottom: 20px; color: #333;">🔑 Passwort zurücksetzen</h2>
+            <div class="modal-header">
+                <h2 class="modal-title">🔑 Passwort zurücksetzen</h2>
+                <span class="close" onclick="Admin.closePasswordResetModal()">&times;</span>
+            </div>
             
-            <p style="margin-bottom: 20px;">Neues Passwort für Benutzer: <strong id="resetUsername"></strong></p>
-            
-            <form id="adminPasswordResetForm">
-                <input type="hidden" id="resetUserId">
+            <div class="modal-body">
+                <p class="reset-info">Neues Passwort für Benutzer: <strong id="resetUsername"></strong></p>
                 
-                <div class="form-group">
-                    <label for="adminNewPassword">Neues Passwort *</label>
-                    <input type="password" id="adminNewPassword" required minlength="6">
-                </div>
-                
-                <div class="form-group">
-                    <label for="adminConfirmPassword">Passwort bestätigen *</label>
-                    <input type="password" id="adminConfirmPassword" required minlength="6">
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-warning" style="flex: 1;">🔑 Passwort zurücksetzen</button>
-                    <button type="button" class="btn btn-secondary" onclick="Admin.closePasswordResetModal()">❌ Abbrechen</button>
-                </div>
-            </form>
+                <form id="adminPasswordResetForm">
+                    <input type="hidden" id="resetUserId">
+                    
+                    <div class="form-group">
+                        <label for="adminNewPassword">Neues Passwort *</label>
+                        <input type="password" id="adminNewPassword" required minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adminConfirmPassword">Passwort bestätigen *</label>
+                        <input type="password" id="adminConfirmPassword" required minlength="6">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-warning">🔑 Passwort zurücksetzen</button>
+                        <button type="button" class="btn btn-secondary" onclick="Admin.closePasswordResetModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Delete User Confirmation Modal -->
+    <!-- Delete User Modal -->
     <div id="deleteUserModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="Admin.closeDeleteUserModal()">&times;</span>
-            <h2 style="margin-bottom: 20px; color: #dc3545;">🗑️ Benutzer löschen</h2>
-            
-            <div style="margin-bottom: 20px; padding: 15px; background: #f8d7da; border-radius: 10px; border: 1px solid #f5c6cb;">
-                <p><strong>⚠️ WARNUNG:</strong> Diese Aktion kann nicht rückgängig gemacht werden!</p>
-                <p style="margin-top: 10px;">Alle Workouts und Daten des Benutzers werden permanent gelöscht.</p>
+            <div class="modal-header">
+                <h2 class="modal-title">🗑️ Benutzer löschen</h2>
+                <span class="close" onclick="Admin.closeDeleteUserModal()">&times;</span>
             </div>
             
-            <p style="margin-bottom: 20px;">Benutzer löschen: <strong id="deleteUsername"></strong></p>
-            
-            <form id="deleteUserForm">
-                <input type="hidden" id="deleteUserId">
-                
-                <div class="form-group">
-                    <label for="deleteConfirmation">Geben Sie "LÖSCHEN" ein, um zu bestätigen:</label>
-                    <input type="text" id="deleteConfirmation" required placeholder="LÖSCHEN">
+            <div class="modal-body">
+                <div class="warning-box">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-content">
+                        <h3>WARNUNG: Diese Aktion kann nicht rückgängig gemacht werden!</h3>
+                        <p>Alle Workouts und Daten des Benutzers werden permanent gelöscht.</p>
+                    </div>
                 </div>
                 
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-danger" style="flex: 1;">🗑️ Benutzer endgültig löschen</button>
-                    <button type="button" class="btn btn-secondary" onclick="Admin.closeDeleteUserModal()">❌ Abbrechen</button>
-                </div>
-            </form>
+                <p class="delete-info">Benutzer löschen: <strong id="deleteUsername"></strong></p>
+                
+                <form id="deleteUserForm">
+                    <input type="hidden" id="deleteUserId">
+                    
+                    <div class="form-group">
+                        <label for="deleteConfirmation">Geben Sie "LÖSCHEN" ein, um zu bestätigen:</label>
+                        <input type="text" id="deleteConfirmation" required placeholder="LÖSCHEN" class="confirmation-input">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-danger">🗑️ Benutzer endgültig löschen</button>
+                        <button type="button" class="btn btn-secondary" onclick="Admin.closeDeleteUserModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Lädt...</p>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
 
     <!-- Scripts -->
     <script src="js/utils.js"></script>
@@ -482,5 +708,207 @@
     <script src="js/exercises.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Additional Utility Scripts -->
+    <script>
+        // Modal tab switching
+        function showModalTab(tabName) {
+            document.querySelectorAll('.modal-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.modal-tab-content').forEach(content => content.classList.add('hidden'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+        }
+
+        // Dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdowns = document.querySelectorAll('.nav-dropdown');
+            
+            dropdowns.forEach(dropdown => {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                toggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    menu.classList.toggle('show');
+                });
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function() {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            });
+        });
+
+        // Notification system
+        function showNotification(message, type = 'info', duration = 5000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span class="notification-icon">${icons[type] || icons.info}</span>
+                    <span class="notification-message">${message}</span>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto remove after duration
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.add('fade-out');
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, duration);
+        }
+
+        // Loading overlay
+        function showLoadingOverlay(text = 'Lädt...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Escape key to close modals and dropdowns
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+            
+            // Ctrl+N for new workout
+            if (e.ctrlKey && e.key === 'n' && Auth.isAuthenticated()) {
+                e.preventDefault();
+                App.showSection('newWorkout');
+            }
+            
+            // Ctrl+D for dashboard
+            if (e.ctrlKey && e.key === 'd' && Auth.isAuthenticated()) {
+                e.preventDefault();
+                App.showSection('dashboard');
+            }
+        });
+
+        // Service Worker for PWA functionality (optional)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            if (Auth.isAuthenticated()) {
+                showNotification('Ein unerwarteter Fehler ist aufgetreten.', 'error');
+            }
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            if (Auth.isAuthenticated()) {
+                showNotification('Ein Netzwerkfehler ist aufgetreten.', 'error');
+            }
+        });
+
+        // Online/Offline detection
+        window.addEventListener('online', function() {
+            showNotification('Internetverbindung wiederhergestellt', 'success', 3000);
+        });
+
+        window.addEventListener('offline', function() {
+            showNotification('Internetverbindung verloren', 'warning', 10000);
+        });
+
+        // Auto-save functionality for forms (optional)
+        function enableAutoSave(formId, storageKey) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+
+            // Load saved data
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    Object.keys(data).forEach(key => {
+                        const element = form.querySelector(`[name="${key}"], #${key}`);
+                        if (element && element.type !== 'password') {
+                            element.value = data[key];
+                        }
+                    });
+                } catch (e) {
+                    console.warn('Failed to load saved form data:', e);
+                }
+            }
+
+            // Save data on input
+            form.addEventListener('input', Utils.debounce(function() {
+                const formData = new FormData(form);
+                const data = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    if (!form.querySelector(`[name="${key}"]`).type.includes('password')) {
+                        data[key] = value;
+                    }
+                }
+                
+                localStorage.setItem(storageKey, JSON.stringify(data));
+            }, 1000));
+
+            // Clear saved data on successful submit
+            form.addEventListener('submit', function() {
+                localStorage.removeItem(storageKey);
+            });
+        }
+
+        // Initialize auto-save for workout form
+        document.addEventListener('DOMContentLoaded', function() {
+            if (Auth.isAuthenticated()) {
+                enableAutoSave('newWorkoutForm', 'gym-tracker-workout-draft');
+            }
+        });
+
+        // Performance monitoring
+        if (window.performance && window.performance.navigation) {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    const perfData = window.performance.timing;
+                    const loadTime = perfData.loadEventEnd - perfData.navigationStart;
+                    console.log('Page load time:', loadTime + 'ms');
+                    
+                    // Log slow loads
+                    if (loadTime > 3000) {
+                        console.warn('Slow page load detected:', loadTime + 'ms');
+                    }
+                }, 0);
+            });
+        }
+    </script>
 </body>
 </html>
