@@ -31,7 +31,259 @@ NC='\033[0m' # No Color
 
 # Logging functions
 print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${CYAN}💿 Backups:${NC}         Daily automated backups"
+    echo -e "${CYAN}🔄 Updates:${NC}         Rollback capability enabled"
+    echo
+    echo "🌐 Access URLs:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    if [ "$PROXY_MODE" = true ]; then
+        echo -e "${GREEN}🌐 Local Access:${NC}    http://$(hostname -I | awk '{print $1}'):3000"
+        echo -e "${GREEN}🔗 API Base:${NC}        http://$(hostname -I | awk '{print $1}'):3000/api"
+        echo -e "${GREEN}❤️  Health Check:${NC}   http://$(hostname -I | awk '{print $1}'):3000/api/health"
+        echo -e "${YELLOW}📋 NPM Setup:${NC}       See $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md"
+        echo -e "${YELLOW}🌍 Public Access:${NC}    Configure in Nginx Proxy Manager for https://$DOMAIN"
+    else
+        if [ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ]; then
+            echo -e "${GREEN}🔒 Main Site:${NC}       https://$DOMAIN"
+            echo -e "${GREEN}🔗 API Base:${NC}        https://$DOMAIN/api"
+            echo -e "${GREEN}❤️  Health Check:${NC}   https://$DOMAIN/api/health"
+        else
+            echo -e "${YELLOW}🌐 Main Site:${NC}       http://$DOMAIN"
+            echo -e "${YELLOW}🔗 API Base:${NC}        http://$DOMAIN/api"
+            echo -e "${YELLOW}❤️  Health Check:${NC}   http://$DOMAIN/api/health"
+            echo -e "${YELLOW}⚠️  SSL:${NC}            Not configured (run certbot manually)"
+        fi
+    fi
+    
+    echo
+    echo "🔐 Default Admin Account:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${RED}👤 Username:${NC}        admin"
+    echo -e "${RED}🔑 Password:${NC}        admin123"
+    echo -e "${RED}⚠️  IMPORTANT:${NC}       CHANGE THIS PASSWORD IMMEDIATELY!"
+    echo
+    echo "📁 Important Files & Directories:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${CYAN}📂 Application:${NC}     $APP_DIR"
+    echo -e "${CYAN}💾 Database:${NC}        $DB_PATH"
+    echo -e "${CYAN}⚙️  Nginx Config:${NC}   /etc/nginx/sites-available/$APP_NAME"
+    echo -e "${CYAN}🔧 Service:${NC}         /etc/systemd/system/$APP_NAME.service"
+    echo -e "${CYAN}🌍 Environment:${NC}     $APP_DIR/.env"
+    echo -e "${CYAN}📋 Logs:${NC}            /var/log/nginx/ & journalctl -u $APP_NAME"
+    echo -e "${CYAN}💿 Backups:${NC}         $APP_DIR/backups/"
+    echo -e "${CYAN}🛠️  Scripts:${NC}         $APP_DIR/scripts/"
+    echo
+    echo "🔧 Management Commands:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${GREEN}📊 Status:${NC}          gym-tracker-status"
+    echo -e "${GREEN}▶️  Start:${NC}           systemctl start $APP_NAME"
+    echo -e "${RED}⏹️  Stop:${NC}            systemctl stop $APP_NAME"
+    echo -e "${YELLOW}🔄 Restart:${NC}         systemctl restart $APP_NAME"
+    echo -e "${BLUE}📋 Logs:${NC}            journalctl -u $APP_NAME -f"
+    echo -e "${PURPLE}🌐 Nginx:${NC}           systemctl restart nginx"
+    echo -e "${CYAN}🔄 Update:${NC}          $APP_DIR/scripts/update.sh"
+    echo
+    echo "💾 Database Management:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${CYAN}🔍 Access DB:${NC}       sqlite3 $DB_PATH"
+    echo -e "${CYAN}💿 Manual Backup:${NC}   cd $APP_DIR && node scripts/backup.js"
+    echo -e "${CYAN}⚡ Optimize DB:${NC}     cd $APP_DIR && node scripts/optimize-db.js"
+    echo -e "${CYAN}✅ Verify Backup:${NC}   $APP_DIR/scripts/verify-backup.sh"
+    echo -e "${CYAN}📊 Monitor:${NC}         tail -f /var/log/gym-tracker-monitor.log"
+    echo
+    echo "🔄 Rollback & Recovery:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${YELLOW}🔙 Rollback:${NC}        $0 --rollback"
+    echo -e "${YELLOW}📦 Backups:${NC}         ls -la $BACKUP_DIR/"
+    echo -e "${YELLOW}🕐 Restore Point:${NC}   Created before installation"
+    echo
+    echo "🛡️ Security & Maintenance:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${GREEN}🔥 Firewall:${NC}        ufw status"
+    echo -e "${GREEN}🚫 Fail2ban:${NC}        fail2ban-client status"
+    if [ "$PROXY_MODE" = false ] && [ "$SKIP_SSL" = false ]; then
+        echo -e "${GREEN}🔒 SSL Status:${NC}      certbot certificates"
+        echo -e "${GREEN}🔄 SSL Renew:${NC}       certbot renew"
+    fi
+    echo -e "${GREEN}🔍 Security Scan:${NC}   lynis audit system"
+    echo
+    echo "📈 Monitoring & Health:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${BLUE}❤️  Health Check:${NC}   curl http://localhost:3000/api/health"
+    echo -e "${BLUE}📊 Full Status:${NC}     gym-tracker-status"
+    echo -e "${BLUE}📋 System Status:${NC}   systemctl status $APP_NAME nginx"
+    echo -e "${BLUE}💾 Disk Usage:${NC}      df -h"
+    echo -e "${BLUE}📈 Performance:${NC}     htop"
+    echo
+    echo "🗄️ Backup & Recovery:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${CYAN}📅 Schedule:${NC}        Daily at 3:00 AM (automatic)"
+    echo -e "${CYAN}📍 DB Backups:${NC}      $APP_DIR/backups/"
+    echo -e "${CYAN}📍 System Backups:${NC}  $BACKUP_DIR/"
+    echo -e "${CYAN}🔍 List Backups:${NC}    ls -la $APP_DIR/backups/"
+    echo -e "${CYAN}♻️  Retention:${NC}       30 days (automatic cleanup)"
+    echo -e "${CYAN}✅ Verify:${NC}          $APP_DIR/scripts/verify-backup.sh"
+    echo
+    if [ "$PROXY_MODE" = true ]; then
+        echo "🌐 Nginx Proxy Manager Configuration:"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "${YELLOW}📋 Setup Guide:${NC}     $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md"
+        echo -e "${YELLOW}🎯 Target IP:${NC}       $(hostname -I | awk '{print $1}')"
+        echo -e "${YELLOW}🚪 Target Port:${NC}     3000"
+        echo -e "${YELLOW}🌍 Domain:${NC}          $DOMAIN"
+        echo -e "${YELLOW}🔒 SSL:${NC}             Configure in NPM (Let's Encrypt)"
+        echo
+    fi
+    
+    echo "🏋️‍♂️ =================================================================="
+    echo
+    
+    if systemctl is-active --quiet nginx && systemctl is-active --quiet $APP_NAME; then
+        echo -e "${GREEN}🎉 INSTALLATION SUCCESSFUL! 🎉${NC}"
+        echo
+        if [ "$PROXY_MODE" = true ]; then
+            echo -e "📱 ${YELLOW}Local Access: http://$(hostname -I | awk '{print $1}'):3000${NC}"
+            echo -e "🌍 ${YELLOW}Setup Nginx Proxy Manager for public access${NC}"
+            echo -e "📖 ${CYAN}Read: $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md${NC}"
+        else
+            if [ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ]; then
+                echo -e "📱 ${GREEN}Your Gym Tracker is now running at: https://$DOMAIN${NC}"
+            else
+                echo -e "📱 ${YELLOW}Your Gym Tracker is now running at: http://$DOMAIN${NC}"
+            fi
+        fi
+        echo
+        echo "🚀 Next Steps:"
+        echo "1. 🌐 Open your browser and visit your website"
+        echo "2. 🔐 Login with admin/admin123"
+        echo "3. ⚠️  Change the admin password immediately"
+        echo "4. 👥 Create your first user accounts"
+        echo "5. 💪 Start tracking your fitness journey!"
+        if [ "$PROXY_MODE" = true ]; then
+            echo "6. 🌍 Configure Nginx Proxy Manager for public access"
+        else
+            echo "6. 🔒 Verify SSL certificate if applicable"
+        fi
+    else
+        echo -e "${RED}⚠️ INSTALLATION COMPLETED WITH ISSUES ⚠️${NC}"
+        echo
+        echo "Some services may not be running properly."
+        echo "🔍 Check service status with:"
+        echo "   gym-tracker-status"
+        echo "   systemctl status $APP_NAME nginx"
+        echo "   journalctl -u $APP_NAME -n 50"
+    fi
+    
+    echo
+    echo "📖 Documentation & Support:"
+    echo "   🌐 GitHub: https://github.com/Olii83/gymtracker"
+    echo "   🐛 Issues: https://github.com/Olii83/gymtracker/issues"
+    echo "   📚 Wiki: https://github.com/Olii83/gymtracker/wiki"
+    echo
+    echo "⚡ Quick Commands Reference:"
+    echo "   📊 Status: gym-tracker-status"
+    echo "   🔄 Restart: systemctl restart $APP_NAME"
+    echo "   📋 Logs: journalctl -u $APP_NAME -f"
+    echo "   💿 Backup: cd $APP_DIR && node scripts/backup.js"
+    echo "   🔄 Update: $APP_DIR/scripts/update.sh"
+    if [ "$PROXY_MODE" = false ] && [ "$SKIP_SSL" = false ]; then
+        echo "   🔒 SSL: certbot renew"
+    fi
+    echo "   🔙 Rollback: $0 --rollback"
+    echo
+    echo -e "${PURPLE}🏋️‍♂️ Happy training with Gym Tracker! 🏋️‍♀️${NC}"
+    echo "=================================================================="
+}
+
+# Main installation function
+main() {
+    show_header
+    
+    # Parse arguments if any were provided
+    if [ $# -gt 0 ]; then
+        parse_args "$@"
+    fi
+    
+    # Handle rollback mode
+    if [ "$ROLLBACK_MODE" = true ]; then
+        rollback_installation
+        exit 0
+    fi
+    
+    # Show configuration
+    echo "Configuration:"
+    echo "  Domain: $DOMAIN"
+    echo "  App Directory: $APP_DIR"
+    echo "  Proxy Mode: $PROXY_MODE"
+    echo "  Skip SSL: $SKIP_SSL"
+    echo "  Skip Firewall: $SKIP_FIREWALL"
+    echo "  Dry Run: $DRY_RUN"
+    echo
+    
+    if [ "$DRY_RUN" = false ]; then
+        read -p "Continue with installation? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Installation cancelled."
+            exit 0
+        fi
+    fi
+    
+    echo
+    print_status "Starting Gym Tracker installation..."
+    echo
+    
+    # Run installation steps
+    check_requirements
+    create_backup
+    update_system
+    install_dependencies
+    install_nodejs
+    create_app_user
+    download_application
+    create_package_json
+    install_npm_dependencies
+    create_env_file
+    create_scripts
+    setup_database
+    set_permissions
+    setup_nginx
+    setup_systemd_service
+    
+    # Conditional steps
+    if [ "$SKIP_SSL" = false ]; then
+        setup_ssl
+    fi
+    
+    if [ "$SKIP_FIREWALL" = false ]; then
+        setup_firewall
+    fi
+    
+    setup_fail2ban
+    setup_logrotate
+    setup_monitoring
+    setup_backup_automation
+    create_favicon
+    optimize_system
+    
+    # Create Nginx Proxy Manager instructions if in proxy mode
+    if [ "$PROXY_MODE" = true ]; then
+        create_nginx_proxy_manager_instructions
+    fi
+    
+    start_services
+    test_installation
+    cleanup
+    display_summary
+}
+
+# Error handling
+set -e
+trap 'print_error "Installation failed at line $LINENO. Check the output above for details."' ERR
+
+# Execute main function with all arguments
+main "$@" -e "${BLUE}[INFO]${NC} $1"
 }
 
 print_success() {
@@ -52,6 +304,69 @@ print_header() {
 
 print_sub() {
     echo -e "${CYAN}  ↳${NC} $1"
+}
+
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --domain=*)
+                DOMAIN="${1#*=}"
+                ;;
+            --app-dir=*)
+                APP_DIR="${1#*=}"
+                DB_PATH="$APP_DIR/database/gym_tracker.db"
+                ;;
+            --skip-ssl)
+                SKIP_SSL=true
+                ;;
+            --skip-firewall)
+                SKIP_FIREWALL=true
+                ;;
+            --proxy-mode)
+                PROXY_MODE=true
+                ;;
+            --rollback)
+                ROLLBACK_MODE=true
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                print_error "Unknown argument: '$1'"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+show_help() {
+    echo "Gym Tracker Installation Script v2.1"
+    echo ""
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  --domain=DOMAIN         Set domain name (default: gym.zhst.eu)"
+    echo "  --app-dir=PATH          Set application directory (default: /var/www/gym-tracker)"
+    echo "  --skip-ssl              Skip SSL certificate setup"
+    echo "  --skip-firewall         Skip firewall configuration"
+    echo "  --proxy-mode            Enable Nginx Proxy Manager mode"
+    echo "  --rollback              Rollback to previous installation"
+    echo "  --dry-run               Show what would be done without executing"
+    echo "  --help                  Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                                    # Basic installation"
+    echo "  $0 --domain=gym.example.com          # Custom domain"
+    echo "  $0 --proxy-mode --skip-ssl           # For Nginx Proxy Manager"
+    echo "  $0 --rollback                        # Rollback installation"
+    echo ""
 }
 
 # Header
@@ -76,106 +391,6 @@ show_header() {
     echo "• 🌐 Nginx Proxy Manager support"
     echo "========================================================"
     echo
-}
-
-# Parse command line arguments
-parse_args() {
-    echo "DEBUG: Received $# arguments"
-    local arg_count=1
-    
-    while [[ $# -gt 0 ]]; do
-        echo "DEBUG: Arg $arg_count: [$1] (length: ${#1})"
-        
-        # Clean the argument - remove any invisible characters
-        local clean_arg=$(printf '%s' "$1" | tr -cd '[:print:]' | sed 's/[[:space:]]*$//')
-        echo "DEBUG: Cleaned arg: [$clean_arg]"
-        
-        case "$clean_arg" in
-            --domain=*)
-                DOMAIN="${clean_arg#*=}"
-                echo "DEBUG: Set DOMAIN to: $DOMAIN"
-                ;;
-            --app-dir=*)
-                APP_DIR="${clean_arg#*=}"
-                DB_PATH="$APP_DIR/database/gym_tracker.db"
-                echo "DEBUG: Set APP_DIR to: $APP_DIR"
-                ;;
-            --skip-ssl)
-                SKIP_SSL=true
-                echo "DEBUG: Set SKIP_SSL to: true"
-                ;;
-            --skip-firewall)
-                SKIP_FIREWALL=true
-                echo "DEBUG: Set SKIP_FIREWALL to: true"
-                ;;
-            --proxy-mode)
-                PROXY_MODE=true
-                echo "DEBUG: Set PROXY_MODE to: true"
-                ;;
-            --rollback)
-                ROLLBACK_MODE=true
-                echo "DEBUG: Set ROLLBACK_MODE to: true"
-                ;;
-            --dry-run)
-                DRY_RUN=true
-                echo "DEBUG: Set DRY_RUN to: true"
-                ;;
-            --help|--helps|-h)
-                show_help
-                exit 0
-                ;;
-            "")
-                echo "DEBUG: Skipping empty argument"
-                ;;
-            *)
-                echo "DEBUG: Unknown argument detected!"
-                echo "  Original: [$1]"
-                echo "  Cleaned:  [$clean_arg]"
-                echo "  Length:   ${#1} vs ${#clean_arg}"
-                echo "  Hex dump: $(echo -n "$1" | xxd -p)"
-                
-                print_error "Unknown argument: '$clean_arg'"
-                echo ""
-                echo "Available options:"
-                echo "  --domain=DOMAIN"
-                echo "  --app-dir=PATH" 
-                echo "  --skip-ssl"
-                echo "  --skip-firewall"
-                echo "  --proxy-mode"
-                echo "  --rollback"
-                echo "  --dry-run"
-                echo "  --help"
-                exit 1
-                ;;
-        esac
-        shift
-        ((arg_count++))
-    done
-    
-    echo "DEBUG: Finished parsing arguments"
-}
-
-show_help() {
-    echo "Gym Tracker Installation Script v2.1"
-    echo ""
-    echo "Usage: $0 [options]"
-    echo ""
-    echo "Options:"
-    echo "  --domain=DOMAIN         Set domain name (default: gym.zhst.eu)"
-    echo "  --app-dir=PATH          Set application directory (default: /var/www/gym-tracker)"
-    echo "  --skip-ssl              Skip SSL certificate setup"
-    echo "  --skip-firewall         Skip firewall configuration"
-    echo "  --proxy-mode            Enable Nginx Proxy Manager mode"
-    echo "  --rollback              Rollback to previous installation"
-    echo "  --dry-run               Show what would be done without executing"
-    echo "  --help                  Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  $0                                    # Basic installation"
-    echo "  $0 --domain=gym.example.com          # Custom domain"
-    echo "  $0 --proxy-mode --skip-ssl           # For Nginx Proxy Manager"
-    echo "  $0 --rollback                        # Rollback installation"
-    echo ""
 }
 
 # Dry run function
@@ -744,6 +959,100 @@ EOF
     
     execute_command chmod +x $APP_DIR/scripts/update.sh
     
+    print_sub "Creating status script..."
+    execute_command tee $APP_DIR/scripts/status.sh > /dev/null << 'EOF'
+#!/bin/bash
+
+APP_NAME="gym-tracker"
+APP_DIR="/var/www/$APP_NAME"
+
+echo "🏋️‍♂️ Gym Tracker System Status"
+echo "==============================="
+echo
+
+# Service status
+echo "📊 Service Status:"
+if systemctl is-active --quiet $APP_NAME; then
+    echo "  ✅ Application: Running"
+else
+    echo "  ❌ Application: Stopped"
+fi
+
+if systemctl is-active --quiet nginx; then
+    echo "  ✅ Nginx: Running"
+else
+    echo "  ❌ Nginx: Stopped"
+fi
+
+# System resources
+echo
+echo "💻 System Resources:"
+echo "  Memory: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
+echo "  Disk: $(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')"
+echo "  Load: $(uptime | awk -F'load average:' '{print $2}')"
+
+# Database status
+echo
+echo "💾 Database Status:"
+if [ -f "$APP_DIR/database/gym_tracker.db" ]; then
+    DB_SIZE=$(du -h "$APP_DIR/database/gym_tracker.db" | cut -f1)
+    echo "  ✅ Database: $DB_SIZE"
+    
+    # Check database integrity
+    if sqlite3 "$APP_DIR/database/gym_tracker.db" "PRAGMA integrity_check;" | grep -q "ok"; then
+        echo "  ✅ Integrity: OK"
+    else
+        echo "  ❌ Integrity: Failed"
+    fi
+else
+    echo "  ❌ Database: Not found"
+fi
+
+# Network status
+echo
+echo "🌐 Network Status:"
+if curl -f -s http://localhost:3000/api/health > /dev/null; then
+    echo "  ✅ Health Check: Passed"
+else
+    echo "  ❌ Health Check: Failed"
+fi
+
+# SSL certificate status (if not in proxy mode)
+if [ "$PROXY_MODE" != "true" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    echo
+    echo "🔒 SSL Certificate:"
+    CERT_EXPIRY=$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem | cut -d= -f2)
+    CERT_EXPIRY_TIMESTAMP=$(date -d "$CERT_EXPIRY" +%s)
+    CURRENT_TIMESTAMP=$(date +%s)
+    DAYS_UNTIL_EXPIRY=$(( (CERT_EXPIRY_TIMESTAMP - CURRENT_TIMESTAMP) / 86400 ))
+    
+    if [ $DAYS_UNTIL_EXPIRY -gt 30 ]; then
+        echo "  ✅ Expires in $DAYS_UNTIL_EXPIRY days"
+    elif [ $DAYS_UNTIL_EXPIRY -gt 7 ]; then
+        echo "  ⚠️  Expires in $DAYS_UNTIL_EXPIRY days (renewal recommended)"
+    else
+        echo "  ❌ Expires in $DAYS_UNTIL_EXPIRY days (urgent renewal needed)"
+    fi
+fi
+
+# Recent errors
+echo
+echo "⚠️  Recent Errors (last 24h):"
+ERROR_COUNT=$(journalctl -u $APP_NAME --since "24 hours ago" --grep "ERROR" --no-pager -q | wc -l)
+if [ $ERROR_COUNT -eq 0 ]; then
+    echo "  ✅ No errors found"
+else
+    echo "  ⚠️  $ERROR_COUNT errors found in logs"
+    echo "     Check with: journalctl -u $APP_NAME --since '24 hours ago' --grep ERROR"
+fi
+
+echo
+echo "==============================="
+echo "Last updated: $(date)"
+EOF
+    
+    execute_command chmod +x $APP_DIR/scripts/status.sh
+    
     print_success "Management scripts created"
 }
 
@@ -806,6 +1115,60 @@ server {
     set_real_ip_from 10.0.0.0/8;
     set_real_ip_from 172.16.0.0/12;
     set_real_ip_from 192.168.0.0/16;
+    
+    # Main proxy to Node.js app
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_redirect off;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+    
+    # Health check endpoint
+    location /health {
+        access_log off;
+        proxy_pass http://127.0.0.1:3000;
+    }
+}
+EOF
+    else
+        print_sub "Creating full nginx configuration..."
+        execute_command tee /etc/nginx/sites-available/$APP_NAME > /dev/null << EOF
+# Gym Tracker Nginx Configuration
+server {
+    listen 80;
+    server_name $DOMAIN;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    
+    # Client settings
+    client_max_body_size 10M;
+    client_body_timeout 60s;
+    client_header_timeout 60s;
+    
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+    
+    # Rate limiting
+    limit_req_zone \$binary_remote_addr zone=api:10m rate=10r/s;
+    limit_req zone=api burst=20 nodelay;
     
     # Main proxy to Node.js app
     location / {
@@ -1173,100 +1536,6 @@ setup_monitoring() {
 0 2 1 * * root cd $APP_DIR && git fetch && if [ \$(git rev-list HEAD...origin/main --count) -gt 0 ]; then echo "\$(date): Updates available" >> /var/log/gym-tracker-monitor.log; fi
 EOF
     
-    print_sub "Creating system status script..."
-    execute_command tee $APP_DIR/scripts/status.sh > /dev/null << 'EOF'
-#!/bin/bash
-
-APP_NAME="gym-tracker"
-APP_DIR="/var/www/$APP_NAME"
-
-echo "🏋️‍♂️ Gym Tracker System Status"
-echo "==============================="
-echo
-
-# Service status
-echo "📊 Service Status:"
-if systemctl is-active --quiet $APP_NAME; then
-    echo "  ✅ Application: Running"
-else
-    echo "  ❌ Application: Stopped"
-fi
-
-if systemctl is-active --quiet nginx; then
-    echo "  ✅ Nginx: Running"
-else
-    echo "  ❌ Nginx: Stopped"
-fi
-
-# System resources
-echo
-echo "💻 System Resources:"
-echo "  Memory: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
-echo "  Disk: $(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')"
-echo "  Load: $(uptime | awk -F'load average:' '{print $2}')"
-
-# Database status
-echo
-echo "💾 Database Status:"
-if [ -f "$APP_DIR/database/gym_tracker.db" ]; then
-    DB_SIZE=$(du -h "$APP_DIR/database/gym_tracker.db" | cut -f1)
-    echo "  ✅ Database: $DB_SIZE"
-    
-    # Check database integrity
-    if sqlite3 "$APP_DIR/database/gym_tracker.db" "PRAGMA integrity_check;" | grep -q "ok"; then
-        echo "  ✅ Integrity: OK"
-    else
-        echo "  ❌ Integrity: Failed"
-    fi
-else
-    echo "  ❌ Database: Not found"
-fi
-
-# Network status
-echo
-echo "🌐 Network Status:"
-if curl -f -s http://localhost:3000/api/health > /dev/null; then
-    echo "  ✅ Health Check: Passed"
-else
-    echo "  ❌ Health Check: Failed"
-fi
-
-# SSL certificate status (if not in proxy mode)
-if [ "$PROXY_MODE" != "true" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    echo
-    echo "🔒 SSL Certificate:"
-    CERT_EXPIRY=$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem | cut -d= -f2)
-    CERT_EXPIRY_TIMESTAMP=$(date -d "$CERT_EXPIRY" +%s)
-    CURRENT_TIMESTAMP=$(date +%s)
-    DAYS_UNTIL_EXPIRY=$(( (CERT_EXPIRY_TIMESTAMP - CURRENT_TIMESTAMP) / 86400 ))
-    
-    if [ $DAYS_UNTIL_EXPIRY -gt 30 ]; then
-        echo "  ✅ Expires in $DAYS_UNTIL_EXPIRY days"
-    elif [ $DAYS_UNTIL_EXPIRY -gt 7 ]; then
-        echo "  ⚠️  Expires in $DAYS_UNTIL_EXPIRY days (renewal recommended)"
-    else
-        echo "  ❌ Expires in $DAYS_UNTIL_EXPIRY days (urgent renewal needed)"
-    fi
-fi
-
-# Recent errors
-echo
-echo "⚠️  Recent Errors (last 24h):"
-ERROR_COUNT=$(journalctl -u $APP_NAME --since "24 hours ago" --grep "ERROR" --no-pager -q | wc -l)
-if [ $ERROR_COUNT -eq 0 ]; then
-    echo "  ✅ No errors found"
-else
-    echo "  ⚠️  $ERROR_COUNT errors found in logs"
-    echo "     Check with: journalctl -u $APP_NAME --since '24 hours ago' --grep ERROR"
-fi
-
-echo
-echo "==============================="
-echo "Last updated: $(date)"
-EOF
-    
-    execute_command chmod +x $APP_DIR/scripts/status.sh
-    
     print_success "System monitoring configured"
 }
 
@@ -1344,7 +1613,6 @@ create_favicon() {
     print_header "Creating Favicon"
     
     print_sub "Creating simple favicon..."
-    # Create a simple text-based favicon placeholder
     execute_command echo "💪" > $APP_DIR/public/favicon.ico
     
     print_success "Favicon created"
@@ -1410,6 +1678,113 @@ EOF
 EOF
     
     print_success "System optimization configured"
+}
+
+create_nginx_proxy_manager_instructions() {
+    print_header "Creating Nginx Proxy Manager Instructions"
+    
+    execute_command tee $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md > /dev/null << EOF
+# Nginx Proxy Manager Setup for Gym Tracker
+
+## Prerequisites
+- Nginx Proxy Manager is running and accessible
+- Your domain ($DOMAIN) is pointing to your Nginx Proxy Manager server
+- Gym Tracker is installed and running on this server
+
+## Setup Steps
+
+### 1. Add Proxy Host in Nginx Proxy Manager
+
+1. **Open Nginx Proxy Manager Admin Interface**
+2. **Go to "Hosts" → "Proxy Hosts"**
+3. **Click "Add Proxy Host"**
+
+### 2. Configure Proxy Host
+
+**Details Tab:**
+- **Domain Names:** $DOMAIN
+- **Scheme:** http
+- **Forward Hostname/IP:** $(hostname -I | awk '{print $1}')
+- **Forward Port:** 3000
+- **Cache Assets:** ✅ Enabled
+- **Block Common Exploits:** ✅ Enabled
+- **Websockets Support:** ✅ Enabled
+
+### 3. SSL Configuration
+
+**SSL Tab:**
+- **SSL Certificate:** Request a new SSL Certificate
+- **Force SSL:** ✅ Enabled
+- **HTTP/2 Support:** ✅ Enabled
+- **HSTS Enabled:** ✅ Enabled
+- **Email:** admin@$DOMAIN
+
+### 4. Advanced Configuration (Optional)
+
+**Advanced Tab:**
+\`\`\`nginx
+# Rate Limiting
+limit_req_zone \$binary_remote_addr zone=gym_api:10m rate=10r/s;
+limit_req zone=gym_api burst=20 nodelay;
+
+# Security Headers
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+# Proxy Headers for better logging
+proxy_set_header X-Real-IP \$remote_addr;
+proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto \$scheme;
+proxy_set_header Host \$host;
+
+# Timeouts
+proxy_read_timeout 300s;
+proxy_connect_timeout 75s;
+proxy_send_timeout 300s;
+
+# API specific rate limiting
+location /api {
+    limit_req zone=gym_api burst=10 nodelay;
+    proxy_pass http://$(hostname -I | awk '{print $1}'):3000;
+}
+\`\`\`
+
+## Verification
+
+1. **Test Health Check:** https://$DOMAIN/api/health
+2. **Test Web Interface:** https://$DOMAIN
+3. **Check SSL:** https://$DOMAIN should have a valid certificate
+
+## Firewall Configuration
+
+The firewall has been configured to only allow access from private IP ranges to port 3000.
+Make sure your Nginx Proxy Manager server is in one of these ranges:
+- 192.168.0.0/16
+- 172.16.0.0/12
+- 10.0.0.0/8
+
+## Troubleshooting
+
+### 502 Bad Gateway
+1. Check if Gym Tracker is running: \`systemctl status gym-tracker\`
+2. Check if port 3000 is accessible: \`curl http://localhost:3000/api/health\`
+3. Check firewall rules: \`ufw status\`
+
+### SSL Issues
+1. Verify domain DNS points to your Nginx Proxy Manager
+2. Check Let's Encrypt rate limits
+3. Ensure port 80 and 443 are open on your Nginx Proxy Manager server
+
+## Commands
+
+- **Check Status:** \`gym-tracker-status\`
+- **View Logs:** \`journalctl -u gym-tracker -f\`
+- **Restart Service:** \`systemctl restart gym-tracker\`
+EOF
+    
+    print_success "Nginx Proxy Manager instructions created at $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md"
 }
 
 start_services() {
@@ -1520,113 +1895,6 @@ EOF
     print_success "Cleanup completed"
 }
 
-create_nginx_proxy_manager_instructions() {
-    print_header "Creating Nginx Proxy Manager Instructions"
-    
-    execute_command tee $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md > /dev/null << EOF
-# Nginx Proxy Manager Setup for Gym Tracker
-
-## Prerequisites
-- Nginx Proxy Manager is running and accessible
-- Your domain ($DOMAIN) is pointing to your Nginx Proxy Manager server
-- Gym Tracker is installed and running on this server
-
-## Setup Steps
-
-### 1. Add Proxy Host in Nginx Proxy Manager
-
-1. **Open Nginx Proxy Manager Admin Interface**
-2. **Go to "Hosts" → "Proxy Hosts"**
-3. **Click "Add Proxy Host"**
-
-### 2. Configure Proxy Host
-
-**Details Tab:**
-- **Domain Names:** $DOMAIN
-- **Scheme:** http
-- **Forward Hostname/IP:** $(hostname -I | awk '{print $1}')
-- **Forward Port:** 3000
-- **Cache Assets:** ✅ Enabled
-- **Block Common Exploits:** ✅ Enabled
-- **Websockets Support:** ✅ Enabled
-
-### 3. SSL Configuration
-
-**SSL Tab:**
-- **SSL Certificate:** Request a new SSL Certificate
-- **Force SSL:** ✅ Enabled
-- **HTTP/2 Support:** ✅ Enabled
-- **HSTS Enabled:** ✅ Enabled
-- **Email:** admin@$DOMAIN
-
-### 4. Advanced Configuration (Optional)
-
-**Advanced Tab:**
-\`\`\`nginx
-# Rate Limiting
-limit_req_zone \$binary_remote_addr zone=gym_api:10m rate=10r/s;
-limit_req zone=gym_api burst=20 nodelay;
-
-# Security Headers
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-XSS-Protection "1; mode=block" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-# Proxy Headers for better logging
-proxy_set_header X-Real-IP \$remote_addr;
-proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Proto \$scheme;
-proxy_set_header Host \$host;
-
-# Timeouts
-proxy_read_timeout 300s;
-proxy_connect_timeout 75s;
-proxy_send_timeout 300s;
-
-# API specific rate limiting
-location /api {
-    limit_req zone=gym_api burst=10 nodelay;
-    proxy_pass http://$(hostname -I | awk '{print $1}'):3000;
-}
-\`\`\`
-
-## Verification
-
-1. **Test Health Check:** https://$DOMAIN/api/health
-2. **Test Web Interface:** https://$DOMAIN
-3. **Check SSL:** https://$DOMAIN should have a valid certificate
-
-## Firewall Configuration
-
-The firewall has been configured to only allow access from private IP ranges to port 3000.
-Make sure your Nginx Proxy Manager server is in one of these ranges:
-- 192.168.0.0/16
-- 172.16.0.0/12
-- 10.0.0.0/8
-
-## Troubleshooting
-
-### 502 Bad Gateway
-1. Check if Gym Tracker is running: \`systemctl status gym-tracker\`
-2. Check if port 3000 is accessible: \`curl http://localhost:3000/api/health\`
-3. Check firewall rules: \`ufw status\`
-
-### SSL Issues
-1. Verify domain DNS points to your Nginx Proxy Manager
-2. Check Let's Encrypt rate limits
-3. Ensure port 80 and 443 are open on your Nginx Proxy Manager server
-
-## Commands
-
-- **Check Status:** \`gym-tracker-status\`
-- **View Logs:** \`journalctl -u gym-tracker -f\`
-- **Restart Service:** \`systemctl restart gym-tracker\`
-EOF
-    
-    print_success "Nginx Proxy Manager instructions created at $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md"
-}
-
 display_summary() {
     clear
     echo -e "${PURPLE}"
@@ -1655,310 +1923,4 @@ display_summary() {
     echo -e "${CYAN}👤 System User:${NC}     $APP_NAME"
     echo -e "${CYAN}🛡️  Security:${NC}        UFW Firewall + Fail2ban"
     echo -e "${CYAN}📊 Monitoring:${NC}      Automated health checks"
-    echo -e "${CYAN}💿 Backups:${NC}         Daily automated backups"
-    echo -e "${CYAN}🔄 Updates:${NC}         Rollback capability enabled"
     echo
-    echo "🌐 Access URLs:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    
-    if [ "$PROXY_MODE" = true ]; then
-        echo -e "${GREEN}🌐 Local Access:${NC}    http://$(hostname -I | awk '{print $1}'):3000"
-        echo -e "${GREEN}🔗 API Base:${NC}        http://$(hostname -I | awk '{print $1}'):3000/api"
-        echo -e "${GREEN}❤️  Health Check:${NC}   http://$(hostname -I | awk '{print $1}'):3000/api/health"
-        echo -e "${YELLOW}📋 NPM Setup:${NC}       See $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md"
-        echo -e "${YELLOW}🌍 Public Access:${NC}    Configure in Nginx Proxy Manager for https://$DOMAIN"
-    else
-        if [ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ]; then
-            echo -e "${GREEN}🔒 Main Site:${NC}       https://$DOMAIN"
-            echo -e "${GREEN}🔗 API Base:${NC}        https://$DOMAIN/api"
-            echo -e "${GREEN}❤️  Health Check:${NC}   https://$DOMAIN/api/health"
-        else
-            echo -e "${YELLOW}🌐 Main Site:${NC}       http://$DOMAIN"
-            echo -e "${YELLOW}🔗 API Base:${NC}        http://$DOMAIN/api"
-            echo -e "${YELLOW}❤️  Health Check:${NC}   http://$DOMAIN/api/health"
-            echo -e "${YELLOW}⚠️  SSL:${NC}            Not configured (run certbot manually)"
-        fi
-    fi
-    
-    echo
-    echo "🔐 Default Admin Account:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${RED}👤 Username:${NC}        admin"
-    echo -e "${RED}🔑 Password:${NC}        admin123"
-    echo -e "${RED}⚠️  IMPORTANT:${NC}       CHANGE THIS PASSWORD IMMEDIATELY!"
-    echo
-    echo "📁 Important Files & Directories:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${CYAN}📂 Application:${NC}     $APP_DIR"
-    echo -e "${CYAN}💾 Database:${NC}        $DB_PATH"
-    echo -e "${CYAN}⚙️  Nginx Config:${NC}   /etc/nginx/sites-available/$APP_NAME"
-    echo -e "${CYAN}🔧 Service:${NC}         /etc/systemd/system/$APP_NAME.service"
-    echo -e "${CYAN}🌍 Environment:${NC}     $APP_DIR/.env"
-    echo -e "${CYAN}📋 Logs:${NC}            /var/log/nginx/ & journalctl -u $APP_NAME"
-    echo -e "${CYAN}💿 Backups:${NC}         $APP_DIR/backups/"
-    echo -e "${CYAN}🛠️  Scripts:${NC}         $APP_DIR/scripts/"
-    echo
-    echo "🔧 Management Commands:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}📊 Status:${NC}          gym-tracker-status"
-    echo -e "${GREEN}▶️  Start:${NC}           systemctl start $APP_NAME"
-    echo -e "${RED}⏹️  Stop:${NC}            systemctl stop $APP_NAME"
-    echo -e "${YELLOW}🔄 Restart:${NC}         systemctl restart $APP_NAME"
-    echo -e "${BLUE}📋 Logs:${NC}            journalctl -u $APP_NAME -f"
-    echo -e "${PURPLE}🌐 Nginx:${NC}           systemctl restart nginx"
-    echo -e "${CYAN}🔄 Update:${NC}          $APP_DIR/scripts/update.sh"
-    echo
-    echo "💾 Database Management:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${CYAN}🔍 Access DB:${NC}       sqlite3 $DB_PATH"
-    echo -e "${CYAN}💿 Manual Backup:${NC}   cd $APP_DIR && node scripts/backup.js"
-    echo -e "${CYAN}⚡ Optimize DB:${NC}     cd $APP_DIR && node scripts/optimize-db.js"
-    echo -e "${CYAN}✅ Verify Backup:${NC}   $APP_DIR/scripts/verify-backup.sh"
-    echo -e "${CYAN}📊 Monitor:${NC}         tail -f /var/log/gym-tracker-monitor.log"
-    echo
-    echo "🔄 Rollback & Recovery:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${YELLOW}🔙 Rollback:${NC}        $0 --rollback"
-    echo -e "${YELLOW}📦 Backups:${NC}         ls -la $BACKUP_DIR/"
-    echo -e "${YELLOW}🕐 Restore Point:${NC}   Created before installation"
-    echo
-    echo "🛡️ Security & Maintenance:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}🔥 Firewall:${NC}        ufw status"
-    echo -e "${GREEN}🚫 Fail2ban:${NC}        fail2ban-client status"
-    if [ "$PROXY_MODE" = false ] && [ "$SKIP_SSL" = false ]; then
-        echo -e "${GREEN}🔒 SSL Status:${NC}      certbot certificates"
-        echo -e "${GREEN}🔄 SSL Renew:${NC}       certbot renew"
-    fi
-    echo -e "${GREEN}🔍 Security Scan:${NC}   lynis audit system"
-    echo
-    echo "📈 Monitoring & Health:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${BLUE}❤️  Health Check:${NC}   curl http://localhost:3000/api/health"
-    echo -e "${BLUE}📊 Full Status:${NC}     gym-tracker-status"
-    echo -e "${BLUE}📋 System Status:${NC}   systemctl status $APP_NAME nginx"
-    echo -e "${BLUE}💾 Disk Usage:${NC}      df -h"
-    echo -e "${BLUE}📈 Performance:${NC}     htop"
-    echo
-    echo "🗄️ Backup & Recovery:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${CYAN}📅 Schedule:${NC}        Daily at 3:00 AM (automatic)"
-    echo -e "${CYAN}📍 DB Backups:${NC}      $APP_DIR/backups/"
-    echo -e "${CYAN}📍 System Backups:${NC}  $BACKUP_DIR/"
-    echo -e "${CYAN}🔍 List Backups:${NC}    ls -la $APP_DIR/backups/"
-    echo -e "${CYAN}♻️  Retention:${NC}       30 days (automatic cleanup)"
-    echo -e "${CYAN}✅ Verify:${NC}          $APP_DIR/scripts/verify-backup.sh"
-    echo
-    if [ "$PROXY_MODE" = true ]; then
-        echo "🌐 Nginx Proxy Manager Configuration:"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo -e "${YELLOW}📋 Setup Guide:${NC}     $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md"
-        echo -e "${YELLOW}🎯 Target IP:${NC}       $(hostname -I | awk '{print $1}')"
-        echo -e "${YELLOW}🚪 Target Port:${NC}     3000"
-        echo -e "${YELLOW}🌍 Domain:${NC}          $DOMAIN"
-        echo -e "${YELLOW}🔒 SSL:${NC}             Configure in NPM (Let's Encrypt)"
-        echo
-    fi
-    
-    echo "🏋️‍♂️ =================================================================="
-    echo
-    
-    if systemctl is-active --quiet nginx && systemctl is-active --quiet $APP_NAME; then
-        echo -e "${GREEN}🎉 INSTALLATION SUCCESSFUL! 🎉${NC}"
-        echo
-        if [ "$PROXY_MODE" = true ]; then
-            echo -e "📱 ${YELLOW}Local Access: http://$(hostname -I | awk '{print $1}'):3000${NC}"
-            echo -e "🌍 ${YELLOW}Setup Nginx Proxy Manager for public access${NC}"
-            echo -e "📖 ${CYAN}Read: $APP_DIR/NGINX_PROXY_MANAGER_SETUP.md${NC}"
-        else
-            if [ -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ]; then
-                echo -e "📱 ${GREEN}Your Gym Tracker is now running at: https://$DOMAIN${NC}"
-            else
-                echo -e "📱 ${YELLOW}Your Gym Tracker is now running at: http://$DOMAIN${NC}"
-            fi
-        fi
-        echo
-        echo "🚀 Next Steps:"
-        echo "1. 🌐 Open your browser and visit your website"
-        echo "2. 🔐 Login with admin/admin123"
-        echo "3. ⚠️  Change the admin password immediately"
-        echo "4. 👥 Create your first user accounts"
-        echo "5. 💪 Start tracking your fitness journey!"
-        if [ "$PROXY_MODE" = true ]; then
-            echo "6. 🌍 Configure Nginx Proxy Manager for public access"
-        else
-            echo "6. 🔒 Verify SSL certificate if applicable"
-        fi
-    else
-        echo -e "${RED}⚠️ INSTALLATION COMPLETED WITH ISSUES ⚠️${NC}"
-        echo
-        echo "Some services may not be running properly."
-        echo "🔍 Check service status with:"
-        echo "   gym-tracker-status"
-        echo "   systemctl status $APP_NAME nginx"
-        echo "   journalctl -u $APP_NAME -n 50"
-    fi
-    
-    echo
-    echo "📖 Documentation & Support:"
-    echo "   🌐 GitHub: https://github.com/Olii83/gymtracker"
-    echo "   🐛 Issues: https://github.com/Olii83/gymtracker/issues"
-    echo "   📚 Wiki: https://github.com/Olii83/gymtracker/wiki"
-    echo
-    echo "⚡ Quick Commands Reference:"
-    echo "   📊 Status: gym-tracker-status"
-    echo "   🔄 Restart: systemctl restart $APP_NAME"
-    echo "   📋 Logs: journalctl -u $APP_NAME -f"
-    echo "   💿 Backup: cd $APP_DIR && node scripts/backup.js"
-    echo "   🔄 Update: $APP_DIR/scripts/update.sh"
-    if [ "$PROXY_MODE" = false ] && [ "$SKIP_SSL" = false ]; then
-        echo "   🔒 SSL: certbot renew"
-    fi
-    echo "   🔙 Rollback: $0 --rollback"
-    echo
-    echo -e "${PURPLE}🏋️‍♂️ Happy training with Gym Tracker! 🏋️‍♀️${NC}"
-    echo "=================================================================="
-}
-
-# Main installation function
-main() {
-    show_header
-    
-    # Parse arguments if any were provided
-    if [ $# -gt 0 ]; then
-        parse_args "$@"
-    fi
-    
-    # Handle rollback mode
-    if [ "$ROLLBACK_MODE" = true ]; then
-        rollback_installation
-        exit 0
-    fi
-    
-    # Show configuration
-    echo "Configuration:"
-    echo "  Domain: $DOMAIN"
-    echo "  App Directory: $APP_DIR"
-    echo "  Proxy Mode: $PROXY_MODE"
-    echo "  Skip SSL: $SKIP_SSL"
-    echo "  Skip Firewall: $SKIP_FIREWALL"
-    echo "  Dry Run: $DRY_RUN"
-    echo
-    
-    if [ "$DRY_RUN" = false ]; then
-        read -p "Continue with installation? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Installation cancelled."
-            exit 0
-        fi
-    fi
-    
-    echo
-    print_status "Starting Gym Tracker installation..."
-    echo
-    
-    # Run installation steps
-    check_requirements
-    create_backup
-    update_system
-    install_dependencies
-    install_nodejs
-    create_app_user
-    download_application
-    create_package_json
-    install_npm_dependencies
-    create_env_file
-    create_scripts
-    setup_database
-    set_permissions
-    setup_nginx
-    setup_systemd_service
-    
-    # Conditional steps
-    if [ "$SKIP_SSL" = false ]; then
-        setup_ssl
-    fi
-    
-    if [ "$SKIP_FIREWALL" = false ]; then
-        setup_firewall
-    fi
-    
-    setup_fail2ban
-    setup_logrotate
-    setup_monitoring
-    setup_backup_automation
-    create_favicon
-    optimize_system
-    
-    # Create Nginx Proxy Manager instructions if in proxy mode
-    if [ "$PROXY_MODE" = true ]; then
-        create_nginx_proxy_manager_instructions
-    fi
-    
-    start_services
-    test_installation
-    cleanup
-    display_summary
-}
-
-# Error handling
-set -e
-trap 'print_error "Installation failed at line $LINENO. Check the output above for details."' ERR
-
-# Execute main function with all arguments
-main "$@"s;
-    }
-    
-    # Health check endpoint
-    location /health {
-        access_log off;
-        proxy_pass http://127.0.0.1:3000;
-    }
-}
-EOF
-    else
-        print_sub "Creating full nginx configuration..."
-        execute_command tee /etc/nginx/sites-available/$APP_NAME > /dev/null << EOF
-# Gym Tracker Nginx Configuration
-server {
-    listen 80;
-    server_name $DOMAIN;
-    
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
-    
-    # Client settings
-    client_max_body_size 10M;
-    client_body_timeout 60s;
-    client_header_timeout 60s;
-    
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private auth;
-    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
-    
-    # Rate limiting
-    limit_req_zone \$binary_remote_addr zone=api:10m rate=10r/s;
-    limit_req zone=api burst=20 nodelay;
-    
-    # Main proxy to Node.js app
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_redirect off;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75
