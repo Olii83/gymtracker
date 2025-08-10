@@ -109,6 +109,22 @@ const Admin = {
         `).join('');
     },
 
+    // Toggle user status (active/inactive)
+    async toggleUserStatus(userId, activate) {
+        try {
+            await Utils.apiCall(`/admin/users/${userId}/status`, {
+                method: 'PUT',
+                body: JSON.stringify({ is_active: activate })
+            });
+            
+            Utils.showAlert(`Benutzer ${activate ? 'aktiviert' : 'deaktiviert'}`, 'success');
+            this.loadDashboard();
+        } catch (error) {
+            console.error('Toggle user status error:', error);
+            Utils.showAlert('Fehler beim Ändern des Benutzerstatus: ' + error.message, 'error');
+        }
+    },
+
     // Show password reset modal
     showPasswordResetModal(userId, username) {
         document.getElementById('resetUserId').value = userId;
@@ -163,6 +179,61 @@ const Admin = {
         } catch (error) {
             console.error('Password reset error:', error);
             Utils.showAlert('Fehler beim Zurücksetzen des Passworts: ' + error.message, 'error');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    },
+
+    // Show delete user modal
+    showDeleteUserModal(userId, username) {
+        document.getElementById('deleteUserId').value = userId;
+        document.getElementById('deleteUsername').textContent = username;
+        document.getElementById('deleteUserModal').style.display = 'block';
+    },
+
+    // Close delete user modal
+    closeDeleteUserModal() {
+        document.getElementById('deleteUserModal').style.display = 'none';
+        document.getElementById('deleteUserForm').reset();
+    },
+
+    // Handle user deletion
+    async handleDeleteUser(e) {
+        e.preventDefault();
+        
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        
+        try {
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <span style="display: none;">Benutzer löschen</span>
+                <div class="loading" style="margin-left: 10px; display: inline-block;"></div>
+            `;
+            
+            const confirmation = document.getElementById('deleteConfirmation').value;
+            const userId = document.getElementById('deleteUserId').value;
+            
+            if (confirmation !== 'LÖSCHEN') {
+                throw new Error('Bitte geben Sie "LÖSCHEN" ein, um zu bestätigen');
+            }
+
+            // Check if trying to delete own account
+            if (parseInt(userId) === Auth.getCurrentUser().id) {
+                throw new Error('Sie können Ihr eigenes Konto nicht löschen');
+            }
+            
+            await Utils.apiCall(`/admin/users/${userId}`, {
+                method: 'DELETE'
+            });
+            
+            Utils.showAlert('Benutzer erfolgreich gelöscht', 'success');
+            this.closeDeleteUserModal();
+            this.loadDashboard();
+        } catch (error) {
+            console.error('Delete user error:', error);
+            Utils.showAlert('Fehler beim Löschen des Benutzers: ' + error.message, 'error');
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
@@ -391,75 +462,4 @@ const Admin = {
             throw error;
         }
     }
-};Text;
-        }
-    },
-
-    // Toggle user status (active/inactive)
-    async toggleUserStatus(userId, activate) {
-        try {
-            await Utils.apiCall(`/admin/users/${userId}/status`, {
-                method: 'PUT',
-                body: JSON.stringify({ is_active: activate })
-            });
-            
-            Utils.showAlert(`Benutzer ${activate ? 'aktiviert' : 'deaktiviert'}`, 'success');
-            this.loadDashboard();
-        } catch (error) {
-            console.error('Toggle user status error:', error);
-            Utils.showAlert('Fehler beim Ändern des Benutzerstatus: ' + error.message, 'error');
-        }
-    },
-
-    // Show delete user modal
-    showDeleteUserModal(userId, username) {
-        document.getElementById('deleteUserId').value = userId;
-        document.getElementById('deleteUsername').textContent = username;
-        document.getElementById('deleteUserModal').style.display = 'block';
-    },
-
-    // Close delete user modal
-    closeDeleteUserModal() {
-        document.getElementById('deleteUserModal').style.display = 'none';
-        document.getElementById('deleteUserForm').reset();
-    },
-
-    // Handle user deletion
-    async handleDeleteUser(e) {
-        e.preventDefault();
-        
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        
-        try {
-            submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <span style="display: none;">Benutzer löschen</span>
-                <div class="loading" style="margin-left: 10px; display: inline-block;"></div>
-            `;
-            
-            const confirmation = document.getElementById('deleteConfirmation').value;
-            const userId = document.getElementById('deleteUserId').value;
-            
-            if (confirmation !== 'LÖSCHEN') {
-                throw new Error('Bitte geben Sie "LÖSCHEN" ein, um zu bestätigen');
-            }
-
-            // Check if trying to delete own account
-            if (parseInt(userId) === Auth.getCurrentUser().id) {
-                throw new Error('Sie können Ihr eigenes Konto nicht löschen');
-            }
-            
-            await Utils.apiCall(`/admin/users/${userId}`, {
-                method: 'DELETE'
-            });
-            
-            Utils.showAlert('Benutzer erfolgreich gelöscht', 'success');
-            this.closeDeleteUserModal();
-            this.loadDashboard();
-        } catch (error) {
-            console.error('Delete user error:', error);
-            Utils.showAlert('Fehler beim Löschen des Benutzers: ' + error.message, 'error');
-        } finally {
-            submitButton.disabled = false;
-            submitButton.innerHTML = original
+};
