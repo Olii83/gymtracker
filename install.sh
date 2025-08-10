@@ -639,9 +639,9 @@ if [ $DISK_USAGE -gt 90 ]; then
     log_message "WARNING: Disk usage is at ${DISK_USAGE}%"
 fi
 
-MEMORY_USAGE=$(free | grep Mem | awk '{printf("%.1f", $3/$2 * 100.0)}')
-if command -v bc &> /dev/null && (( $(echo "$MEMORY_USAGE > 90" | bc -l) )); then
-    log_message "WARNING: Memory usage is at ${MEMORY_USAGE}%"
+MEMORY_PERCENT=$(free | grep Mem | awk '{print int($3/$2 * 100)}')
+if [ $MEMORY_PERCENT -gt 90 ]; then
+    log_message "WARNING: Memory usage is at ${MEMORY_PERCENT}%"
 fi
 MONITOR_SCRIPT_EOF
     
