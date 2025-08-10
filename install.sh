@@ -417,6 +417,46 @@ show_header() {
     echo
 }
 
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --domain=*)
+                DOMAIN="${1#*=}"
+                ;;
+            --app-dir=*)
+                APP_DIR="${1#*=}"
+                DB_PATH="$APP_DIR/database/gym_tracker.db"
+                ;;
+            --skip-ssl)
+                SKIP_SSL=true
+                ;;
+            --skip-firewall)
+                SKIP_FIREWALL=true
+                ;;
+            --proxy-mode)
+                PROXY_MODE=true
+                ;;
+            --rollback)
+                ROLLBACK_MODE=true
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                print_error "Unknown argument: '$1'"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
 # Dry run function
 execute_command() {
     if [ "$DRY_RUN" = true ]; then
