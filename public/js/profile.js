@@ -1,10 +1,26 @@
 // Profile module for Gym Tracker
-// This file should be saved as: public/js/profile.js
+// Save as: public/js/profile.js
 
 const Profile = {
     // Initialize profile module
     init() {
         console.log('Profile module initialized');
+        this.setupEventListeners();
+    },
+
+    // Setup event listeners
+    setupEventListeners() {
+        // Profile update form
+        const updateProfileForm = document.getElementById('updateProfileForm');
+        if (updateProfileForm) {
+            updateProfileForm.addEventListener('submit', this.handleUpdateProfile.bind(this));
+        }
+
+        // Password change form
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', this.handleChangePassword.bind(this));
+        }
     },
 
     // Load user profile data
@@ -53,14 +69,71 @@ const Profile = {
         }
     },
 
-    // Get profile statistics
-    async getProfileStats() {
+    // Handle profile update form submission
+    async handleUpdateProfile(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const profileData = {
+            username: formData.get('username'),
+            email: formData.get('email'),
+            first_name: formData.get('first_name'),
+            last_name: formData.get('last_name')
+        };
+        
+        const errors = this.validateProfileData(profileData);
+        if (errors.length > 0) {
+            Utils.showAlert(errors.join(', '), 'error');
+            return;
+        }
+        
         try {
-            const stats = await Utils.apiCall('/user/stats');
-            return stats;
+            await this.updateProfile(profileData);
+            
+            // Update current user data
+            const currentUser = Auth.getCurrentUser();
+            if (currentUser) {
+                currentUser.username = profileData.username;
+                currentUser.email = profileData.email;
+                currentUser.first_name = profileData.first_name;
+                currentUser.last_name = profileData.last_name;
+                Utils.setCurrentUser(currentUser);
+                if (Auth.updateWelcomeMessage) {
+                    Auth.updateWelcomeMessage();
+                }
+            }
         } catch (error) {
-            console.error('Get profile stats error:', error);
-            return null;
+            // Error already handled in updateProfile
+        }
+    },
+
+    // Handle password change form submission
+    async handlePasswordChange(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const passwordData = {
+            currentPassword: formData.get('currentPassword'),
+            newPassword: formData.get('newPassword'),
+            confirmNewPassword: formData.get('confirmNewPassword')
+        };
+        
+        const errors = this.validatePasswordData(passwordData);
+        if (errors.length > 0) {
+            Utils.showAlert(errors.join(', '), 'error');
+            return;
+        }
+        
+        try {
+            await this.changePassword({
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword
+            });
+            
+            // Clear form
+            event.target.reset();
+        } catch (error) {
+            // Error already handled in changePassword
         }
     },
 
@@ -101,103 +174,6 @@ const Profile = {
         }
         
         return errors;
-    },
-
-    // Handle profile update form submission
-    async handleUpdateProfile(event) {
-        event.preventDefault();
-        
-        const formData = new FormData(event.target);
-        const profileData = {
-            username: formData.get('username'),
-            email: formData.get('email'),
-            first_name: formData.get('first_name'),
-            last_name: formData.get('last_name')
-        };
-        
-        const errors = this.validateProfileData(profileData);
-        if (errors.length > 0) {
-            Utils.showAlert(errors.join(', '), 'error');
-            return;
-        }
-        
-        try {
-            await this.updateProfile(profileData);
-            
-            // Update current user data
-            const currentUser = Auth.getCurrentUser();
-            if (currentUser) {
-                currentUser.username = profileData.username;
-                currentUser.email = profileData.email;
-                currentUser.first_name = profileData.first_name;
-                currentUser.last_name = profileData.last_name;
-                Utils.setCurrentUser(currentUser);
-                Auth.updateWelcomeMessage();
-            }
-        } catch (error) {
-            // Error already handled in updateProfile
-        }
-    },
-
-    // Handle password change form submission
-    async handlePasswordChange(event) {
-        event.preventDefault();
-        
-        const formData = new FormData(event.target);
-        const passwordData = {
-            currentPassword: formData.get('currentPassword'),
-            newPassword: formData.get('newPassword'),
-            confirmNewPassword: formData.get('confirmNewPassword')
-        };
-        
-        const errors = this.validatePasswordData(passwordData);
-        if (errors.length > 0) {
-            Utils.showAlert(errors.join(', '), 'error');
-            return;
-        }
-        
-        try {
-            await this.changePassword({
-                currentPassword: passwordData.currentPassword,
-                newPassword: passwordData.newPassword
-            });
-            
-            // Clear form
-            event.target.reset();
-        } catch (error) {
-            // Error already handled in changePassword
-        }
-    },
-
-    // Delete user account (for future implementation)
-    async deleteAccount(confirmation) {
-        if (confirmation !== 'LÖSCHEN') {
-            throw new Error('Bestätigung erforderlich');
-        }
-        
-        try {
-            await Utils.apiCall('/user/account', {
-                method: 'DELETE'
-            });
-            
-            Utils.showAlert('Konto erfolgreich gelöscht', 'info');
-            Auth.logout();
-        } catch (error) {
-            console.error('Delete account error:', error);
-            Utils.showAlert('Fehler beim Löschen des Kontos: ' + error.message, 'error');
-            throw error;
-        }
-    },
-
-    // Get user activity log (for future implementation)
-    async getActivityLog(limit = 50) {
-        try {
-            const activities = await Utils.apiCall(`/user/activity?limit=${limit}`);
-            return activities || [];
-        } catch (error) {
-            console.error('Get activity log error:', error);
-            return [];
-        }
     },
 
     // Export user data
