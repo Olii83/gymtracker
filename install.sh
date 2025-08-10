@@ -1307,7 +1307,7 @@ setup_backup_automation() {
 0 4 * * 0 $APP_NAME find $APP_DIR/backups -name "gym_tracker_*.db" -mtime +28 -delete
 
 # Monthly system backup (full application)
-0 2 1 * * root tar -czf $BACKUP_DIR/system-backup-\$(date +\%Y\%m\%d).tar.gz -C /var/www $APP_NAME --exclude="*/node_modules/*" --exclude="*/logs/*"
+0 2 1 * * root tar -czf $BACKUP_DIR/system-backup-\$(date +%Y%m%d).tar.gz -C /var/www $APP_NAME --exclude="*/node_modules/*" --exclude="*/logs/*"
 
 # Cleanup old system backups (keep last 3 months)
 0 3 1 * * root find $BACKUP_DIR -name "system-backup-*.tar.gz" -mtime +90 -delete
@@ -1318,16 +1318,16 @@ EOF
 #!/bin/bash
 
 APP_DIR="/var/www/gym-tracker"
-BACKUP_DIR="$APP_DIR/backups"
+BACKUP_DIR_LOCAL="$APP_DIR/backups"
 
 echo "🔍 Verifying database backups..."
 
-if [ ! -d "$BACKUP_DIR" ]; then
-    echo "❌ Backup directory not found: $BACKUP_DIR"
+if [ ! -d "$BACKUP_DIR_LOCAL" ]; then
+    echo "❌ Backup directory not found: $BACKUP_DIR_LOCAL"
     exit 1
 fi
 
-BACKUP_COUNT=$(find "$BACKUP_DIR" -name "gym_tracker_*.db" | wc -l)
+BACKUP_COUNT=$(find "$BACKUP_DIR_LOCAL" -name "gym_tracker_*.db" | wc -l)
 
 if [ $BACKUP_COUNT -eq 0 ]; then
     echo "❌ No database backups found"
@@ -1337,7 +1337,7 @@ fi
 echo "📊 Found $BACKUP_COUNT database backups"
 
 # Check latest backup
-LATEST_BACKUP=$(find "$BACKUP_DIR" -name "gym_tracker_*.db" | sort | tail -n 1)
+LATEST_BACKUP=$(find "$BACKUP_DIR_LOCAL" -name "gym_tracker_*.db" | sort | tail -n 1)
 BACKUP_SIZE=$(du -h "$LATEST_BACKUP" | cut -f1)
 BACKUP_AGE=$(stat -c %Y "$LATEST_BACKUP")
 CURRENT_TIME=$(date +%s)
