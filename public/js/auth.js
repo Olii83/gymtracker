@@ -11,9 +11,11 @@ const Auth = {
         
         const token = localStorage.getItem('authToken');
         if (token) {
+            console.log('Auth: Found token, verifying...');
             this.authToken = token;
             this.verifyTokenAndLogin();
         } else {
+            console.log('Auth: No token found, showing login screen');
             this.showLoginScreen();
         }
         
@@ -26,38 +28,53 @@ const Auth = {
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', this.handleLogin.bind(this));
+            console.log('Auth: Login form listener attached');
         }
 
         // Register form
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
             registerForm.addEventListener('submit', this.handleRegister.bind(this));
+            console.log('Auth: Register form listener attached');
         }
     },
 
     // Show login screen
     showLoginScreen() {
+        console.log('Auth: Showing login screen');
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
         
-        if (loginScreen) loginScreen.classList.remove('hidden');
-        if (mainApp) mainApp.classList.add('hidden');
+        if (loginScreen) {
+            loginScreen.classList.remove('hidden');
+            console.log('Auth: Login screen visible');
+        }
+        if (mainApp) {
+            mainApp.classList.add('hidden');
+            console.log('Auth: Main app hidden');
+        }
     },
 
     // Verify token and login user
     async verifyTokenAndLogin() {
+        console.log('Auth: Verifying token...');
         try {
             const user = await Utils.apiCall('/user/profile');
             if (user) {
+                console.log('Auth: Token valid, user:', user.username);
                 this.currentUser = user;
                 Utils.setCurrentUser(this.currentUser);
                 this.showMainApp();
-                if (App && App.loadDashboard) {
-                    App.loadDashboard();
-                }
+                
+                // Load dashboard after successful login
+                setTimeout(() => {
+                    if (App && App.loadDashboard) {
+                        App.loadDashboard();
+                    }
+                }, 100);
             }
         } catch (error) {
-            console.error('Token verification failed:', error);
+            console.log('Auth: Token invalid, showing login:', error.message);
             this.logout();
         }
     },
@@ -65,6 +82,7 @@ const Auth = {
     // Handle login
     async handleLogin(e) {
         e.preventDefault();
+        console.log('Auth: Handling login...');
         
         const submitButton = e.target.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
@@ -82,11 +100,13 @@ const Auth = {
                 throw new Error('Bitte füllen Sie alle Felder aus');
             }
 
+            console.log('Auth: Sending login request...');
             const response = await Utils.apiCall('/auth/login', {
                 method: 'POST',
                 body: JSON.stringify(credentials)
             });
 
+            console.log('Auth: Login successful');
             this.authToken = response.token;
             this.currentUser = response.user;
             
@@ -95,12 +115,16 @@ const Auth = {
             
             this.showMainApp();
             
-            if (App && App.loadDashboard) {
-                App.loadDashboard();
-            }
+            // Load dashboard
+            setTimeout(() => {
+                if (App && App.loadDashboard) {
+                    App.loadDashboard();
+                }
+            }, 100);
             
             Utils.showAlert('Erfolgreich angemeldet!', 'success');
         } catch (error) {
+            console.error('Auth: Login failed:', error);
             Utils.showAlert(error.message || 'Anmeldung fehlgeschlagen', 'error');
         } finally {
             submitButton.disabled = false;
@@ -111,6 +135,7 @@ const Auth = {
     // Handle register
     async handleRegister(e) {
         e.preventDefault();
+        console.log('Auth: Handling registration...');
         
         const submitButton = e.target.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
@@ -144,6 +169,7 @@ const Auth = {
             document.getElementById('registerForm').reset();
             document.getElementById('loginUsername').value = userData.username;
         } catch (error) {
+            console.error('Auth: Registration failed:', error);
             Utils.showAlert(error.message || 'Registrierung fehlgeschlagen', 'error');
         } finally {
             submitButton.disabled = false;
@@ -153,6 +179,7 @@ const Auth = {
 
     // Show auth tab
     showTab(tab) {
+        console.log('Auth: Switching to tab:', tab);
         const tabs = document.querySelectorAll('.auth-tab');
         const forms = document.querySelectorAll('.auth-form');
         
@@ -171,18 +198,28 @@ const Auth = {
 
     // Show main application
     showMainApp() {
+        console.log('Auth: Showing main application');
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
         
-        if (loginScreen) loginScreen.classList.add('hidden');
-        if (mainApp) mainApp.classList.remove('hidden');
+        if (loginScreen) {
+            loginScreen.classList.add('hidden');
+            console.log('Auth: Login screen hidden');
+        }
+        if (mainApp) {
+            mainApp.classList.remove('hidden');
+            console.log('Auth: Main app visible');
+        }
         
         this.updateWelcomeMessage();
         this.updateAdminVisibility();
         
-        if (Exercises && Exercises.loadAll) {
-            Exercises.loadAll();
-        }
+        // Load exercises for workout creation
+        setTimeout(() => {
+            if (Exercises && Exercises.loadAll) {
+                Exercises.loadAll();
+            }
+        }, 200);
     },
 
     // Update welcome message
@@ -195,6 +232,7 @@ const Auth = {
             const welcomeElement = document.getElementById('userWelcome');
             if (welcomeElement) {
                 welcomeElement.textContent = `Willkommen, ${displayName}!`;
+                console.log('Auth: Welcome message updated');
             }
         }
     },
@@ -205,8 +243,10 @@ const Auth = {
         if (adminButton && this.currentUser) {
             if (this.currentUser.role === 'admin') {
                 adminButton.classList.remove('hidden');
+                console.log('Auth: Admin button shown');
             } else {
                 adminButton.classList.add('hidden');
+                console.log('Auth: Admin button hidden');
             }
         }
     },
@@ -218,15 +258,18 @@ const Auth = {
 
     // Logout
     logout() {
+        console.log('Auth: Logging out...');
         this.authToken = null;
         this.currentUser = null;
         localStorage.removeItem('authToken');
         Utils.removeLocalStorage('currentUser');
         
-        document.getElementById('mainApp').classList.add('hidden');
-        document.getElementById('loginScreen').classList.remove('hidden');
+        this.showLoginScreen();
         
-        document.getElementById('loginForm').reset();
+        // Reset forms
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) loginForm.reset();
+        
         this.showTab('login');
         
         if (App && App.clearCache) {
