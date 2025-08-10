@@ -1,26 +1,88 @@
-# Application Configuration
-NODE_ENV=production
-PORT=3000
-
-# JWT Secret (Generate with: openssl rand -base64 64)
-JWT_SECRET=your_super_secret_jwt_key_here_generate_with_openssl_rand
-
-# SQLite Database Configuration
-DB_PATH=./database/gym_tracker.db
+# ===================================
+# GYM TRACKER - ENVIRONMENT CONFIGURATION
+# ===================================
 
 # Application Settings
+NODE_ENV=production
+PORT=3000
 APP_NAME=Gym Tracker
-APP_URL=https://gym.domain.eu
+APP_URL=https://gym.domain.com
 
-# Optional: Admin Email for notifications
-ADMIN_EMAIL=admin@gym.domain.eu
+# Security Settings
+# IMPORTANT: Generate a secure JWT secret with: openssl rand -base64 64
+JWT_SECRET=CHANGE_THIS_TO_A_SECURE_RANDOM_STRING_MINIMUM_32_CHARACTERS
 
-# Optional: CORS Origins (comma-separated)
-CORS_ORIGINS=https://gym.domain.eu,https://www.gym.domain.eu
+# Database Configuration
+DB_PATH=./database/gym_tracker.db
 
-# Optional: Session Settings
+# Admin Settings
+ADMIN_EMAIL=admin@domain.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+
+# CORS Settings (comma-separated list of allowed origins)
+CORS_ORIGINS=https://gym.domain.com,https://www.gym.domain.com
+
+# Session Settings
 SESSION_TIMEOUT=24h
+BCRYPT_ROUNDS=12
 
-# Optional: File Upload Settings
+# File Upload Settings
 MAX_FILE_SIZE=10MB
 UPLOAD_PATH=./uploads
+
+# Backup Settings
+BACKUP_RETENTION_DAYS=30
+BACKUP_INTERVAL=daily
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=./logs/app.log
+
+# SSL/TLS Settings (if using direct SSL)
+SSL_CERT_PATH=
+SSL_KEY_PATH=
+
+# Proxy Settings (when behind reverse proxy like Nginx Proxy Manager)
+TRUST_PROXY=true
+PROXY_IP=192.168.2.4
+
+# Email Settings (optional - for notifications)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=noreply@domain.com
+
+# Performance Settings
+NODE_OPTIONS=--max-old-space-size=512
+UV_THREADPOOL_SIZE=4
+
+# Development Settings (only in development)
+DEBUG=false
+ENABLE_DEBUG_ROUTES=false
+
+# Monitoring Settings
+HEALTH_CHECK_ENDPOINT=/api/health
+METRICS_ENDPOINT=/api/metrics
+
+# Feature Flags
+ENABLE_REGISTRATION=true
+ENABLE_EMAIL_VERIFICATION=false
+ENABLE_PASSWORD_RESET=true
+ENABLE_SOCIAL_LOGIN=false
+
+# Database Pool Settings
+DB_CONNECTION_LIMIT=10
+DB_TIMEOUT=30000
+
+# Cache Settings
+CACHE_TTL=300
+ENABLE_CACHE=true
+
+# Timezone
+TZ=Europe/Berlin
