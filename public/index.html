@@ -90,6 +90,10 @@
             background: linear-gradient(45deg, #ff416c, #ff4b2b);
         }
 
+        .btn-info {
+            background: linear-gradient(45deg, #17a2b8, #20c997);
+        }
+
         .card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -161,6 +165,30 @@
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .auth-tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
         }
 
         .workout-item {
@@ -449,21 +477,28 @@
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
+    <!-- Login/Register Screen -->
     <div id="loginScreen" class="login-container">
         <div class="login-card">
             <h1 class="login-title">💪 Gym Tracker</h1>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="showAuthTab('login')">Anmelden</button>
+                <button class="auth-tab" onclick="showAuthTab('register')">Registrieren</button>
+            </div>
+            
             <div id="alertContainer"></div>
             
-            <form id="loginForm">
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
                 <div class="form-group">
-                    <label for="username">Benutzername oder E-Mail</label>
-                    <input type="text" id="username" name="username" required>
+                    <label for="loginUsername">Benutzername oder E-Mail</label>
+                    <input type="text" id="loginUsername" name="username" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">Passwort</label>
-                    <input type="password" id="password" name="password" required>
+                    <label for="loginPassword">Passwort</label>
+                    <input type="password" id="loginPassword" name="password" required>
                 </div>
                 
                 <button type="submit" class="btn" style="width: 100%; margin-bottom: 15px;">
@@ -472,7 +507,35 @@
                 </button>
             </form>
             
-            <div style="text-align: center; color: #666; margin-top: 20px;">
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="registerUsername">Benutzername *</label>
+                    <input type="text" id="registerUsername" name="username" required minlength="3" maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">E-Mail *</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Passwort *</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Passwort bestätigen *</label>
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6">
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%; margin-bottom: 15px;">
+                    <span id="registerButtonText">Registrieren</span>
+                    <div id="registerLoading" class="loading hidden" style="margin-left: 10px;"></div>
+                </button>
+            </form>
+            
+            <div id="adminHint" style="text-align: center; color: #666; margin-top: 20px;">
                 <p><strong>Standard Admin-Zugang:</strong></p>
                 <p>Benutzername: <code>admin</code></p>
                 <p>Passwort: <code>admin123</code></p>
@@ -496,6 +559,7 @@
                     <button class="btn" onclick="showSection('workouts')">🏋️ Workouts</button>
                     <button class="btn" onclick="showSection('exercises')">💪 Übungen</button>
                     <button class="btn btn-success" onclick="showSection('newWorkout')">➕ Neues Training</button>
+                    <button class="btn btn-info" onclick="showProfileModal()">👤 Profil</button>
                     <button class="btn btn-secondary" onclick="logout()">🚪 Abmelden</button>
                 </div>
             </nav>
@@ -612,6 +676,49 @@
         </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #333;">👤 Profil verwalten</h2>
+            
+            <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <h3 style="margin-bottom: 10px; color: #667eea;">Aktuelle Informationen</h3>
+                <p><strong>Benutzername:</strong> <span id="profileUsername"></span></p>
+                <p><strong>E-Mail:</strong> <span id="profileEmail"></span></p>
+                <p><strong>Rolle:</strong> <span id="profileRole"></span></p>
+                <p><strong>Mitglied seit:</strong> <span id="profileMemberSince"></span></p>
+            </div>
+            
+            <form id="changePasswordForm">
+                <h3 style="margin-bottom: 15px; color: #333;">🔒 Passwort ändern</h3>
+                
+                <div class="form-group">
+                    <label for="currentPassword">Aktuelles Passwort *</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newPassword">Neues Passwort *</label>
+                    <input type="password" id="newPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
+                    <input type="password" id="confirmNewPassword" required minlength="6">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">
+                        <span id="changePasswordButtonText">🔒 Passwort ändern</span>
+                        <div id="changePasswordLoading" class="loading hidden" style="margin-left: 10px;"></div>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">❌ Schließen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- New Exercise Modal -->
     <div id="newExerciseModal" class="modal">
         <div class="modal-content">
@@ -700,6 +807,27 @@
             document.getElementById('workoutDate').value = today;
         });
 
+        // Auth Tab switching
+        function showAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const forms = document.querySelectorAll('.auth-form');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.add('hidden'));
+            
+            // Activate selected tab
+            document.querySelector(`.auth-tab:${tab === 'login' ? 'first' : 'last'}-child`).classList.add('active');
+            document.getElementById(`${tab}Form`).classList.remove('hidden');
+            
+            // Show/hide admin hint only for login
+            const adminHint = document.getElementById('adminHint');
+            if (tab === 'login') {
+                adminHint.style.display = 'block';
+            } else {
+                adminHint.style.display = 'none';
+            }
+        }
+
         // Utility functions
         function showAlert(message, type = 'info') {
             const alertContainer = document.getElementById('alertContainer');
@@ -780,8 +908,8 @@
                 
                 const formData = new FormData(e.target);
                 const credentials = {
-                    username: formData.get('username'),
-                    password: formData.get('password')
+                    username: formData.get('username') || document.getElementById('loginUsername').value,
+                    password: formData.get('password') || document.getElementById('loginPassword').value
                 };
 
                 const response = await apiCall('/auth/login', {
@@ -807,6 +935,51 @@
             }
         });
 
+        // Register functionality
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const registerButton = document.getElementById('registerButtonText');
+            const registerLoading = document.getElementById('registerLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                registerButton.textContent = '';
+                registerLoading.classList.remove('hidden');
+                
+                const formData = new FormData(e.target);
+                const username = formData.get('username') || document.getElementById('registerUsername').value;
+                const email = formData.get('email') || document.getElementById('registerEmail').value;
+                const password = formData.get('password') || document.getElementById('registerPassword').value;
+                const passwordConfirm = formData.get('passwordConfirm') || document.getElementById('registerPasswordConfirm').value;
+
+                // Validate passwords match
+                if (password !== passwordConfirm) {
+                    throw new Error('Passwörter stimmen nicht überein');
+                }
+
+                const userData = { username, email, password };
+
+                const response = await apiCall('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify(userData)
+                });
+
+                if (response) {
+                    showAlert('Registrierung erfolgreich! Sie können sich jetzt anmelden.', 'success');
+                    showAuthTab('login');
+                    document.getElementById('registerForm').reset();
+                }
+            } catch (error) {
+                showAlert(error.message, 'error');
+            } finally {
+                submitButton.disabled = false;
+                registerButton.textContent = 'Registrieren';
+                registerLoading.classList.add('hidden');
+            }
+        });
+
         function logout() {
             authToken = null;
             currentUser = null;
@@ -815,9 +988,13 @@
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
             
-            // Reset form
+            // Reset forms
             document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
             document.getElementById('alertContainer').innerHTML = '';
+            
+            // Show login tab by default
+            showAuthTab('login');
         }
 
         function showMainApp() {
@@ -902,6 +1079,45 @@
                     </div>
                     <div style="margin-top: 10px; font-size: 12px; color: #888;">
                         Erstellt: ${formatDateTime(workout.created_at)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Workouts functions
+        async function loadWorkouts() {
+            try {
+                const workouts = await apiCall('/workouts');
+                displayWorkouts(workouts);
+            } catch (error) {
+                showAlert('Fehler beim Laden der Trainings: ' + error.message, 'error');
+            }
+        }
+
+        function displayWorkouts(workouts) {
+            const container = document.getElementById('workoutsList');
+            
+            if (workouts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p>🏃‍♀️ Noch keine Trainings vorhanden</p>
+                        <p style="margin-top: 10px;">
+                            <button class="btn btn-success" onclick="showSection('newWorkout')">
+                                ➕ Erstes Training erstellen
+                            </button>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = workouts.map(workout => `
+                <div class="workout-item" onclick="showWorkoutDetail(${workout.id})">
+                    <div class="workout-date">${formatDate(workout.date)}</div>
+                    <div class="workout-name">${workout.name}</div>
+                    <div class="workout-duration">
+                        ${workout.duration_minutes ? `⏱️ ${workout.duration_minutes} Minuten` : '⏱️ Dauer nicht erfasst'}
+                        ${workout.notes ? ` • 📝 ${workout.notes.substring(0, 50)}${workout.notes.length > 50 ? '...' : ''}` : ''}
                     </div>
                 </div>
             `).join('');
@@ -995,6 +1211,73 @@
                 showAlert('Fehler beim Löschen des Trainings: ' + error.message, 'error');
             }
         }
+
+        // Profile functions
+        async function showProfileModal() {
+            try {
+                const profile = await apiCall('/user/profile');
+                
+                if (profile) {
+                    document.getElementById('profileUsername').textContent = profile.username;
+                    document.getElementById('profileEmail').textContent = profile.email;
+                    document.getElementById('profileRole').textContent = profile.role === 'admin' ? 'Administrator' : 'Benutzer';
+                    document.getElementById('profileMemberSince').textContent = formatDate(profile.created_at);
+                    
+                    document.getElementById('profileModal').style.display = 'block';
+                }
+            } catch (error) {
+                showAlert('Fehler beim Laden des Profils: ' + error.message, 'error');
+            }
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+            document.getElementById('changePasswordForm').reset();
+        }
+
+        // Change Password functionality
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const changePasswordButton = document.getElementById('changePasswordButtonText');
+            const changePasswordLoading = document.getElementById('changePasswordLoading');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitButton.disabled = true;
+                changePasswordButton.textContent = '';
+                changePasswordLoading.classList.remove('hidden');
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+                
+                // Validate passwords match
+                if (newPassword !== confirmNewPassword) {
+                    throw new Error('Neue Passwörter stimmen nicht überein');
+                }
+                
+                if (newPassword.length < 6) {
+                    throw new Error('Das neue Passwort muss mindestens 6 Zeichen lang sein');
+                }
+
+                const passwordData = { currentPassword, newPassword };
+
+                await apiCall('/user/password', {
+                    method: 'PUT',
+                    body: JSON.stringify(passwordData)
+                });
+
+                showAlert('Passwort erfolgreich geändert!', 'success');
+                closeProfileModal();
+            } catch (error) {
+                showAlert(error.message, 'error');
+            } finally {
+                submitButton.disabled = false;
+                changePasswordButton.textContent = '🔒 Passwort ändern';
+                changePasswordLoading.classList.add('hidden');
+            }
+        });
 
         // Exercises functions
         async function loadExercises() {
@@ -1094,13 +1377,12 @@
         document.getElementById('newExerciseForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = new FormData(e.target);
             const exerciseData = {
-                name: formData.get('exerciseName') || document.getElementById('exerciseName').value,
-                category: formData.get('exerciseCategory') || document.getElementById('exerciseCategory').value,
-                muscle_group: formData.get('exerciseMuscleGroup') || document.getElementById('exerciseMuscleGroup').value,
-                description: formData.get('exerciseDescription') || document.getElementById('exerciseDescription').value,
-                instructions: formData.get('exerciseInstructions') || document.getElementById('exerciseInstructions').value
+                name: document.getElementById('exerciseName').value,
+                category: document.getElementById('exerciseCategory').value,
+                muscle_group: document.getElementById('exerciseMuscleGroup').value,
+                description: document.getElementById('exerciseDescription').value,
+                instructions: document.getElementById('exerciseInstructions').value
             };
 
             try {
@@ -1187,7 +1469,7 @@
                 <h3 style="margin-bottom: 15px; color: #333;">Ausgewählte Übungen:</h3>
                 ${selectedExercisesForWorkout.map((exercise, index) => `
                     <div class="selected-exercise">
-                        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h4 style="color: #333;">${exercise.exercise_name}</h4>
                             <button type="button" class="btn btn-danger" onclick="removeExerciseFromWorkout(${index})" style="padding: 5px 10px; font-size: 12px;">
                                 🗑️ Entfernen
@@ -1282,12 +1564,11 @@
                 saveButton.textContent = '';
                 saveLoading.classList.remove('hidden');
                 
-                const formData = new FormData(e.target);
                 const workoutData = {
-                    name: formData.get('workoutName') || document.getElementById('workoutName').value,
-                    date: formData.get('workoutDate') || document.getElementById('workoutDate').value,
-                    duration_minutes: parseInt(formData.get('workoutDuration') || document.getElementById('workoutDuration').value) || null,
-                    notes: formData.get('workoutNotes') || document.getElementById('workoutNotes').value,
+                    name: document.getElementById('workoutName').value,
+                    date: document.getElementById('workoutDate').value,
+                    duration_minutes: parseInt(document.getElementById('workoutDuration').value) || null,
+                    notes: document.getElementById('workoutNotes').value,
                     exercises: selectedExercisesForWorkout
                 };
 
@@ -1315,12 +1596,16 @@
         window.onclick = function(event) {
             const exerciseModal = document.getElementById('newExerciseModal');
             const workoutModal = document.getElementById('workoutDetailModal');
+            const profileModal = document.getElementById('profileModal');
             
             if (event.target === exerciseModal) {
                 closeNewExerciseModal();
             }
             if (event.target === workoutModal) {
                 closeWorkoutDetailModal();
+            }
+            if (event.target === profileModal) {
+                closeProfileModal();
             }
         }
 
@@ -1330,6 +1615,7 @@
             if (e.key === 'Escape') {
                 closeNewExerciseModal();
                 closeWorkoutDetailModal();
+                closeProfileModal();
             }
             
             // Ctrl+N for new workout (when logged in)
@@ -1402,7 +1688,7 @@
             localStorage.removeItem('workoutDraft');
         }
 
-        // Call loadDraft when showing new workout section
+        // Override showSection to load draft for new workout
         const originalShowSection = showSection;
         showSection = function(sectionName) {
             originalShowSection(sectionName);
@@ -1410,45 +1696,227 @@
                 setTimeout(loadDraft, 100);
             }
         };
-    </script>
-</body>
-</html>="showSection('newWorkout')">
-                                ➕ Erstes Training erstellen
-                            </button>
-                        </p>
-                    </div>
-                `;
-                return;
-            }
 
-            container.innerHTML = workouts.map(workout => `
-                <div class="workout-item" onclick="showWorkoutDetail(${workout.id})">
-                    <div class="workout-date">${formatDate(workout.date)}</div>
-                    <div class="workout-name">${workout.name}</div>
-                    <div class="workout-duration">
-                        ${workout.duration_minutes ? `⏱️ ${workout.duration_minutes} Minuten` : '⏱️ Dauer nicht erfasst'}
-                        ${workout.notes ? ` • 📝 ${workout.notes.substring(0, 50)}${workout.notes.length > 50 ? '...' : ''}` : ''}
-                    </div>
-                </div>
-            `).join('');
+        // Password validation
+        function validatePassword(password) {
+            return password.length >= 6;
         }
 
-        // Workouts functions
-        async function loadWorkouts() {
+        // Form validation helpers
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function validateUsername(username) {
+            return username.length >= 3 && username.length <= 50;
+        }
+
+        // Add real-time validation to registration form
+        document.getElementById('registerPassword').addEventListener('input', function() {
+            const password = this.value;
+            const confirmField = document.getElementById('registerPasswordConfirm');
+            
+            if (password.length > 0 && password.length < 6) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#e1e5e9';
+            }
+            
+            // Check confirm password if it has content
+            if (confirmField.value.length > 0) {
+                if (password === confirmField.value) {
+                    confirmField.style.borderColor = '#28a745';
+                } else {
+                    confirmField.style.borderColor = '#dc3545';
+                }
+            }
+        });
+
+        document.getElementById('registerPasswordConfirm').addEventListener('input', function() {
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = this.value;
+            
+            if (confirmPassword.length > 0) {
+                if (password === confirmPassword) {
+                    this.style.borderColor = '#28a745';
+                } else {
+                    this.style.borderColor = '#dc3545';
+                }
+            } else {
+                this.style.borderColor = '#e1e5e9';
+            }
+        });
+
+        document.getElementById('registerEmail').addEventListener('input', function() {
+            const email = this.value;
+            
+            if (email.length > 0 && !validateEmail(email)) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#e1e5e9';
+            }
+        });
+
+        document.getElementById('registerUsername').addEventListener('input', function() {
+            const username = this.value;
+            
+            if (username.length > 0 && !validateUsername(username)) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#e1e5e9';
+            }
+        });
+
+        // Same validation for password change form
+        document.getElementById('newPassword').addEventListener('input', function() {
+            const password = this.value;
+            const confirmField = document.getElementById('confirmNewPassword');
+            
+            if (password.length > 0 && password.length < 6) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#e1e5e9';
+            }
+            
+            // Check confirm password if it has content
+            if (confirmField.value.length > 0) {
+                if (password === confirmField.value) {
+                    confirmField.style.borderColor = '#28a745';
+                } else {
+                    confirmField.style.borderColor = '#dc3545';
+                }
+            }
+        });
+
+        document.getElementById('confirmNewPassword').addEventListener('input', function() {
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = this.value;
+            
+            if (confirmPassword.length > 0) {
+                if (password === confirmPassword) {
+                    this.style.borderColor = '#28a745';
+                } else {
+                    this.style.borderColor = '#dc3545';
+                }
+            } else {
+                this.style.borderColor = '#e1e5e9';
+            }
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already logged in
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                authToken = token;
+                
+                // Verify token by making a test request
+                apiCall('/user/profile').then(user => {
+                    if (user) {
+                        currentUser = {
+                            id: user.id,
+                            username: user.username,
+                            email: user.email,
+                            role: user.role
+                        };
+                        showMainApp();
+                        loadDashboard();
+                    }
+                }).catch(() => {
+                    // Token is invalid, remove it
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                });
+            }
+            
+            // Set today's date as default for new workout
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('workoutDate').value = today;
+            
+            // Show login tab by default
+            showAuthTab('login');
+        });
+
+        // Service Worker registration (optional - for offline support)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('SW registered: ', registration);
+                }).catch(function(registrationError) {
+                    console.log('SW registration failed: ', registrationError);
+                });
+            });
+        }
+
+        // Add print functionality
+        function printWorkout(workoutId) {
+            showWorkoutDetail(workoutId).then(() => {
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            });
+        }
+
+        // Export workout data (simple JSON export)
+        async function exportWorkouts() {
             try {
                 const workouts = await apiCall('/workouts');
-                displayWorkouts(workouts);
+                const dataStr = JSON.stringify(workouts, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `gym-tracker-workouts-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                showAlert('Trainings erfolgreich exportiert!', 'success');
             } catch (error) {
-                showAlert('Fehler beim Laden der Trainings: ' + error.message, 'error');
+                showAlert('Fehler beim Exportieren: ' + error.message, 'error');
             }
         }
 
-        function displayWorkouts(workouts) {
-            const container = document.getElementById('workoutsList');
+        // Quick stats calculation
+        function calculateQuickStats(workouts) {
+            if (!workouts || workouts.length === 0) return null;
             
-            if (workouts.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: #666; padding: 40px;">
-                        <p>🏃‍♀️ Noch keine Trainings vorhanden</p>
-                        <p style="margin-top: 10px;">
-                            <button class="btn btn-success" onclick
+            const totalWorkouts = workouts.length;
+            const totalTime = workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0);
+            const avgDuration = totalTime / totalWorkouts;
+            
+            const today = new Date();
+            const thisWeek = workouts.filter(w => {
+                const workoutDate = new Date(w.date);
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return workoutDate >= weekAgo;
+            }).length;
+            
+            const thisMonth = workouts.filter(w => {
+                const workoutDate = new Date(w.date);
+                return workoutDate.getMonth() === today.getMonth() && 
+                       workoutDate.getFullYear() === today.getFullYear();
+            }).length;
+            
+            return {
+                totalWorkouts,
+                totalTime,
+                avgDuration: Math.round(avgDuration),
+                thisWeek,
+                thisMonth
+            };
+        }
+
+        // Theme switching (optional enhancement)
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+        }
+    </script>
+</body>
+</html>
