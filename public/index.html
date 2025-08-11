@@ -603,11 +603,6 @@
             margin-bottom: 5px;
         }
         
-        .workout-duration {
-            font-size: 14px;
-            color: #666;
-        }
-        
         /* Exercise items */
         .exercise-item {
             background: #f8f9fa;
@@ -615,6 +610,7 @@
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 6px;
+            position: relative;
         }
         
         .exercise-name {
@@ -641,6 +637,14 @@
         .exercise-description {
             color: #666;
             font-size: 14px;
+        }
+        
+        .exercise-actions {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 5px;
         }
         
         /* Selected exercises in workout form */
@@ -943,7 +947,79 @@
                 
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
                     <span id="loginButtonText">Anmelden</span>
-                    <div id="loginLoading" class="loading hidden"></div>
+                    <div id="selectedExercises">
+                        <!-- Selected exercises will be displayed here -->
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 15px 30px;">
+                            💾 Training speichern
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="Templates.saveAsTemplate()" style="margin-left: 15px;">
+                            📋 Als Vorlage speichern
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="Workouts.resetForm()" style="margin-left: 15px;">
+                            🔄 Zurücksetzen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Modals will be defined in separate HTML includes or loaded via JavaScript -->
+    <div id="modals-container">
+        <!-- Modals will be loaded here by JavaScript -->
+    </div>
+
+    <!-- Scripts - Separate files for better organization -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/templates.js"></script>
+    <script src="js/workouts.js"></script>
+    <script src="js/exercises.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/modals.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Initialize Application -->
+    <script>
+        // Simple initialization - complex logic is in separate files
+        function showInitialScreen() {
+            const loginScreen = document.getElementById('loginScreen');
+            const mainApp = document.getElementById('mainApp');
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                loginScreen?.classList.remove('hidden');
+                mainApp?.classList.add('hidden');
+            }
+        }
+        
+        showInitialScreen();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing Gym Tracker...');
+            
+            // Initialize all modules
+            if (typeof Utils !== 'undefined') Utils.init?.();
+            if (typeof Auth !== 'undefined') Auth.init();
+            if (typeof Profile !== 'undefined') Profile.init();
+            if (typeof Templates !== 'undefined') Templates.init();
+            if (typeof Workouts !== 'undefined') Workouts.init();
+            if (typeof Exercises !== 'undefined') Exercises.init();
+            if (typeof Settings !== 'undefined') Settings.init();
+            if (typeof Admin !== 'undefined') Admin.init();
+            if (typeof Modals !== 'undefined') Modals.init();
+            if (typeof App !== 'undefined') App.init();
+            
+            console.log('✅ Gym Tracker initialized successfully');
+        });
+    </script>
+</body>
+</html> id="loginLoading" class="loading hidden"></div>
                 </button>
                 
                 <div class="auth-help">
@@ -1032,7 +1108,7 @@
                         <span class="btn-text">Admin</span>
                     </button>
                     <div class="nav-dropdown">
-                        <button class="btn btn-info dropdown-toggle">
+                        <button class="btn btn-info dropdown-toggle" onclick="Profile.showModal()">
                             <span class="btn-icon">👤</span>
                             <span class="btn-text">Profil</span>
                             <span class="dropdown-arrow">▼</span>
@@ -1070,13 +1146,6 @@
                         <div class="stat-content">
                             <div class="stat-number" id="thisWeekWorkouts">0</div>
                             <div class="stat-label">Diese Woche</div>
-                        </div>
-                    </div>
-                    <div class="stat-card accent">
-                        <div class="stat-icon">⏱️</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="totalTime">0</div>
-                            <div class="stat-label">Minuten gesamt</div>
                         </div>
                     </div>
                     <div class="stat-card success">
@@ -1274,16 +1343,9 @@
                             </div>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="workoutDuration">Dauer (Minuten)</label>
-                                <input type="number" id="workoutDuration" name="workoutDuration" min="1" max="300" placeholder="z.B. 60">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="workoutNotes">Notizen</label>
-                                <input type="text" id="workoutNotes" name="workoutNotes" placeholder="Besonderheiten, Gefühl, etc.">
-                            </div>
+                        <div class="form-group">
+                            <label for="workoutNotes">Notizen</label>
+                            <input type="text" id="workoutNotes" name="workoutNotes" placeholder="Besonderheiten, Gefühl, etc.">
                         </div>
                     </div>
                     
@@ -1340,76 +1402,4 @@
                         </div>
                     </div>
                     
-                    <div id="selectedExercises">
-                        <!-- Selected exercises will be displayed here -->
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 15px 30px;">
-                            💾 Training speichern
-                        </button>
-                        <button type="button" class="btn btn-info" onclick="Templates.saveAsTemplate()" style="margin-left: 15px;">
-                            📋 Als Vorlage speichern
-                        </button>
-                        <button type="button" class="btn btn-outline" onclick="Workouts.resetForm()" style="margin-left: 15px;">
-                            🔄 Zurücksetzen
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- All Modals will be defined in separate HTML includes or loaded via JavaScript -->
-    <div id="modals-container">
-        <!-- Modals will be loaded here by JavaScript -->
-    </div>
-
-    <!-- Scripts - Separate files for better organization -->
-    <script src="js/utils.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/profile.js"></script>
-    <script src="js/templates.js"></script>
-    <script src="js/workouts.js"></script>
-    <script src="js/exercises.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/modals.js"></script>
-    <script src="js/app.js"></script>
-
-    <!-- Initialize Application -->
-    <script>
-        // Simple initialization - complex logic is in separate files
-        function showInitialScreen() {
-            const loginScreen = document.getElementById('loginScreen');
-            const mainApp = document.getElementById('mainApp');
-            const token = localStorage.getItem('authToken');
-            
-            if (!token) {
-                loginScreen?.classList.remove('hidden');
-                mainApp?.classList.add('hidden');
-            }
-        }
-        
-        showInitialScreen();
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing Gym Tracker...');
-            
-            // Initialize all modules
-            if (typeof Utils !== 'undefined') Utils.init?.();
-            if (typeof Auth !== 'undefined') Auth.init();
-            if (typeof Profile !== 'undefined') Profile.init();
-            if (typeof Templates !== 'undefined') Templates.init();
-            if (typeof Workouts !== 'undefined') Workouts.init();
-            if (typeof Exercises !== 'undefined') Exercises.init();
-            if (typeof Settings !== 'undefined') Settings.init();
-            if (typeof Admin !== 'undefined') Admin.init();
-            if (typeof Modals !== 'undefined') Modals.init();
-            if (typeof App !== 'undefined') App.init();
-            
-            console.log('✅ Gym Tracker initialized successfully');
-        });
-    </script>
-</body>
-</html>
+                    <div

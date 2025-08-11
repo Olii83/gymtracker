@@ -1,4 +1,4 @@
-// Main application module for Gym Tracker
+// Main application module for Gym Tracker - Updated without duration
 
 const App = {
     // Application state
@@ -31,6 +31,16 @@ const App = {
             section.classList.add('hidden');
         });
         
+        // Update navigation button states
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const activeBtn = document.querySelector(`[data-section="${sectionName}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+        
         // Show the requested section
         const targetSection = document.getElementById(sectionName);
         if (targetSection) {
@@ -56,8 +66,18 @@ const App = {
             case 'exercises':
                 Exercises.loadList();
                 break;
+            case 'templates':
+                Templates.loadAll();
+                break;
             case 'newWorkout':
-                Workouts.resetForm();
+                // Reset form when entering new workout section
+                if (!Workouts.isEditing) {
+                    Workouts.resetForm();
+                }
+                // Load exercises for selection
+                Exercises.loadAll();
+                // Load templates for dropdown
+                Templates.loadAll();
                 break;
             case 'admin':
                 if (Auth.isAdmin()) {
@@ -88,12 +108,12 @@ const App = {
         }
     },
 
-    // Display dashboard statistics
+    // Display dashboard statistics (without duration)
     displayDashboardStats(stats) {
         const elements = {
             totalWorkouts: document.getElementById('totalWorkouts'),
             thisWeekWorkouts: document.getElementById('thisWeekWorkouts'),
-            totalTime: document.getElementById('totalTime')
+            currentStreak: document.getElementById('currentStreak')
         };
 
         if (elements.totalWorkouts) {
@@ -104,8 +124,9 @@ const App = {
             elements.thisWeekWorkouts.textContent = stats.thisWeekWorkouts || 0;
         }
         
-        if (elements.totalTime) {
-            elements.totalTime.textContent = Utils.formatDuration(stats.totalTime || 0);
+        if (elements.currentStreak) {
+            // Calculate streak (simplified - days with workouts in last 7 days)
+            elements.currentStreak.textContent = stats.thisWeekWorkouts || 0;
         }
     },
 
@@ -132,12 +153,11 @@ const App = {
             <div class="workout-item" onclick="Workouts.showDetail(${workout.id})">
                 <div class="workout-date">${Utils.formatDate(workout.date)}</div>
                 <div class="workout-name">${Utils.sanitizeInput(workout.name)}</div>
-                <div class="workout-duration">
-                    ${workout.duration_minutes ? 
-                        `⏱️ ${Utils.formatDuration(workout.duration_minutes)}` : 
-                        '⏱️ Dauer nicht erfasst'
-                    }
-                </div>
+                ${workout.notes ? `
+                    <div style="color: #666; font-size: 14px; margin-top: 5px;">
+                        📝 ${Utils.sanitizeInput(workout.notes)}
+                    </div>
+                ` : ''}
             </div>
         `).join('');
     },
@@ -152,6 +172,7 @@ const App = {
         this.dashboardData = null;
         Workouts.clearCache();
         Exercises.clearCache();
+        Templates.clearCache();
         Admin.clearCache();
     },
 
@@ -230,9 +251,10 @@ const App = {
         try {
             Utils.showAlert('Exportiere Daten...', 'info');
             
-            const [workouts, exercises, profile] = await Promise.all([
+            const [workouts, exercises, templates, profile] = await Promise.all([
                 Utils.apiCall('/workouts'),
                 Utils.apiCall('/exercises'),
+                Utils.apiCall('/templates'),
                 Utils.apiCall('/user/profile')
             ]);
             
@@ -247,7 +269,8 @@ const App = {
                 },
                 workouts: workouts || [],
                 exercises: exercises || [],
-                version: '1.0'
+                templates: templates || [],
+                version: '2.0'
             };
             
             const filename = `gym-tracker-export-${profile.username}-${new Date().toISOString().split('T')[0]}.json`;

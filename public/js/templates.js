@@ -1,12 +1,10 @@
-// Templates module for Gym Tracker - Workout Templates System
-// Save as: public/js/templates.js
+// Templates module for Gym Tracker - Updated without rest time
 
 const Templates = {
     // State
     templates: [],
     selectedExercises: [],
     currentTemplate: null,
-    liveWorkoutData: {},
 
     // Initialize templates module
     init() {
@@ -56,11 +54,6 @@ const Templates = {
                                         <option value="Stretching">Stretching</option>
                                     </select>
                                 </div>
-                                
-                                <div class="form-group">
-                                    <label for="templateDuration">Geschätzte Dauer (Min.)</label>
-                                    <input type="number" id="templateDuration" name="templateDuration" min="15" max="180" placeholder="60">
-                                </div>
                             </div>
                             
                             <div class="form-group">
@@ -92,30 +85,6 @@ const Templates = {
                                 <button type="button" class="btn btn-outline" onclick="Templates.closeNewModal()">❌ Abbrechen</button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal: Use Template (Live Tracking) -->
-            <div id="useTemplateModal" class="modal">
-                <div class="modal-content" style="max-width: 800px;">
-                    <div class="modal-header">
-                        <h2 class="modal-title" id="liveTrackingTitle">🏋️ Live Training</h2>
-                        <button class="close" onclick="Templates.closeLiveTracking()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="liveTrackingContent">
-                            <!-- Live tracking content will be loaded here -->
-                        </div>
-                        
-                        <div style="text-align: center; margin-top: 30px;">
-                            <button class="btn btn-success" onclick="Templates.finishWorkout()" style="font-size: 16px; padding: 15px 30px;">
-                                ✅ Training beenden & speichern
-                            </button>
-                            <button class="btn btn-outline" onclick="Templates.closeLiveTracking()" style="margin-left: 15px;">
-                                ❌ Abbrechen
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -169,9 +138,6 @@ const Templates = {
                 <div class="card-header">
                     <h3 class="card-title">${Utils.sanitizeInput(template.name)}</h3>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-success" onclick="Templates.startLiveTracking(${template.id})">
-                            🏋️ Jetzt trainieren
-                        </button>
                         <button class="btn btn-outline" onclick="Templates.useAsWorkout(${template.id})">
                             📝 Als Workout verwenden
                         </button>
@@ -183,7 +149,6 @@ const Templates = {
                 <div class="card-content">
                     <div style="margin-bottom: 15px;">
                         <span class="exercise-tag">${Utils.sanitizeInput(template.category || 'Krafttraining')}</span>
-                        ${template.estimated_duration ? `<span class="exercise-tag">⏱️ ${template.estimated_duration} Min.</span>` : ''}
                         <span class="exercise-tag">${template.exercises ? template.exercises.length : 0} Übungen</span>
                     </div>
                     ${template.description ? `
@@ -232,7 +197,8 @@ const Templates = {
     // Close new template modal
     closeNewModal() {
         document.getElementById('newTemplateModal').style.display = 'none';
-        document.getElementById('newTemplateForm').reset();
+        const form = document.getElementById('newTemplateForm');
+        if (form) form.reset();
         this.selectedExercises = [];
     },
 
@@ -278,8 +244,7 @@ const Templates = {
             muscle_group: exercise.muscle_group,
             suggested_sets: 3,
             suggested_reps: [10, 10, 10],
-            suggested_weight: 0,
-            suggested_rest_time: 90
+            suggested_weight: 0
         };
 
         this.selectedExercises.push(templateExercise);
@@ -321,9 +286,9 @@ const Templates = {
                                    onchange="Templates.selectedExercises[${index}].suggested_reps = this.value.split(',').map(n => parseInt(n.trim()) || 10)">
                         </div>
                         <div class="form-group">
-                            <label>Pause (Sek.)</label>
-                            <input type="number" min="0" max="600" value="${exercise.suggested_rest_time}" 
-                                   onchange="Templates.selectedExercises[${index}].suggested_rest_time = parseInt(this.value)">
+                            <label>Gewicht (kg)</label>
+                            <input type="number" min="0" max="1000" step="0.5" value="${exercise.suggested_weight}" 
+                                   onchange="Templates.selectedExercises[${index}].suggested_weight = parseFloat(this.value)">
                         </div>
                     </div>
                 </div>
@@ -353,7 +318,6 @@ const Templates = {
                 name: formData.get('templateName').trim(),
                 category: formData.get('templateCategory'),
                 description: formData.get('templateDescription').trim() || null,
-                estimated_duration: parseInt(formData.get('templateDuration')) || null,
                 exercises: this.selectedExercises
             };
 
@@ -412,7 +376,6 @@ const Templates = {
             // Fill form with template data
             document.getElementById('workoutName').value = template.name;
             document.getElementById('workoutDate').value = Utils.getCurrentDate();
-            document.getElementById('workoutDuration').value = template.estimated_duration || '';
             
             // Load template exercises into workout
             if (template.exercises && template.exercises.length > 0) {
@@ -423,7 +386,6 @@ const Templates = {
                     sets_count: ex.suggested_sets || 3,
                     reps: ex.suggested_reps || [10, 10, 10],
                     weights: new Array(ex.suggested_sets || 3).fill(0),
-                    rest_time: ex.suggested_rest_time || 90,
                     notes: ''
                 }));
                 
@@ -432,222 +394,8 @@ const Templates = {
             
             Utils.showAlert('Vorlage als Workout geladen!', 'success');
         } catch (error) {
-            console.error('Use template error:', error);
             Utils.showAlert('Fehler beim Laden der Vorlage: ' + error.message, 'error');
         }
-    },
-
-    // Start live tracking
-    async startLiveTracking(templateId) {
-        try {
-            const template = await Utils.apiCall(`/templates/${templateId}`);
-            this.currentTemplate = template;
-            
-            // Initialize live workout data
-            this.liveWorkoutData = {
-                templateId: templateId,
-                name: template.name,
-                startTime: new Date(),
-                exercises: template.exercises.map(ex => ({
-                    ...ex,
-                    completed_sets: 0,
-                    actual_reps: [],
-                    actual_weights: [],
-                    notes: ''
-                }))
-            };
-            
-            this.displayLiveTracking();
-            document.getElementById('useTemplateModal').style.display = 'block';
-        } catch (error) {
-            console.error('Start live tracking error:', error);
-            Utils.showAlert('Fehler beim Starten des Live-Trackings: ' + error.message, 'error');
-        }
-    },
-
-    // Display live tracking interface
-    displayLiveTracking() {
-        const container = document.getElementById('liveTrackingContent');
-        const titleElement = document.getElementById('liveTrackingTitle');
-        
-        if (titleElement) {
-            titleElement.textContent = `🏋️ Live Training: ${this.liveWorkoutData.name}`;
-        }
-        
-        if (!container) return;
-        
-        const startTime = this.liveWorkoutData.startTime;
-        const currentTime = new Date();
-        const elapsedMinutes = Math.floor((currentTime - startTime) / 60000);
-        
-        container.innerHTML = `
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>⏱️ Training läuft seit: ${elapsedMinutes} Minuten</h3>
-                    <div>
-                        <span style="color: #27ae60; font-weight: 600;">
-                            ${this.liveWorkoutData.exercises.reduce((sum, ex) => sum + ex.completed_sets, 0)} / 
-                            ${this.liveWorkoutData.exercises.reduce((sum, ex) => sum + (ex.suggested_sets || 3), 0)} Sätze
-                        </span>
-                    </div>
-                </div>
-            </div>
-            
-            ${this.liveWorkoutData.exercises.map((exercise, exerciseIndex) => `
-                <div class="card" style="margin-bottom: 20px;">
-                    <div class="card-header">
-                        <h4>${Utils.sanitizeInput(exercise.exercise_name)}</h4>
-                        <span class="exercise-tag">${Utils.sanitizeInput(exercise.muscle_group)}</span>
-                    </div>
-                    <div class="card-content">
-                        <div style="margin-bottom: 15px;">
-                            <strong>Geplant:</strong> ${exercise.suggested_sets || 3} Sätze à ${(exercise.suggested_reps || [10]).join(', ')} Wiederholungen
-                        </div>
-                        
-                        <div class="sets-input">
-                            ${Array.from({length: exercise.suggested_sets || 3}, (_, setIndex) => `
-                                <div class="set-input">
-                                    <label>Satz ${setIndex + 1} ${setIndex < exercise.completed_sets ? '✅' : ''}</label>
-                                    <input type="number" placeholder="Wdh." min="1" max="100" 
-                                           value="${exercise.actual_reps[setIndex] || ''}"
-                                           onchange="Templates.updateLiveSet(${exerciseIndex}, ${setIndex}, 'reps', this.value)">
-                                    <input type="number" placeholder="Gewicht (kg)" min="0" max="1000" step="0.5"
-                                           value="${exercise.actual_weights[setIndex] || ''}"
-                                           onchange="Templates.updateLiveSet(${exerciseIndex}, ${setIndex}, 'weight', this.value)">
-                                    <button type="button" class="btn ${setIndex < exercise.completed_sets ? 'btn-success' : 'btn-outline'}" 
-                                            onclick="Templates.toggleSetComplete(${exerciseIndex}, ${setIndex})" 
-                                            style="padding: 5px 10px; font-size: 12px;">
-                                        ${setIndex < exercise.completed_sets ? '✅' : '⭕'}
-                                    </button>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div style="margin-top: 15px;">
-                            <label>Notizen zu dieser Übung:</label>
-                            <input type="text" placeholder="Gefühl, Technik, Anpassungen..." 
-                                   value="${exercise.notes}"
-                                   onchange="Templates.liveWorkoutData.exercises[${exerciseIndex}].notes = this.value"
-                                   style="width: 100%; margin-top: 5px; padding: 8px;">
-                        </div>
-                        
-                        ${exercise.suggested_rest_time ? `
-                            <div style="margin-top: 10px; text-align: center;">
-                                <button type="button" class="btn btn-info" onclick="Templates.startRestTimer(${exercise.suggested_rest_time})">
-                                    ⏰ ${exercise.suggested_rest_time}s Pause starten
-                                </button>
-                                <span id="restTimer${exerciseIndex}" style="margin-left: 10px; font-weight: 600;"></span>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('')}
-        `;
-    },
-
-    // Update live workout set data
-    updateLiveSet(exerciseIndex, setIndex, type, value) {
-        const exercise = this.liveWorkoutData.exercises[exerciseIndex];
-        
-        if (type === 'reps') {
-            exercise.actual_reps[setIndex] = parseInt(value) || 0;
-        } else if (type === 'weight') {
-            exercise.actual_weights[setIndex] = parseFloat(value) || 0;
-        }
-    },
-
-    // Toggle set completion
-    toggleSetComplete(exerciseIndex, setIndex) {
-        const exercise = this.liveWorkoutData.exercises[exerciseIndex];
-        
-        if (setIndex < exercise.completed_sets) {
-            // Mark as incomplete
-            exercise.completed_sets = setIndex;
-        } else if (setIndex === exercise.completed_sets) {
-            // Mark as complete
-            exercise.completed_sets = setIndex + 1;
-        }
-        
-        this.displayLiveTracking();
-    },
-
-    // Start rest timer
-    startRestTimer(seconds) {
-        let timeLeft = seconds;
-        const timerId = Date.now(); // Unique timer ID
-        const timerElement = document.querySelector('[id^="restTimer"]');
-        
-        const countdown = setInterval(() => {
-            if (timerElement) {
-                timerElement.textContent = `${timeLeft}s`;
-                timerElement.style.color = timeLeft <= 10 ? '#e74c3c' : '#27ae60';
-            }
-            
-            timeLeft--;
-            
-            if (timeLeft < 0) {
-                clearInterval(countdown);
-                if (timerElement) {
-                    timerElement.textContent = '⏰ Pause beendet!';
-                    timerElement.style.color = '#f39c12';
-                }
-                
-                // Optional: Play sound or vibration
-                if ('vibrate' in navigator) {
-                    navigator.vibrate([500, 200, 500]);
-                }
-                
-                // Show notification
-                Utils.showAlert('Pause beendet! Zeit für den nächsten Satz.', 'info', 3000);
-            }
-        }, 1000);
-    },
-
-    // Finish workout and save
-    async finishWorkout() {
-        try {
-            const endTime = new Date();
-            const durationMinutes = Math.floor((endTime - this.liveWorkoutData.startTime) / 60000);
-            
-            // Create workout from live tracking data
-            const workoutData = {
-                name: this.liveWorkoutData.name,
-                date: Utils.getCurrentDate(),
-                duration_minutes: durationMinutes,
-                notes: `Live-Tracking von Vorlage: ${this.liveWorkoutData.name}`,
-                exercises: this.liveWorkoutData.exercises.map(ex => ({
-                    exercise_id: ex.exercise_id,
-                    sets_count: ex.completed_sets,
-                    reps: ex.actual_reps.slice(0, ex.completed_sets),
-                    weights: ex.actual_weights.slice(0, ex.completed_sets),
-                    rest_time: ex.suggested_rest_time,
-                    notes: ex.notes
-                })).filter(ex => ex.sets_count > 0) // Only include exercises with completed sets
-            };
-            
-            await Utils.apiCall('/workouts', {
-                method: 'POST',
-                body: JSON.stringify(workoutData)
-            });
-            
-            Utils.showAlert(`Training erfolgreich gespeichert! Dauer: ${durationMinutes} Minuten`, 'success');
-            this.closeLiveTracking();
-            
-            // Refresh dashboard
-            if (App.currentSection === 'dashboard') {
-                App.loadDashboard();
-            }
-        } catch (error) {
-            console.error('Finish workout error:', error);
-            Utils.showAlert('Fehler beim Speichern des Trainings: ' + error.message, 'error');
-        }
-    },
-
-    // Close live tracking modal
-    closeLiveTracking() {
-        document.getElementById('useTemplateModal').style.display = 'none';
-        this.currentTemplate = null;
-        this.liveWorkoutData = {};
     },
 
     // Save current workout as template
@@ -664,14 +412,13 @@ const Templates = {
             name: templateName.trim(),
             category: 'Krafttraining',
             description: `Erstellt aus Workout: ${document.getElementById('workoutName')?.value || 'Unbenannt'}`,
-            estimated_duration: parseInt(document.getElementById('workoutDuration')?.value) || null,
             exercises: Workouts.selectedExercises.map(ex => ({
                 exercise_id: ex.exercise_id,
                 exercise_name: ex.exercise_name,
                 muscle_group: ex.muscle_group,
                 suggested_sets: ex.sets_count,
                 suggested_reps: ex.reps,
-                suggested_rest_time: ex.rest_time
+                suggested_weight: 0
             }))
         };
         
@@ -704,7 +451,6 @@ const Templates = {
         this.templates = [];
         this.selectedExercises = [];
         this.currentTemplate = null;
-        this.liveWorkoutData = {};
     },
 
     // Get all templates
@@ -740,9 +486,7 @@ const Templates = {
                 categoryStats[a] > categoryStats[b] ? a : b
             ),
             avgExercises: this.templates.reduce((sum, t) => 
-                sum + (t.exercises ? t.exercises.length : 0), 0) / this.templates.length,
-            avgDuration: this.templates.reduce((sum, t) => 
-                sum + (t.estimated_duration || 0), 0) / this.templates.length
+                sum + (t.exercises ? t.exercises.length : 0), 0) / this.templates.length
         };
     },
 

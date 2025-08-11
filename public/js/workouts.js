@@ -1,10 +1,12 @@
-// Workouts module for Gym Tracker
+// Workouts module for Gym Tracker - Updated without duration and rest time
 
 const Workouts = {
     // State
     workouts: [],
     selectedExercises: [],
     currentWorkout: null,
+    isEditing: false,
+    editingWorkoutId: null,
 
     // Initialize workouts module
     init() {
@@ -51,14 +53,24 @@ const Workouts = {
         }
 
         container.innerHTML = workouts.map(workout => `
-            <div class="workout-item" onclick="Workouts.showDetail(${workout.id})">
+            <div class="workout-item">
                 <div class="workout-date">${Utils.formatDate(workout.date)}</div>
                 <div class="workout-name">${Utils.sanitizeInput(workout.name)}</div>
-                <div class="workout-duration">
-                    ${workout.duration_minutes ? 
-                        `⏱️ ${Utils.formatDuration(workout.duration_minutes)}` : 
-                        '⏱️ Dauer nicht erfasst'
-                    }
+                ${workout.notes ? `
+                    <div style="color: #666; font-size: 14px; margin-top: 5px;">
+                        📝 ${Utils.sanitizeInput(workout.notes)}
+                    </div>
+                ` : ''}
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button class="btn btn-sm btn-outline" onclick="Workouts.showDetail(${workout.id})">
+                        👁️ Anzeigen
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="Workouts.editWorkout(${workout.id})">
+                        ✏️ Bearbeiten
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="Workouts.delete(${workout.id})">
+                        🗑️ Löschen
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -118,13 +130,13 @@ const Workouts = {
             <h2 style="margin-bottom: 20px; color: #333;">${Utils.sanitizeInput(workout.name)}</h2>
             <div style="margin-bottom: 20px;">
                 <p><strong>📅 Datum:</strong> ${Utils.formatDate(workout.date)}</p>
-                <p><strong>⏱️ Dauer:</strong> ${workout.duration_minutes ? Utils.formatDuration(workout.duration_minutes) : 'Nicht erfasst'}</p>
                 ${workout.notes ? `<p><strong>📝 Notizen:</strong> ${Utils.sanitizeInput(workout.notes)}</p>` : ''}
             </div>
             
             ${exercisesHTML}
             
             <div style="margin-top: 30px; display: flex; gap: 10px;">
+                <button class="btn btn-info" onclick="Workouts.editWorkout(${workout.id})">✏️ Bearbeiten</button>
                 <button class="btn btn-danger" onclick="Workouts.delete(${workout.id})">🗑️ Löschen</button>
                 <button class="btn btn-secondary" onclick="Workouts.closeDetailModal()">❌ Schließen</button>
             </div>
@@ -135,6 +147,58 @@ const Workouts = {
     closeDetailModal() {
         document.getElementById('workoutDetailModal').style.display = 'none';
         this.currentWorkout = null;
+    },
+
+    // Edit workout
+    async editWorkout(workoutId) {
+        try {
+            const workout = await Utils.apiCall(`/workouts/${workoutId}`);
+            
+            // Set editing mode
+            this.isEditing = true;
+            this.editingWorkoutId = workoutId;
+            
+            // Fill form with workout data
+            document.getElementById('workoutName').value = workout.name;
+            document.getElementById('workoutDate').value = workout.date;
+            document.getElementById('workoutNotes').value = workout.notes || '';
+            
+            // Load exercises if available
+            if (workout.exercises && workout.exercises.length > 0) {
+                this.selectedExercises = workout.exercises.map(ex => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    muscle_group: ex.muscle_group,
+                    sets_count: ex.sets_count,
+                    reps: [...ex.reps],
+                    weights: [...ex.weights],
+                    notes: ex.notes
+                }));
+                this.updateSelectedExercisesDisplay();
+            }
+            
+            // Update form title and button
+            const sectionTitle = document.querySelector('#newWorkout .section-title');
+            if (sectionTitle) {
+                sectionTitle.textContent = '✏️ Training bearbeiten';
+            }
+            
+            const submitButton = document.querySelector('#newWorkoutForm button[type="submit"]');
+            if (submitButton) {
+                submitButton.innerHTML = '💾 Training aktualisieren';
+            }
+            
+            // Close detail modal if open
+            this.closeDetailModal();
+            
+            // Switch to workout form
+            App.showSection('newWorkout');
+            
+            Utils.showAlert('Training zum Bearbeiten geladen', 'info');
+        } catch (error) {
+            console.error('Edit workout error:', error);
+            Utils.showAlert('Fehler beim Laden des Trainings: ' + error.message, 'error');
+        }
     },
 
     // Delete workout
@@ -168,6 +232,19 @@ const Workouts = {
         }
         
         this.selectedExercises = [];
+        this.isEditing = false;
+        this.editingWorkoutId = null;
+        
+        // Reset form title and button
+        const sectionTitle = document.querySelector('#newWorkout .section-title');
+        if (sectionTitle) {
+            sectionTitle.textContent = '➕ Neues Training';
+        }
+        
+        const submitButton = document.querySelector('#newWorkoutForm button[type="submit"]');
+        if (submitButton) {
+            submitButton.innerHTML = '💾 Training speichern';
+        }
         
         // Set today's date
         const workoutDateInput = document.getElementById('workoutDate');
@@ -204,7 +281,6 @@ const Workouts = {
             sets_count: 3,
             reps: [10, 10, 10],
             weights: [0, 0, 0],
-            rest_time: 90,
             notes: ''
         };
 
@@ -244,13 +320,6 @@ const Workouts = {
                     
                     <div class="sets-input" id="sets-${index}">
                         <!-- Sets will be generated here -->
-                    </div>
-                    
-                    <div style="margin-top: 15px;">
-                        <label>Pause zwischen Sätzen (Sekunden):</label>
-                        <input type="number" min="0" max="600" value="${exercise.rest_time}" 
-                               onchange="Workouts.selectedExercises[${index}].rest_time = parseInt(this.value)"
-                               style="width: 80px; margin-left: 10px; padding: 5px;">
                     </div>
                     
                     <div style="margin-top: 15px;">
@@ -314,7 +383,7 @@ const Workouts = {
         this.updateSelectedExercisesDisplay();
     },
 
-    // Handle workout creation
+    // Handle workout creation/update
     async handleCreateWorkout(e) {
         e.preventDefault();
         
@@ -323,15 +392,11 @@ const Workouts = {
         
         try {
             submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <span style="display: none;">Training speichern</span>
-                <div class="loading" style="margin-left: 10px; display: inline-block;"></div>
-            `;
+            submitButton.innerHTML = '<div class="loading"></div>';
             
             const workoutData = {
                 name: document.getElementById('workoutName').value.trim(),
                 date: document.getElementById('workoutDate').value,
-                duration_minutes: parseInt(document.getElementById('workoutDuration').value) || null,
                 notes: document.getElementById('workoutNotes').value.trim() || null,
                 exercises: this.selectedExercises
             };
@@ -344,19 +409,64 @@ const Workouts = {
                 throw new Error('Datum ist erforderlich');
             }
 
-            await Utils.apiCall('/workouts', {
-                method: 'POST',
-                body: JSON.stringify(workoutData)
-            });
+            let response;
+            if (this.isEditing && this.editingWorkoutId) {
+                // Update existing workout
+                response = await Utils.apiCall(`/workouts/${this.editingWorkoutId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(workoutData)
+                });
+                Utils.showAlert('Training erfolgreich aktualisiert!', 'success');
+            } else {
+                // Create new workout
+                response = await Utils.apiCall('/workouts', {
+                    method: 'POST',
+                    body: JSON.stringify(workoutData)
+                });
+                Utils.showAlert('Training erfolgreich gespeichert!', 'success');
+            }
 
-            Utils.showAlert('Training erfolgreich gespeichert!', 'success');
+            this.resetForm();
             App.showSection('dashboard');
         } catch (error) {
-            console.error('Create workout error:', error);
+            console.error('Save workout error:', error);
             Utils.showAlert('Fehler beim Speichern des Trainings: ' + error.message, 'error');
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
+        }
+    },
+
+    // Load template into workout form
+    async loadTemplate(templateId) {
+        if (!templateId) return;
+        
+        try {
+            const template = await Utils.apiCall(`/templates/${templateId}`);
+            
+            // Fill form with template data
+            document.getElementById('workoutName').value = template.name;
+            document.getElementById('workoutDate').value = Utils.getCurrentDate();
+            
+            // Load template exercises into workout
+            if (template.exercises && template.exercises.length > 0) {
+                this.selectedExercises = template.exercises.map(ex => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    muscle_group: ex.muscle_group,
+                    sets_count: ex.suggested_sets || 3,
+                    reps: ex.suggested_reps || [10, 10, 10],
+                    weights: new Array(ex.suggested_sets || 3).fill(0),
+                    notes: ''
+                }));
+                
+                this.updateSelectedExercisesDisplay();
+            }
+            
+            Utils.showAlert('Vorlage geladen!', 'success');
+        } catch (error) {
+            console.error('Load template error:', error);
+            Utils.showAlert('Fehler beim Laden der Vorlage: ' + error.message, 'error');
         }
     },
 
@@ -370,6 +480,8 @@ const Workouts = {
         this.workouts = [];
         this.selectedExercises = [];
         this.currentWorkout = null;
+        this.isEditing = false;
+        this.editingWorkoutId = null;
     },
 
     // Get workouts data
@@ -382,23 +494,6 @@ const Workouts = {
         return this.selectedExercises;
     },
 
-    // Update workout (for future use)
-    async update(workoutId, workoutData) {
-        try {
-            await Utils.apiCall(`/workouts/${workoutId}`, {
-                method: 'PUT',
-                body: JSON.stringify(workoutData)
-            });
-            
-            Utils.showAlert('Training erfolgreich aktualisiert!', 'success');
-            this.loadAll();
-        } catch (error) {
-            console.error('Update workout error:', error);
-            Utils.showAlert('Fehler beim Aktualisieren des Trainings: ' + error.message, 'error');
-            throw error;
-        }
-    },
-
     // Get workout statistics
     getWorkoutStats() {
         if (!this.workouts.length) return null;
@@ -409,23 +504,17 @@ const Workouts = {
 
         const thisWeek = this.workouts.filter(w => new Date(w.date) >= oneWeekAgo);
         const thisMonth = this.workouts.filter(w => new Date(w.date) >= oneMonthAgo);
-        
-        const totalMinutes = this.workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0);
-        const avgDuration = totalMinutes / this.workouts.length;
 
         return {
             total: this.workouts.length,
             thisWeek: thisWeek.length,
             thisMonth: thisMonth.length,
-            totalMinutes,
-            avgDuration: Math.round(avgDuration),
-            longestWorkout: Math.max(...this.workouts.map(w => w.duration_minutes || 0)),
             mostRecentDate: this.workouts.length > 0 ? 
                 Math.max(...this.workouts.map(w => new Date(w.date).getTime())) : null
         };
     },
 
-    // Duplicate workout (for future use)
+    // Duplicate workout
     duplicateWorkout(workoutId) {
         const workout = this.getById(workoutId);
         if (!workout) {
@@ -436,7 +525,6 @@ const Workouts = {
         // Pre-fill form with workout data
         document.getElementById('workoutName').value = workout.name + ' (Kopie)';
         document.getElementById('workoutDate').value = Utils.getCurrentDate();
-        document.getElementById('workoutDuration').value = workout.duration_minutes || '';
         document.getElementById('workoutNotes').value = workout.notes || '';
 
         // Copy exercises if available
@@ -448,7 +536,6 @@ const Workouts = {
                 sets_count: ex.sets_count,
                 reps: [...ex.reps],
                 weights: [...ex.weights],
-                rest_time: ex.rest_time,
                 notes: ex.notes
             }));
             this.updateSelectedExercisesDisplay();

@@ -1,8 +1,11 @@
-// Exercises module for Gym Tracker
+// Exercises module for Gym Tracker - Updated with edit/delete functionality
 
 const Exercises = {
     // State
     exercises: [],
+    currentExercise: null,
+    isEditing: false,
+    editingExerciseId: null,
 
     // Initialize exercises module
     init() {
@@ -91,6 +94,14 @@ const Exercises = {
                                     <strong>Ausführung:</strong> ${Utils.sanitizeInput(exercise.instructions)}
                                 </div>
                             ` : ''}
+                            <div class="exercise-actions">
+                                <button class="btn btn-sm btn-info" onclick="Exercises.editExercise(${exercise.id})" title="Bearbeiten">
+                                    ✏️
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="Exercises.deleteExercise(${exercise.id})" title="Löschen">
+                                    🗑️
+                                </button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -111,20 +122,121 @@ const Exercises = {
             option.textContent = `${exercise.name} (${exercise.muscle_group})`;
             select.appendChild(option);
         });
+
+        // Also update template exercise select if it exists
+        const templateSelect = document.getElementById('templateExerciseSelect');
+        if (templateSelect) {
+            templateSelect.innerHTML = '<option value="">-- Übung auswählen --</option>';
+            
+            this.exercises.forEach(exercise => {
+                const option = document.createElement('option');
+                option.value = exercise.id;
+                option.textContent = `${exercise.name} (${exercise.muscle_group})`;
+                templateSelect.appendChild(option);
+            });
+        }
     },
 
     // Show new exercise modal
     showNewModal() {
+        this.resetForm();
         document.getElementById('newExerciseModal').style.display = 'block';
     },
 
     // Close new exercise modal
     closeNewModal() {
         document.getElementById('newExerciseModal').style.display = 'none';
-        document.getElementById('newExerciseForm').reset();
+        this.resetForm();
     },
 
-    // Handle exercise creation
+    // Reset exercise form
+    resetForm() {
+        const form = document.getElementById('newExerciseForm');
+        if (form) {
+            form.reset();
+        }
+        
+        this.isEditing = false;
+        this.editingExerciseId = null;
+        
+        // Reset modal title and button
+        const modalTitle = document.querySelector('#newExerciseModal .modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = '💪 Neue Übung erstellen';
+        }
+        
+        const submitButton = document.querySelector('#newExerciseForm button[type="submit"]');
+        if (submitButton) {
+            submitButton.innerHTML = '💾 Übung speichern';
+        }
+    },
+
+    // Edit exercise
+    async editExercise(exerciseId) {
+        try {
+            const exercise = await Utils.apiCall(`/exercises/${exerciseId}`);
+            
+            // Set editing mode
+            this.isEditing = true;
+            this.editingExerciseId = exerciseId;
+            
+            // Fill form with exercise data
+            document.getElementById('exerciseName').value = exercise.name;
+            document.getElementById('exerciseCategory').value = exercise.category;
+            document.getElementById('exerciseMuscleGroup').value = exercise.muscle_group;
+            document.getElementById('exerciseDescription').value = exercise.description || '';
+            document.getElementById('exerciseInstructions').value = exercise.instructions || '';
+            
+            // Update modal title and button
+            const modalTitle = document.querySelector('#newExerciseModal .modal-title');
+            if (modalTitle) {
+                modalTitle.textContent = '✏️ Übung bearbeiten';
+            }
+            
+            const submitButton = document.querySelector('#newExerciseForm button[type="submit"]');
+            if (submitButton) {
+                submitButton.innerHTML = '💾 Übung aktualisieren';
+            }
+            
+            // Show modal
+            document.getElementById('newExerciseModal').style.display = 'block';
+            
+        } catch (error) {
+            console.error('Edit exercise error:', error);
+            Utils.showAlert('Fehler beim Laden der Übung: ' + error.message, 'error');
+        }
+    },
+
+    // Delete exercise
+    async deleteExercise(exerciseId) {
+        const exercise = this.getById(exerciseId);
+        const exerciseName = exercise ? exercise.name : 'diese Übung';
+        
+        if (!confirm(`Sind Sie sicher, dass Sie "${exerciseName}" löschen möchten?`)) {
+            return;
+        }
+
+        try {
+            await Utils.apiCall(`/exercises/${exerciseId}`, {
+                method: 'DELETE'
+            });
+            
+            Utils.showAlert('Übung erfolgreich gelöscht!', 'success');
+            
+            // Reload exercises
+            await this.loadAll();
+            
+            // Refresh current view if on exercises page
+            if (App.currentSection === 'exercises') {
+                this.loadList();
+            }
+        } catch (error) {
+            console.error('Delete exercise error:', error);
+            Utils.showAlert('Fehler beim Löschen der Übung: ' + error.message, 'error');
+        }
+    },
+
+    // Handle exercise creation/update
     async handleCreateExercise(e) {
         e.preventDefault();
         
@@ -133,10 +245,7 @@ const Exercises = {
         
         try {
             submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <span style="display: none;">Übung speichern</span>
-                <div class="loading" style="margin-left: 10px; display: inline-block;"></div>
-            `;
+            submitButton.innerHTML = '<div class="loading"></div>';
             
             const exerciseData = {
                 name: document.getElementById('exerciseName').value.trim(),
@@ -158,12 +267,23 @@ const Exercises = {
                 throw new Error('Muskelgruppe ist erforderlich');
             }
 
-            const response = await Utils.apiCall('/exercises', {
-                method: 'POST',
-                body: JSON.stringify(exerciseData)
-            });
+            let response;
+            if (this.isEditing && this.editingExerciseId) {
+                // Update existing exercise
+                response = await Utils.apiCall(`/exercises/${this.editingExerciseId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(exerciseData)
+                });
+                Utils.showAlert('Übung erfolgreich aktualisiert!', 'success');
+            } else {
+                // Create new exercise
+                response = await Utils.apiCall('/exercises', {
+                    method: 'POST',
+                    body: JSON.stringify(exerciseData)
+                });
+                Utils.showAlert('Übung erfolgreich erstellt!', 'success');
+            }
 
-            Utils.showAlert('Übung erfolgreich erstellt!', 'success');
             this.closeNewModal();
             
             // Reload exercises
@@ -176,8 +296,8 @@ const Exercises = {
 
             return response;
         } catch (error) {
-            console.error('Create exercise error:', error);
-            Utils.showAlert('Fehler beim Erstellen der Übung: ' + error.message, 'error');
+            console.error('Save exercise error:', error);
+            Utils.showAlert('Fehler beim Speichern der Übung: ' + error.message, 'error');
             throw error;
         } finally {
             submitButton.disabled = false;
@@ -227,7 +347,6 @@ const Exercises = {
                     sets_count: 3,
                     reps: [10, 10, 10],
                     weights: [0, 0, 0],
-                    rest_time: 90,
                     notes: ''
                 };
                 
@@ -305,55 +424,14 @@ const Exercises = {
     // Clear cached data
     clearCache() {
         this.exercises = [];
+        this.currentExercise = null;
+        this.isEditing = false;
+        this.editingExerciseId = null;
     },
 
     // Get exercises data
     getExercises() {
         return this.exercises;
-    },
-
-    // Update exercise (for future use)
-    async update(exerciseId, exerciseData) {
-        try {
-            await Utils.apiCall(`/exercises/${exerciseId}`, {
-                method: 'PUT',
-                body: JSON.stringify(exerciseData)
-            });
-            
-            Utils.showAlert('Übung erfolgreich aktualisiert!', 'success');
-            await this.loadAll();
-            
-            if (App.currentSection === 'exercises') {
-                this.loadList();
-            }
-        } catch (error) {
-            console.error('Update exercise error:', error);
-            Utils.showAlert('Fehler beim Aktualisieren der Übung: ' + error.message, 'error');
-            throw error;
-        }
-    },
-
-    // Delete exercise (for future use)
-    async delete(exerciseId) {
-        if (!confirm('Sind Sie sicher, dass Sie diese Übung löschen möchten?')) {
-            return;
-        }
-
-        try {
-            await Utils.apiCall(`/exercises/${exerciseId}`, {
-                method: 'DELETE'
-            });
-            
-            Utils.showAlert('Übung erfolgreich gelöscht!', 'success');
-            await this.loadAll();
-            
-            if (App.currentSection === 'exercises') {
-                this.loadList();
-            }
-        } catch (error) {
-            console.error('Delete exercise error:', error);
-            Utils.showAlert('Fehler beim Löschen der Übung: ' + error.message, 'error');
-        }
     },
 
     // Get popular exercises (based on usage in workouts)
@@ -407,5 +485,53 @@ const Exercises = {
         }
         
         return errors;
+    },
+
+    // Export exercises
+    exportExercises() {
+        if (!this.exercises.length) {
+            Utils.showAlert('Keine Übungen zum Exportieren', 'warning');
+            return;
+        }
+
+        const filename = `gym-tracker-exercises-${new Date().toISOString().split('T')[0]}.json`;
+        Utils.downloadJSON(this.exercises, filename);
+        Utils.showAlert('Übungen exportiert', 'success');
+    },
+
+    // Import exercises (for future use)
+    async importExercises(exercisesData) {
+        if (!Array.isArray(exercisesData)) {
+            throw new Error('Ungültiges Datenformat');
+        }
+
+        let imported = 0;
+        let errors = 0;
+
+        for (const exerciseData of exercisesData) {
+            try {
+                const validationErrors = this.validateExerciseData(exerciseData);
+                if (validationErrors.length > 0) {
+                    errors++;
+                    continue;
+                }
+
+                await Utils.apiCall('/exercises', {
+                    method: 'POST',
+                    body: JSON.stringify(exerciseData)
+                });
+                imported++;
+            } catch (error) {
+                errors++;
+            }
+        }
+
+        await this.loadAll();
+        if (App.currentSection === 'exercises') {
+            this.loadList();
+        }
+
+        Utils.showAlert(`Import abgeschlossen: ${imported} erfolgreich, ${errors} Fehler`, 
+                       errors > 0 ? 'warning' : 'success');
     }
 };
