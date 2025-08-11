@@ -112,18 +112,24 @@
             color: #333;
         }
 
-        .form-group input {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #e1e5e9;
             border-radius: 6px;
             font-size: 16px;
             transition: border-color 0.2s;
+            font-family: inherit;
         }
 
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
             border-color: #3498db;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
         }
 
         .form-row {
@@ -146,6 +152,7 @@
             justify-content: center;
             gap: 8px;
             text-decoration: none;
+            font-family: inherit;
         }
 
         .btn-primary {
@@ -194,6 +201,25 @@
 
         .btn-admin:hover {
             background: #e67e22;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         /* Main App Layout */
@@ -509,6 +535,290 @@
             border-left-color: #ffc107;
         }
 
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left-color: #17a2b8;
+        }
+
+        /* Workout items */
+        .workout-item {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .workout-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .workout-date {
+            font-weight: 600;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .workout-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .workout-duration {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Exercise items */
+        .exercise-item {
+            background: #f8f9fa;
+            border-left: 4px solid #27ae60;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        .exercise-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .exercise-details {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .exercise-tag {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .exercise-description {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Selected exercises in workout form */
+        .selected-exercise {
+            background: #f8f9fa;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sets-input {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .set-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .set-input label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .set-input input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .user-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .user-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .user-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #f39c12;
+            color: white;
+        }
+
+        .badge-user {
+            background: #3498db;
+            color: white;
+        }
+
+        .badge-active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-inactive {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Form sections */
+        .form-section {
+            background: #f8f9fa;
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-section-title {
+            color: #3498db;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        /* Exercise selector */
+        .exercise-selector {
+            background: #f8f9fa;
+            border: 2px dashed #27ae60;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .selector-row {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 15px;
+        }
+
+        .selector-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .quick-exercise-add {
+            background: rgba(39, 174, 96, 0.1);
+            border: 2px dashed #27ae60;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .quick-add-title {
+            color: #27ae60;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .quick-add-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .nav {
@@ -539,6 +849,18 @@
             }
 
             .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-add-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .selector-row {
+                flex-direction: column;
+            }
+
+            .sets-input {
                 grid-template-columns: 1fr;
             }
         }
@@ -678,7 +1000,7 @@
                             <span class="dropdown-arrow">▼</span>
                         </button>
                         <div class="dropdown-menu">
-                            <a href="#" onclick="Auth.showProfileModal()">👤 Profil bearbeiten</a>
+                            <a href="#" onclick="Profile.showProfileModal()">👤 Profil bearbeiten</a>
                             <a href="#" onclick="App.exportData()">💾 Daten exportieren</a>
                             <hr>
                             <a href="#" onclick="Auth.logout()" class="logout-link">🚪 Abmelden</a>
@@ -761,7 +1083,7 @@
                                     <span class="quick-action-icon">💾</span>
                                     <span class="quick-action-text">Daten exportieren</span>
                                 </button>
-                                <button class="quick-action-btn" onclick="Auth.showProfileModal()">
+                                <button class="quick-action-btn" onclick="Profile.showProfileModal()">
                                     <span class="quick-action-icon">👤</span>
                                     <span class="quick-action-text">Profil bearbeiten</span>
                                 </button>
@@ -775,11 +1097,63 @@
             <div id="admin" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">👑 Admin-Bereich</h1>
+                    <p class="section-subtitle">Benutzerverwaltung und Systemstatistiken</p>
                 </div>
-                <div id="adminContent">
-                    <div class="loading-state">
-                        <div class="loading"></div>
-                        <p>Lade Admin-Bereich...</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalUsers">0</div>
+                            <div class="stat-label">Benutzer gesamt</div>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="activeUsers">0</div>
+                            <div class="stat-label">Aktive Benutzer</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent">
+                        <div class="stat-icon">🏋️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalAdminWorkouts">0</div>
+                            <div class="stat-label">Trainings gesamt</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">👥 Benutzerverwaltung</h2>
+                        <button class="btn btn-success" onclick="Admin.exportUsers()">📊 Export</button>
+                    </div>
+                    <div class="card-content">
+                        <div class="table-container">
+                            <table class="user-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Benutzername</th>
+                                        <th>E-Mail</th>
+                                        <th>Name</th>
+                                        <th>Rolle</th>
+                                        <th>Status</th>
+                                        <th>Erstellt</th>
+                                        <th>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody">
+                                    <tr>
+                                        <td colspan="8" class="loading-state">
+                                            <div class="loading"></div>
+                                            <span>Lade Benutzer...</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -787,6 +1161,7 @@
             <div id="workouts" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">🏋️ Meine Trainings</h1>
+                    <p class="section-subtitle">Übersicht über alle Ihre Trainingseinheiten</p>
                 </div>
                 <div id="workoutsList">
                     <div class="loading-state">
@@ -799,6 +1174,10 @@
             <div id="exercises" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">💪 Übungen</h1>
+                    <p class="section-subtitle">Verwalten Sie Ihre Übungsdatenbank</p>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="Exercises.showNewModal()">➕ Neue Übung hinzufügen</button>
+                    </div>
                 </div>
                 <div id="exercisesList">
                     <div class="loading-state">
@@ -811,13 +1190,308 @@
             <div id="newWorkout" class="section hidden">
                 <div class="section-header">
                     <h1 class="section-title">➕ Neues Training</h1>
+                    <p class="section-subtitle">Erstellen Sie ein neues Trainingsprogramm</p>
                 </div>
-                <div id="newWorkoutContent">
-                    <div class="loading-state">
-                        <div class="loading"></div>
-                        <p>Lade Formular...</p>
+                
+                <form id="newWorkoutForm">
+                    <div class="form-section">
+                        <h3 class="form-section-title">📝 Trainings-Informationen</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="workoutName">Trainingsname *</label>
+                                <input type="text" id="workoutName" name="workoutName" required placeholder="z.B. Push-Training, Laufen">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="workoutDate">Datum *</label>
+                                <input type="date" id="workoutDate" name="workoutDate" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="workoutDuration">Dauer (Minuten)</label>
+                                <input type="number" id="workoutDuration" name="workoutDuration" min="1" max="300" placeholder="z.B. 60">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="workoutNotes">Notizen</label>
+                                <input type="text" id="workoutNotes" name="workoutNotes" placeholder="Besonderheiten, Gefühl, etc.">
+                            </div>
+                        </div>
                     </div>
+                    
+                    <div class="exercise-selector">
+                        <h3 class="form-section-title">💪 Übungen hinzufügen</h3>
+                        
+                        <div class="selector-row">
+                            <div class="form-group">
+                                <label for="exerciseSelect">Übung auswählen</label>
+                                <select id="exerciseSelect">
+                                    <option value="">-- Übung auswählen --</option>
+                                </select>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="Workouts.addExercise()">Hinzufügen</button>
+                        </div>
+                        
+                        <div class="quick-exercise-add">
+                            <h4 class="quick-add-title">🚀 Schnell neue Übung erstellen</h4>
+                            <div class="quick-add-grid">
+                                <div class="form-group">
+                                    <label for="quickExerciseName">Name der Übung</label>
+                                    <input type="text" id="quickExerciseName" placeholder="z.B. Bankdrücken">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="quickExerciseCategory">Kategorie</label>
+                                    <select id="quickExerciseCategory">
+                                        <option value="">Wählen...</option>
+                                        <option value="Krafttraining">Krafttraining</option>
+                                        <option value="Cardio">Cardio</option>
+                                        <option value="Stretching">Stretching</option>
+                                        <option value="Functional">Functional</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="quickExerciseMuscle">Muskelgruppe</label>
+                                    <select id="quickExerciseMuscle">
+                                        <option value="">Wählen...</option>
+                                        <option value="Brust">Brust</option>
+                                        <option value="Rücken">Rücken</option>
+                                        <option value="Schultern">Schultern</option>
+                                        <option value="Arme">Arme</option>
+                                        <option value="Beine">Beine</option>
+                                        <option value="Core">Core</option>
+                                        <option value="Cardio">Cardio</option>
+                                        <option value="Ganzkörper">Ganzkörper</option>
+                                    </select>
+                                </div>
+                                
+                                <button type="button" class="btn btn-success" onclick="Exercises.quickAdd()">Erstellen & Hinzufügen</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="selectedExercises">
+                        <!-- Selected exercises will be displayed here -->
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 15px 30px;">
+                            💾 Training speichern
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="Workouts.resetForm()" style="margin-left: 15px;">
+                            🔄 Zurücksetzen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: New Exercise -->
+    <div id="newExerciseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">💪 Neue Übung erstellen</h2>
+                <button class="close" onclick="Exercises.closeNewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newExerciseForm">
+                    <div class="form-group">
+                        <label for="exerciseName">Name der Übung *</label>
+                        <input type="text" id="exerciseName" name="exerciseName" required placeholder="z.B. Bankdrücken">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="exerciseCategory">Kategorie *</label>
+                            <select id="exerciseCategory" name="exerciseCategory" required>
+                                <option value="">-- Wählen Sie eine Kategorie --</option>
+                                <option value="Krafttraining">Krafttraining</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Stretching">Stretching</option>
+                                <option value="Functional">Functional</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="exerciseMuscleGroup">Muskelgruppe *</label>
+                            <select id="exerciseMuscleGroup" name="exerciseMuscleGroup" required>
+                                <option value="">-- Wählen Sie eine Muskelgruppe --</option>
+                                <option value="Brust">Brust</option>
+                                <option value="Rücken">Rücken</option>
+                                <option value="Schultern">Schultern</option>
+                                <option value="Arme">Arme</option>
+                                <option value="Beine">Beine</option>
+                                <option value="Core">Core</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Ganzkörper">Ganzkörper</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="exerciseDescription">Beschreibung</label>
+                        <textarea id="exerciseDescription" name="exerciseDescription" placeholder="Kurze Beschreibung der Übung..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="exerciseInstructions">Ausführung</label>
+                        <textarea id="exerciseInstructions" name="exerciseInstructions" placeholder="Detaillierte Anleitung zur Ausführung..."></textarea>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn btn-success">💾 Übung speichern</button>
+                        <button type="button" class="btn btn-outline" onclick="Exercises.closeNewModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Workout Detail -->
+    <div id="workoutDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🏋️ Training Details</h2>
+                <button class="close" onclick="Workouts.closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="workoutDetailContent">
+                    <!-- Workout details will be loaded here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Profile Edit -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">👤 Profil bearbeiten</h2>
+                <button class="close" onclick="Profile.closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="updateProfileForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profileFirstName">Vorname</label>
+                            <input type="text" id="profileFirstName" name="first_name" placeholder="Ihr Vorname">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="profileLastName">Nachname</label>
+                            <input type="text" id="profileLastName" name="last_name" placeholder="Ihr Nachname">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profileUsername">Benutzername *</label>
+                        <input type="text" id="profileUsername" name="username" required placeholder="Ihr Benutzername">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profileEmail">E-Mail-Adresse *</label>
+                        <input type="email" id="profileEmail" name="email" required placeholder="ihre.email@domain.de">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn btn-success">💾 Profil speichern</button>
+                        <button type="button" class="btn btn-outline" onclick="Profile.closeProfileModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
+                
+                <hr style="margin: 30px 0;">
+                
+                <h3>🔐 Passwort ändern</h3>
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword">Aktuelles Passwort *</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newPassword">Neues Passwort *</label>
+                        <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmNewPassword">Neues Passwort bestätigen *</label>
+                        <input type="password" id="confirmNewPassword" name="confirmNewPassword" required minlength="6">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button type="submit" class="btn btn-warning">🔐 Passwort ändern</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Password Reset (Admin) -->
+    <div id="passwordResetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🔑 Passwort zurücksetzen</h2>
+                <button class="close" onclick="Admin.closePasswordResetModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Passwort zurücksetzen für Benutzer: <strong id="resetUsername"></strong></p>
+                
+                <form id="adminPasswordResetForm">
+                    <input type="hidden" id="resetUserId">
+                    
+                    <div class="form-group">
+                        <label for="adminNewPassword">Neues Passwort *</label>
+                        <input type="password" id="adminNewPassword" name="newPassword" required minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adminConfirmPassword">Passwort bestätigen *</label>
+                        <input type="password" id="adminConfirmPassword" name="confirmPassword" required minlength="6">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn btn-warning">🔑 Passwort zurücksetzen</button>
+                        <button type="button" class="btn btn-outline" onclick="Admin.closePasswordResetModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Delete User (Admin) -->
+    <div id="deleteUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🗑️ Benutzer löschen</h2>
+                <button class="close" onclick="Admin.closeDeleteUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden!
+                </div>
+                
+                <p>Benutzer löschen: <strong id="deleteUsername"></strong></p>
+                <p>Alle Daten dieses Benutzers (Trainings, Übungen, etc.) werden permanent gelöscht.</p>
+                
+                <form id="deleteUserForm">
+                    <input type="hidden" id="deleteUserId">
+                    
+                    <div class="form-group">
+                        <label for="deleteConfirmation">Geben Sie "LÖSCHEN" ein, um zu bestätigen:</label>
+                        <input type="text" id="deleteConfirmation" name="confirmation" required placeholder="LÖSCHEN">
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn btn-danger">🗑️ Benutzer löschen</button>
+                        <button type="button" class="btn btn-outline" onclick="Admin.closeDeleteUserModal()">❌ Abbrechen</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -834,6 +1508,108 @@
 
     <!-- Initialize Application -->
     <script>
+        // Profile module functions for modals
+        const Profile = {
+            showProfileModal() {
+                this.loadProfileData();
+                document.getElementById('profileModal').style.display = 'block';
+            },
+
+            closeProfileModal() {
+                document.getElementById('profileModal').style.display = 'none';
+                document.getElementById('updateProfileForm').reset();
+                document.getElementById('changePasswordForm').reset();
+            },
+
+            async loadProfileData() {
+                try {
+                    const user = Auth.getCurrentUser();
+                    if (user) {
+                        document.getElementById('profileFirstName').value = user.first_name || '';
+                        document.getElementById('profileLastName').value = user.last_name || '';
+                        document.getElementById('profileUsername').value = user.username || '';
+                        document.getElementById('profileEmail').value = user.email || '';
+                    }
+                } catch (error) {
+                    console.error('Load profile data error:', error);
+                }
+            },
+
+            async handleUpdateProfile(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const profileData = {
+                    username: formData.get('username'),
+                    email: formData.get('email'),
+                    first_name: formData.get('first_name'),
+                    last_name: formData.get('last_name')
+                };
+
+                try {
+                    await Utils.apiCall('/user/profile', {
+                        method: 'PUT',
+                        body: JSON.stringify(profileData)
+                    });
+
+                    Utils.showAlert('Profil erfolgreich aktualisiert!', 'success');
+                    
+                    // Update current user data
+                    const currentUser = Auth.getCurrentUser();
+                    if (currentUser) {
+                        Object.assign(currentUser, profileData);
+                        Utils.setCurrentUser(currentUser);
+                        Auth.updateWelcomeMessage();
+                    }
+                    
+                    this.closeProfileModal();
+                } catch (error) {
+                    Utils.showAlert('Fehler beim Aktualisieren des Profils: ' + error.message, 'error');
+                }
+            },
+
+            async handleChangePassword(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const newPassword = formData.get('newPassword');
+                const confirmPassword = formData.get('confirmNewPassword');
+
+                if (newPassword !== confirmPassword) {
+                    Utils.showAlert('Neue Passwörter stimmen nicht überein', 'error');
+                    return;
+                }
+
+                const passwordData = {
+                    currentPassword: formData.get('currentPassword'),
+                    newPassword: newPassword
+                };
+
+                try {
+                    await Utils.apiCall('/user/password', {
+                        method: 'PUT',
+                        body: JSON.stringify(passwordData)
+                    });
+
+                    Utils.showAlert('Passwort erfolgreich geändert!', 'success');
+                    document.getElementById('changePasswordForm').reset();
+                } catch (error) {
+                    Utils.showAlert('Fehler beim Ändern des Passworts: ' + error.message, 'error');
+                }
+            }
+        };
+
+        // Setup event listeners for profile forms
+        document.addEventListener('DOMContentLoaded', function() {
+            const updateProfileForm = document.getElementById('updateProfileForm');
+            if (updateProfileForm) {
+                updateProfileForm.addEventListener('submit', Profile.handleUpdateProfile.bind(Profile));
+            }
+
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            if (changePasswordForm) {
+                changePasswordForm.addEventListener('submit', Profile.handleChangePassword.bind(Profile));
+            }
+        });
+
         // WICHTIG: Sofort Login Screen anzeigen falls nicht authentifiziert
         // Dies verhindert den "hängenden" Ladescreen
         function showInitialScreen() {
@@ -938,10 +1714,13 @@
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            // Escape key to close dropdowns
+            // Escape key to close dropdowns and modals
             if (e.key === 'Escape') {
                 document.querySelectorAll('.dropdown-menu').forEach(menu => {
                     menu.classList.remove('show');
+                });
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
                 });
             }
             
@@ -1002,6 +1781,40 @@
                 }, 0);
             });
         }
+
+        // Modal click outside to close
+        window.addEventListener('click', function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        // Navigation active state management
+        function updateNavActiveState() {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+                const section = btn.getAttribute('data-section');
+                if (section && App && App.currentSection === section) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Override App.showSection to update nav state
+        if (typeof App !== 'undefined') {
+            const originalShowSection = App.showSection;
+            App.showSection = function(sectionName) {
+                originalShowSection.call(this, sectionName);
+                updateNavActiveState();
+            };
+        }
+
+        // Initialize nav state after app loads
+        setTimeout(updateNavActiveState, 500);
     </script>
 </body>
 </html>
