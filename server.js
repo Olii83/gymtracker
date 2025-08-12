@@ -746,6 +746,236 @@ app.delete('/api/workouts/:id', authenticateToken, (req, res) => {
     );
 });
 
+// Template routes - Fügen Sie diese nach den Workout-Routes in server.js ein
+
+// Get all templates for user
+app.get('/api/templates', authenticateToken, (req, res) => {
+    db.all(`
+        SELECT wt.*, COUNT(te.id) as exercise_count
+        FROM workout_templates wt
+        LEFT JOIN template_exercises te ON wt.id = te.template_id
+        WHERE wt.user_id = ? OR wt.is_public = 1
+        GROUP BY wt.id
+        ORDER BY wt.created_at DESC
+    `, [req.user.id], (err, templates) => {
+        if (err) {
+            console.error('Get templates error:', err);
+            res.status(500).json({ error: 'Internal server error' });
+        } else {
+            res.json(templates);
+        }
+    });
+});
+
+// Create new template
+app.post('/api/templates', authenticateToken, (req, res) => {
+    const { name, description, category, exercises } = req.body;
+    
+    if (!name) {
+        return res.status(400).json({ error: 'Template name is required' });
+    }
+    
+    if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
+        return res.status(400).json({ error: 'At least one exercise is required' });
+    }
+    
+    // Start transaction
+    db.run('BEGIN TRANSACTION');
+    
+    db.run(
+        'INSERT INTO workout_templates (user_id, name, description, category) VALUES (?, ?, ?, ?)',
+        [req.user.id, name.trim(), description?.trim() || null, category || 'Krafttraining'],
+        function(err) {
+            if (err) {
+                console.error('Create template error:', err);
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            
+            const templateId = this.lastID;
+            
+            // Insert template exercises
+            const stmt = db.prepare(`
+                INSERT INTO template_exercises 
+                (template_id, exercise_id, exercise_order, suggested_sets, suggested_reps, suggested_weight, suggested_rest_time) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `);
+            
+            let completedInserts = 0;
+            let hasErrors = false;
+            
+            exercises.forEach((exercise, index) => {
+                const repsJson = JSON.stringify(exercise.suggested_reps || [10, 10, 10]);
+                
+                stmt.run([
+                    templateId,
+                    exercise.exercise_id,
+                    index + 1,
+                    exercise.suggested_sets || 3,
+                    repsJson,
+                    exercise.suggested_weight || 0,
+                    exercise.suggested_rest_time || 90
+                ], (err) => {
+                    completedInserts++;
+                    if (err) {
+                        console.error('Insert template exercise error:', err);
+                        hasErrors = true;
+                    }
+                    
+                    if (completedInserts === exercises.length) {
+                        stmt.finalize();
+                        
+                        if (hasErrors) {
+                            db.run('ROLLBACK');
+                            res.status(500).json({ error: 'Failed to save template exercises' });
+                        } else {
+                            db.run('COMMIT', (err) => {
+                                if (err) {
+                                    console.error('Commit error:', err);
+                                    res.status(500).json({ error: 'Internal server error' });
+                                } else {
+                                    console.log(`Template created: ${name} by user: ${req.user.username}`);
+                                    res.status(201).json({ message: 'Template created', templateId });
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+        }
+    );
+});
+
+// Get specific template with exercises
+app.get('/api/templates/:id', authenticateToken, (req, res) => {
+    db.get(
+        'SELECT * FROM workout_templates WHERE id = ? AND (user_id = ? OR is_public = 1)',
+        [req.params.id, req.user.id],
+        (err, template) => {
+            if (err) {
+                console.error('Get template error:', err);
+                res.status(500).json({ error: 'Internal server error' });
+            } else if (!template) {
+                res.status(404).json({ error: 'Template not found' });
+            } else {
+                // Get exercises for this template
+                db.all(`
+                    SELECT te.*, e.name as exercise_name, e.category, e.muscle_group
+                    FROM template_exercises te
+                    JOIN exercises e ON te.exercise_id = e.id
+                    WHERE te.template_id = ?
+                    ORDER BY te.exercise_order
+                `, [req.params.id], (err, exercises) => {
+                    if (err) {
+                        console.error('Get template exercises error:', err);
+                        res.status(500).json({ error: 'Internal server error' });
+                    } else {
+                        template.exercises = exercises.map(ex => ({
+                            ...ex,
+                            suggested_reps: JSON.parse(ex.suggested_reps || '[10,10,10]')
+                        }));
+                        res.json(template);
+                    }
+                });
+            }
+        }
+    );
+});
+
+// Delete template
+app.delete('/api/templates/:id', authenticateToken, (req, res) => {
+    db.run(
+        'DELETE FROM workout_templates WHERE id = ? AND user_id = ?',
+        [req.params.id, req.user.id],
+        function(err) {
+            if (err) {
+                console.error('Delete template error:', err);
+                res.status(500).json({ error: 'Internal server error' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Template not found or access denied' });
+            } else {
+                console.log(`Template ${req.params.id} deleted by user: ${req.user.username}`);
+                res.json({ message: 'Template deleted' });
+            }
+        }
+    );
+});
+
+// Update exercise routes to support editing and deleting
+app.put('/api/exercises/:id', authenticateToken, (req, res) => {
+    const { name, category, muscle_group, description, instructions } = req.body;
+    
+    if (!name || !category || !muscle_group) {
+        return res.status(400).json({ error: 'Name, category and muscle_group are required' });
+    }
+    
+    db.run(
+        'UPDATE exercises SET name = ?, category = ?, muscle_group = ?, description = ?, instructions = ? WHERE id = ? AND (created_by = ? OR created_by IS NULL)',
+        [name.trim(), category.trim(), muscle_group.trim(), description?.trim() || null, instructions?.trim() || null, req.params.id, req.user.id],
+        function(err) {
+            if (err) {
+                console.error('Update exercise error:', err);
+                res.status(500).json({ error: 'Internal server error' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Exercise not found or access denied' });
+            } else {
+                res.json({ message: 'Exercise updated' });
+            }
+        }
+    );
+});
+
+app.delete('/api/exercises/:id', authenticateToken, (req, res) => {
+    // Check if exercise is used in any workouts or templates
+    db.get(
+        'SELECT COUNT(*) as count FROM workout_exercises WHERE exercise_id = ?',
+        [req.params.id],
+        (err, result) => {
+            if (err) {
+                console.error('Check exercise usage error:', err);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            
+            if (result.count > 0) {
+                return res.status(409).json({ error: 'Exercise is used in workouts and cannot be deleted' });
+            }
+            
+            // Check template usage
+            db.get(
+                'SELECT COUNT(*) as count FROM template_exercises WHERE exercise_id = ?',
+                [req.params.id],
+                (err, templateResult) => {
+                    if (err) {
+                        console.error('Check template exercise usage error:', err);
+                        return res.status(500).json({ error: 'Internal server error' });
+                    }
+                    
+                    if (templateResult.count > 0) {
+                        return res.status(409).json({ error: 'Exercise is used in templates and cannot be deleted' });
+                    }
+                    
+                    db.run(
+                        'DELETE FROM exercises WHERE id = ? AND (created_by = ? OR created_by IS NULL)',
+                        [req.params.id, req.user.id],
+                        function(err) {
+                            if (err) {
+                                console.error('Delete exercise error:', err);
+                                res.status(500).json({ error: 'Internal server error' });
+                            } else if (this.changes === 0) {
+                                res.status(404).json({ error: 'Exercise not found or access denied' });
+                            } else {
+                                console.log(`Exercise ${req.params.id} deleted by user: ${req.user.username}`);
+                                res.json({ message: 'Exercise deleted' });
+                            }
+                        }
+                    );
+                }
+            );
+        }
+    );
+});
+
+
 // Dashboard stats
 app.get('/api/dashboard/stats', authenticateToken, (req, res) => {
     const userId = req.user.id;
@@ -981,216 +1211,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
     process.exit(1);
-});
-// Diese Template-Routes zu Ihrer server.js hinzufügen
-// Fügen Sie diese nach den Workout-Routes ein:
-
-// Template routes
-app.get('/api/templates', authenticateToken, (req, res) => {
-    db.all(`
-        SELECT wt.*, COUNT(te.id) as exercise_count
-        FROM workout_templates wt
-        LEFT JOIN template_exercises te ON wt.id = te.template_id
-        WHERE wt.user_id = ? OR wt.is_public = 1
-        GROUP BY wt.id
-        ORDER BY wt.created_at DESC
-    `, [req.user.id], (err, templates) => {
-        if (err) {
-            console.error('Get templates error:', err);
-            res.status(500).json({ error: 'Internal server error' });
-        } else {
-            res.json(templates);
-        }
-    });
-});
-
-app.post('/api/templates', authenticateToken, (req, res) => {
-    const { name, description, category, exercises } = req.body;
-    
-    if (!name) {
-        return res.status(400).json({ error: 'Template name is required' });
-    }
-    
-    if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
-        return res.status(400).json({ error: 'At least one exercise is required' });
-    }
-    
-    // Start transaction
-    db.run('BEGIN TRANSACTION');
-    
-    db.run(
-        'INSERT INTO workout_templates (user_id, name, description, category) VALUES (?, ?, ?, ?)',
-        [req.user.id, name.trim(), description?.trim() || null, category || 'Krafttraining'],
-        function(err) {
-            if (err) {
-                console.error('Create template error:', err);
-                db.run('ROLLBACK');
-                return res.status(500).json({ error: 'Internal server error' });
-            }
-            
-            const templateId = this.lastID;
-            
-            // Insert template exercises
-            const stmt = db.prepare(`
-                INSERT INTO template_exercises 
-                (template_id, exercise_id, exercise_order, suggested_sets, suggested_reps, suggested_weight, suggested_rest_time) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `);
-            
-            let completedInserts = 0;
-            let hasErrors = false;
-            
-            exercises.forEach((exercise, index) => {
-                const repsJson = JSON.stringify(exercise.suggested_reps || [10, 10, 10]);
-                
-                stmt.run([
-                    templateId,
-                    exercise.exercise_id,
-                    index + 1,
-                    exercise.suggested_sets || 3,
-                    repsJson,
-                    exercise.suggested_weight || 0,
-                    exercise.suggested_rest_time || 90
-                ], (err) => {
-                    completedInserts++;
-                    if (err) {
-                        console.error('Insert template exercise error:', err);
-                        hasErrors = true;
-                    }
-                    
-                    if (completedInserts === exercises.length) {
-                        stmt.finalize();
-                        
-                        if (hasErrors) {
-                            db.run('ROLLBACK');
-                            res.status(500).json({ error: 'Failed to save template exercises' });
-                        } else {
-                            db.run('COMMIT', (err) => {
-                                if (err) {
-                                    console.error('Commit error:', err);
-                                    res.status(500).json({ error: 'Internal server error' });
-                                } else {
-                                    console.log(`Template created: ${name} by user: ${req.user.username}`);
-                                    res.status(201).json({ message: 'Template created', templateId });
-                                }
-                            });
-                        }
-                    }
-                });
-            });
-        }
-    );
-});
-
-app.get('/api/templates/:id', authenticateToken, (req, res) => {
-    db.get(
-        'SELECT * FROM workout_templates WHERE id = ? AND (user_id = ? OR is_public = 1)',
-        [req.params.id, req.user.id],
-        (err, template) => {
-            if (err) {
-                console.error('Get template error:', err);
-                res.status(500).json({ error: 'Internal server error' });
-            } else if (!template) {
-                res.status(404).json({ error: 'Template not found' });
-            } else {
-                // Get exercises for this template
-                db.all(`
-                    SELECT te.*, e.name as exercise_name, e.category, e.muscle_group
-                    FROM template_exercises te
-                    JOIN exercises e ON te.exercise_id = e.id
-                    WHERE te.template_id = ?
-                    ORDER BY te.exercise_order
-                `, [req.params.id], (err, exercises) => {
-                    if (err) {
-                        console.error('Get template exercises error:', err);
-                        res.status(500).json({ error: 'Internal server error' });
-                    } else {
-                        template.exercises = exercises.map(ex => ({
-                            ...ex,
-                            suggested_reps: JSON.parse(ex.suggested_reps || '[10,10,10]')
-                        }));
-                        res.json(template);
-                    }
-                });
-            }
-        }
-    );
-});
-
-app.delete('/api/templates/:id', authenticateToken, (req, res) => {
-    db.run(
-        'DELETE FROM workout_templates WHERE id = ? AND user_id = ?',
-        [req.params.id, req.user.id],
-        function(err) {
-            if (err) {
-                console.error('Delete template error:', err);
-                res.status(500).json({ error: 'Internal server error' });
-            } else if (this.changes === 0) {
-                res.status(404).json({ error: 'Template not found or access denied' });
-            } else {
-                console.log(`Template ${req.params.id} deleted by user: ${req.user.username}`);
-                res.json({ message: 'Template deleted' });
-            }
-        }
-    );
-});
-
-// Exercise routes erweitern
-app.put('/api/exercises/:id', authenticateToken, (req, res) => {
-    const { name, category, muscle_group, description, instructions } = req.body;
-    
-    if (!name || !category || !muscle_group) {
-        return res.status(400).json({ error: 'Name, category and muscle_group are required' });
-    }
-    
-    db.run(
-        'UPDATE exercises SET name = ?, category = ?, muscle_group = ?, description = ?, instructions = ? WHERE id = ? AND (created_by = ? OR created_by IS NULL)',
-        [name.trim(), category.trim(), muscle_group.trim(), description?.trim() || null, instructions?.trim() || null, req.params.id, req.user.id],
-        function(err) {
-            if (err) {
-                console.error('Update exercise error:', err);
-                res.status(500).json({ error: 'Internal server error' });
-            } else if (this.changes === 0) {
-                res.status(404).json({ error: 'Exercise not found or access denied' });
-            } else {
-                res.json({ message: 'Exercise updated' });
-            }
-        }
-    );
-});
-
-app.delete('/api/exercises/:id', authenticateToken, (req, res) => {
-    // Check if exercise is used in any workouts
-    db.get(
-        'SELECT COUNT(*) as count FROM workout_exercises WHERE exercise_id = ?',
-        [req.params.id],
-        (err, result) => {
-            if (err) {
-                console.error('Check exercise usage error:', err);
-                return res.status(500).json({ error: 'Internal server error' });
-            }
-            
-            if (result.count > 0) {
-                return res.status(409).json({ error: 'Exercise is used in workouts and cannot be deleted' });
-            }
-            
-            db.run(
-                'DELETE FROM exercises WHERE id = ? AND (created_by = ? OR created_by IS NULL)',
-                [req.params.id, req.user.id],
-                function(err) {
-                    if (err) {
-                        console.error('Delete exercise error:', err);
-                        res.status(500).json({ error: 'Internal server error' });
-                    } else if (this.changes === 0) {
-                        res.status(404).json({ error: 'Exercise not found or access denied' });
-                    } else {
-                        console.log(`Exercise ${req.params.id} deleted by user: ${req.user.username}`);
-                        res.json({ message: 'Exercise deleted' });
-                    }
-                }
-            );
-        }
-    );
 });
 
 // Start server
