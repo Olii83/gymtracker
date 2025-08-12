@@ -81,6 +81,9 @@ body {
     color: var(--dark);
     background: var(--bg-gradient);
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 .hidden {
@@ -176,12 +179,21 @@ body {
     color: var(--dark-gray);
 }
 
+.auth-form {
+    animation: fadeIn 0.3s ease;
+}
+
+.auth-form.hidden {
+    display: none;
+}
+
 /* Header & Navigation */
 .header {
     background: var(--bg-overlay);
     backdrop-filter: blur(10px);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
+    margin: var(--space-md);
     margin-bottom: var(--space-xl);
     box-shadow: var(--shadow-lg);
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -252,6 +264,8 @@ body {
     color: var(--white);
     transition: all var(--transition-normal);
     line-height: 1;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn:hover:not(:disabled) {
@@ -313,6 +327,14 @@ body {
     background: var(--primary-gradient);
     color: var(--white);
     border-color: var(--primary-color);
+}
+
+.btn-icon {
+    font-size: var(--font-size-base);
+}
+
+.btn-text {
+    font-weight: 500;
 }
 
 /* Dropdown */
@@ -377,9 +399,10 @@ body {
 /* Main Container */
 .main-container {
     max-width: 1400px;
-    margin: 0 auto;
+    margin: 0 var(--space-md);
     padding: var(--space-lg);
-    background: var(--white);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     min-height: calc(100vh - 120px);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
@@ -684,8 +707,9 @@ body {
     text-align: center;
 }
 
-/* Workouts */
-.workout-item {
+/* Workouts & Exercises */
+.workout-item,
+.exercise-item {
     background: var(--light-gray);
     border-radius: var(--radius-md);
     padding: var(--space-lg);
@@ -693,9 +717,11 @@ body {
     transition: all var(--transition-normal);
     cursor: pointer;
     margin-bottom: var(--space-md);
+    position: relative;
 }
 
-.workout-item:hover {
+.workout-item:hover,
+.exercise-item:hover {
     background: var(--white);
     transform: translateX(8px) translateY(-2px);
     box-shadow: var(--shadow-md);
@@ -709,30 +735,7 @@ body {
     margin-bottom: var(--space-xs);
 }
 
-.workout-name {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--dark);
-    margin-bottom: var(--space-sm);
-}
-
-/* Exercises */
-.exercise-item {
-    background: var(--light-gray);
-    border-left: 4px solid var(--success-color);
-    padding: var(--space-lg);
-    margin-bottom: var(--space-md);
-    border-radius: var(--radius-md);
-    position: relative;
-    transition: all var(--transition-normal);
-}
-
-.exercise-item:hover {
-    background: var(--white);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
+.workout-name,
 .exercise-name {
     font-size: var(--font-size-lg);
     font-weight: 600;
@@ -840,7 +843,7 @@ body {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 1050;
     left: 0;
     top: 0;
     width: 100%;
@@ -950,6 +953,23 @@ body {
     gap: var(--space-md);
 }
 
+/* Empty states */
+.empty-state {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--dark-gray);
+}
+
+.empty-state h3 {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--space-md);
+    color: var(--darker-gray);
+}
+
+.empty-state p {
+    margin-bottom: var(--space-lg);
+}
+
 /* Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -960,6 +980,14 @@ body {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* Utility classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-20 { margin-top: 20px; }
+.mb-20 { margin-bottom: 20px; }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -983,7 +1011,14 @@ body {
     }
     
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+    }
+    
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--space-sm);
     }
     
     .card {
@@ -993,133 +1028,6 @@ body {
     .section-title {
         font-size: var(--font-size-2xl);
         flex-direction: column;
-    }
-}
-
-/* Additional utility classes */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.mt-20 { margin-top: 20px; }
-.mb-20 { margin-bottom: 20px; }
-
-/* Empty states */
-.empty-state {
-    text-align: center;
-    padding: var(--space-2xl);
-    color: var(--dark-gray);
-}
-
-.empty-state h3 {
-    font-size: var(--font-size-xl);
-    margin-bottom: var(--space-md);
-    color: var(--darker-gray);
-}
-
-.empty-state p {
-    margin-bottom: var(--space-lg);
-}
-
-/* Specific fixes for broken layout */
-.auth-form {
-    animation: fadeIn 0.3s ease;
-}
-
-.auth-form.hidden {
-    display: none;
-}
-
-.btn-icon {
-    font-size: var(--font-size-base);
-}
-
-.btn-text {
-    font-weight: 500;
-}
-
-/* Ensure proper spacing and layout */
-.header {
-    margin: var(--space-md);
-}
-
-.main-container {
-    margin: 0 var(--space-md);
-    border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-}
-
-/* Fix any potential z-index issues */
-.modal {
-    z-index: 1050;
-}
-
-.dropdown-menu {
-    z-index: 1000;
-}
-
-.header {
-    z-index: 100;
-}
-
-/* Ensure buttons are properly styled */
-button {
-    font-family: inherit;
-}
-
-/* Fix any text rendering issues */
-body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-}
-
-/* Ensure proper box model */
-*, *::before, *::after {
-    box-sizing: border-box;
-}
-
-/* Fix potential overflow issues */
-html {
-    overflow-x: hidden;
-}
-
-body {
-    overflow-x: hidden;
-}
-
-/* Ensure proper font loading fallbacks */
-.login-title, .section-title, .card-title {
-    font-family: var(--font-family);
-    font-display: swap;
-}
-
-/* Fix for small screens */
-@media (max-width: 320px) {
-    .login-card {
-        margin: var(--space-sm);
-        padding: var(--space-md);
-    }
-    
-    .nav-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .nav-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--space-md);
-    }
-    
-    .stat-card {
-        flex-direction: column;
-        text-align: center;
-        gap: var(--space-sm);
     }
     
     .form-row {
@@ -1150,3 +1058,23 @@ body {
     }
     
     .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .nav-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .nav-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 320px) {
+    .login-card {
+        margin: var(--space-sm);
+        padding: var(--space-md);
+    }
+}
