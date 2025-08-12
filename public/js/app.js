@@ -1,4 +1,4 @@
-// Main application module for Gym Tracker - Updated without duration
+// Main application module for Gym Tracker - FIXED VERSION with URL management
 
 const App = {
     // Application state
@@ -21,11 +21,68 @@ const App = {
             workoutDateInput.value = Utils.getCurrentDate();
         }
         
+        // Setup URL handling
+        this.setupUrlHandling();
+        
         console.log('Gym Tracker initialized successfully');
     },
 
-    // Show a specific section
-    showSection(sectionName) {
+    // Setup URL handling and navigation
+    setupUrlHandling() {
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', (event) => {
+            this.handleUrlChange();
+        });
+        
+        // Handle initial URL on page load
+        this.handleUrlChange();
+        
+        // Setup dropdown functionality
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.dropdown-toggle')) {
+                e.preventDefault();
+                const dropdown = e.target.closest('.nav-dropdown');
+                dropdown.querySelector('.dropdown-menu').classList.toggle('show');
+            } else {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+    },
+
+    // Handle URL changes
+    handleUrlChange() {
+        const hash = window.location.hash.slice(1); // Remove #
+        const sectionFromUrl = hash || 'dashboard';
+        
+        // Only change section if user is authenticated
+        if (Auth.isAuthenticated()) {
+            if (this.isValidSection(sectionFromUrl)) {
+                this.showSection(sectionFromUrl, false); // false = don't update URL
+            } else {
+                // Invalid section, redirect to dashboard
+                this.showSection('dashboard');
+            }
+        }
+    },
+
+    // Check if section is valid
+    isValidSection(sectionName) {
+        const validSections = ['dashboard', 'workouts', 'exercises', 'templates', 'newWorkout', 'admin'];
+        return validSections.includes(sectionName);
+    },
+
+    // Show a specific section with URL management
+    showSection(sectionName, updateUrl = true) {
+        console.log('Switching to section:', sectionName);
+        
+        // Update URL if requested
+        if (updateUrl) {
+            const newUrl = window.location.pathname + '#' + sectionName;
+            history.pushState({ section: sectionName }, '', newUrl);
+        }
+        
         // Hide all sections
         document.querySelectorAll('.section').forEach(section => {
             section.classList.add('hidden');
@@ -70,7 +127,7 @@ const App = {
                 Templates.loadAll();
                 break;
             case 'newWorkout':
-                // Reset form when entering new workout section
+                // Reset form when entering new workout section (unless editing)
                 if (!Workouts.isEditing) {
                     Workouts.resetForm();
                 }
@@ -108,7 +165,7 @@ const App = {
         }
     },
 
-    // Display dashboard statistics (without duration)
+    // Display dashboard statistics
     displayDashboardStats(stats) {
         const elements = {
             totalWorkouts: document.getElementById('totalWorkouts'),
@@ -283,10 +340,14 @@ const App = {
         }
     },
 
-    // Check for updates (placeholder for future implementation)
-    checkForUpdates() {
-        console.log('Checking for updates...');
-        // This could check a version endpoint and notify users of updates
+    // Navigate to specific section programmatically
+    navigateTo(sectionName) {
+        if (this.isValidSection(sectionName)) {
+            this.showSection(sectionName);
+        } else {
+            console.error('Invalid section:', sectionName);
+            this.showSection('dashboard');
+        }
     },
 
     // Get application statistics
@@ -298,6 +359,18 @@ const App = {
             user: Auth.getCurrentUser(),
             dashboardLoaded: !!this.dashboardData
         };
+    },
+
+    // Reset application state
+    resetState() {
+        this.currentSection = 'dashboard';
+        this.dashboardData = null;
+        this.clearCache();
+        
+        // Reset URL
+        history.pushState(null, '', window.location.pathname);
+        
+        console.log('Application state reset');
     }
 };
 
@@ -308,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Handle page unload
 window.addEventListener('beforeunload', function(e) {
-    // Could save draft data or warn about unsaved changes
     console.log('Page unloading...');
 });
 

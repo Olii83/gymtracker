@@ -1,4 +1,4 @@
-// Templates module for Gym Tracker - Updated without rest time
+// Templates module for Gym Tracker - FIXED VERSION
 
 const Templates = {
     // State
@@ -73,6 +73,45 @@ const Templates = {
                                     </div>
                                     
                                     <button type="button" class="btn btn-primary" onclick="Templates.addExercise()">Hinzufügen</button>
+                                </div>
+                                
+                                <!-- Schnell neue Übung für Template erstellen -->
+                                <div class="quick-exercise-add">
+                                    <h4 class="quick-add-title">🚀 Neue Übung für Vorlage erstellen</h4>
+                                    <div class="quick-add-grid">
+                                        <div class="form-group">
+                                            <label for="templateQuickExerciseName">Name der Übung</label>
+                                            <input type="text" id="templateQuickExerciseName" placeholder="z.B. Bankdrücken">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="templateQuickExerciseCategory">Kategorie</label>
+                                            <select id="templateQuickExerciseCategory">
+                                                <option value="">Wählen...</option>
+                                                <option value="Krafttraining">Krafttraining</option>
+                                                <option value="Cardio">Cardio</option>
+                                                <option value="Stretching">Stretching</option>
+                                                <option value="Functional">Functional</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="templateQuickExerciseMuscle">Muskelgruppe</label>
+                                            <select id="templateQuickExerciseMuscle">
+                                                <option value="">Wählen...</option>
+                                                <option value="Brust">Brust</option>
+                                                <option value="Rücken">Rücken</option>
+                                                <option value="Schultern">Schultern</option>
+                                                <option value="Arme">Arme</option>
+                                                <option value="Beine">Beine</option>
+                                                <option value="Core">Core</option>
+                                                <option value="Cardio">Cardio</option>
+                                                <option value="Ganzkörper">Ganzkörper</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <button type="button" class="btn btn-success" onclick="Templates.quickAddExercise()">Erstellen & Hinzufügen</button>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -149,22 +188,10 @@ const Templates = {
                 <div class="card-content">
                     <div style="margin-bottom: 15px;">
                         <span class="exercise-tag">${Utils.sanitizeInput(template.category || 'Krafttraining')}</span>
-                        <span class="exercise-tag">${template.exercises ? template.exercises.length : 0} Übungen</span>
+                        <span class="exercise-tag">${template.exercise_count || 0} Übungen</span>
                     </div>
                     ${template.description ? `
                         <p style="color: #666; margin-bottom: 15px;">${Utils.sanitizeInput(template.description)}</p>
-                    ` : ''}
-                    ${template.exercises && template.exercises.length > 0 ? `
-                        <div>
-                            <strong>Übungen:</strong>
-                            <ul style="margin-top: 5px; list-style: none; padding-left: 0;">
-                                ${template.exercises.map(ex => `
-                                    <li style="margin-bottom: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                                        ${Utils.sanitizeInput(ex.exercise_name)} - ${ex.suggested_sets || 3} Sätze
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
                     ` : ''}
                 </div>
             </div>
@@ -181,7 +208,7 @@ const Templates = {
         this.templates.forEach(template => {
             const option = document.createElement('option');
             option.value = template.id;
-            option.textContent = `${template.name} (${template.exercises ? template.exercises.length : 0} Übungen)`;
+            option.textContent = `${template.name} (${template.exercise_count || 0} Übungen)`;
             select.appendChild(option);
         });
     },
@@ -192,6 +219,9 @@ const Templates = {
         this.updateTemplateExerciseSelect();
         this.updateTemplateSelectedExercisesDisplay();
         document.getElementById('newTemplateModal').style.display = 'block';
+        
+        // URL nicht ändern - Modal bleibt im Hintergrund
+        console.log('Template modal opened');
     },
 
     // Close new template modal
@@ -200,6 +230,7 @@ const Templates = {
         const form = document.getElementById('newTemplateForm');
         if (form) form.reset();
         this.selectedExercises = [];
+        console.log('Template modal closed');
     },
 
     // Update exercise select for templates
@@ -253,6 +284,60 @@ const Templates = {
         select.value = '';
     },
 
+    // Quick add exercise for template
+    async quickAddExercise() {
+        const name = document.getElementById('templateQuickExerciseName').value.trim();
+        const category = document.getElementById('templateQuickExerciseCategory').value;
+        const muscle_group = document.getElementById('templateQuickExerciseMuscle').value;
+        
+        if (!name || !category || !muscle_group) {
+            Utils.showAlert('Bitte alle Felder für die neue Übung ausfüllen', 'warning');
+            return;
+        }
+        
+        try {
+            const response = await Utils.apiCall('/exercises', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name,
+                    category,
+                    muscle_group,
+                    description: null,
+                    instructions: null
+                })
+            });
+            
+            if (response && response.exerciseId) {
+                // Reload exercises
+                await Exercises.loadAll();
+                this.updateTemplateExerciseSelect();
+                
+                // Add the new exercise to template
+                const templateExercise = {
+                    exercise_id: response.exerciseId,
+                    exercise_name: name,
+                    muscle_group: muscle_group,
+                    suggested_sets: 3,
+                    suggested_reps: [10, 10, 10],
+                    suggested_weight: 0
+                };
+                
+                this.selectedExercises.push(templateExercise);
+                this.updateTemplateSelectedExercisesDisplay();
+                
+                // Clear quick add fields
+                document.getElementById('templateQuickExerciseName').value = '';
+                document.getElementById('templateQuickExerciseCategory').value = '';
+                document.getElementById('templateQuickExerciseMuscle').value = '';
+                
+                Utils.showAlert('Übung erstellt und zur Vorlage hinzugefügt!', 'success');
+            }
+        } catch (error) {
+            console.error('Quick add exercise error:', error);
+            Utils.showAlert('Fehler beim Erstellen der Übung: ' + error.message, 'error');
+        }
+    },
+
     // Update selected exercises display for template
     updateTemplateSelectedExercisesDisplay() {
         const container = document.getElementById('templateSelectedExercises');
@@ -302,7 +387,7 @@ const Templates = {
         this.updateTemplateSelectedExercisesDisplay();
     },
 
-    // Handle template creation
+    // Handle template creation - FIXED VERSION
     async handleCreateTemplate(e) {
         e.preventDefault();
         
@@ -329,14 +414,17 @@ const Templates = {
                 throw new Error('Fügen Sie mindestens eine Übung hinzu');
             }
 
-            await Utils.apiCall('/templates', {
+            console.log('Creating template:', templateData);
+
+            const response = await Utils.apiCall('/templates', {
                 method: 'POST',
                 body: JSON.stringify(templateData)
             });
 
+            console.log('Template created successfully:', response);
             Utils.showAlert('Vorlage erfolgreich erstellt!', 'success');
             this.closeNewModal();
-            this.loadAll();
+            await this.loadAll(); // Reload templates
         } catch (error) {
             console.error('Create template error:', error);
             Utils.showAlert('Fehler beim Erstellen der Vorlage: ' + error.message, 'error');
@@ -365,35 +453,48 @@ const Templates = {
         }
     },
 
-    // Use template as workout
+    // Use template as workout - mit URL-Fix
     async useAsWorkout(templateId) {
         try {
             const template = await Utils.apiCall(`/templates/${templateId}`);
             
-            // Switch to new workout section
+            console.log('Loading template:', template);
+            
+            // Switch to new workout section - WICHTIG: History pushState verwenden
+            history.pushState(null, '', window.location.pathname + '#newWorkout');
             App.showSection('newWorkout');
             
-            // Fill form with template data
-            document.getElementById('workoutName').value = template.name;
-            document.getElementById('workoutDate').value = Utils.getCurrentDate();
-            
-            // Load template exercises into workout
-            if (template.exercises && template.exercises.length > 0) {
-                Workouts.selectedExercises = template.exercises.map(ex => ({
-                    exercise_id: ex.exercise_id,
-                    exercise_name: ex.exercise_name,
-                    muscle_group: ex.muscle_group,
-                    sets_count: ex.suggested_sets || 3,
-                    reps: ex.suggested_reps || [10, 10, 10],
-                    weights: new Array(ex.suggested_sets || 3).fill(0),
-                    notes: ''
-                }));
+            // Warte kurz bis die Sektion geladen ist
+            setTimeout(() => {
+                // Fill form with template data
+                const nameField = document.getElementById('workoutName');
+                const dateField = document.getElementById('workoutDate');
                 
-                Workouts.updateSelectedExercisesDisplay();
-            }
+                if (nameField) nameField.value = template.name;
+                if (dateField) dateField.value = Utils.getCurrentDate();
+                
+                // Load template exercises into workout
+                if (template.exercises && template.exercises.length > 0) {
+                    if (typeof Workouts !== 'undefined') {
+                        Workouts.selectedExercises = template.exercises.map(ex => ({
+                            exercise_id: ex.exercise_id,
+                            exercise_name: ex.exercise_name,
+                            muscle_group: ex.muscle_group,
+                            sets_count: ex.suggested_sets || 3,
+                            reps: ex.suggested_reps || [10, 10, 10],
+                            weights: new Array(ex.suggested_sets || 3).fill(0),
+                            notes: ''
+                        }));
+                        
+                        Workouts.updateSelectedExercisesDisplay();
+                    }
+                }
+                
+                Utils.showAlert('Vorlage als Workout geladen!', 'success');
+            }, 100);
             
-            Utils.showAlert('Vorlage als Workout geladen!', 'success');
         } catch (error) {
+            console.error('Use template as workout error:', error);
             Utils.showAlert('Fehler beim Laden der Vorlage: ' + error.message, 'error');
         }
     },
@@ -441,11 +542,6 @@ const Templates = {
         return this.templates.find(t => t.id === templateId);
     },
 
-    // Get templates by category
-    getByCategory(category) {
-        return this.templates.filter(t => t.category === category);
-    },
-
     // Clear cached data
     clearCache() {
         this.templates = [];
@@ -456,73 +552,5 @@ const Templates = {
     // Get all templates
     getTemplates() {
         return this.templates;
-    },
-
-    // Search templates
-    search(query) {
-        if (!query || query.length < 2) return this.templates;
-        
-        const lowerQuery = query.toLowerCase();
-        return this.templates.filter(template => 
-            template.name.toLowerCase().includes(lowerQuery) ||
-            template.category.toLowerCase().includes(lowerQuery) ||
-            (template.description && template.description.toLowerCase().includes(lowerQuery))
-        );
-    },
-
-    // Get template statistics
-    getTemplateStats() {
-        if (!this.templates.length) return null;
-
-        const categoryStats = this.templates.reduce((stats, template) => {
-            stats[template.category] = (stats[template.category] || 0) + 1;
-            return stats;
-        }, {});
-
-        return {
-            total: this.templates.length,
-            categories: categoryStats,
-            mostPopularCategory: Object.keys(categoryStats).reduce((a, b) => 
-                categoryStats[a] > categoryStats[b] ? a : b
-            ),
-            avgExercises: this.templates.reduce((sum, t) => 
-                sum + (t.exercises ? t.exercises.length : 0), 0) / this.templates.length
-        };
-    },
-
-    // Duplicate template
-    async duplicate(templateId) {
-        try {
-            const template = await Utils.apiCall(`/templates/${templateId}`);
-            
-            const duplicateData = {
-                ...template,
-                name: `${template.name} (Kopie)`,
-                id: undefined // Remove ID to create new template
-            };
-            
-            await Utils.apiCall('/templates', {
-                method: 'POST',
-                body: JSON.stringify(duplicateData)
-            });
-            
-            Utils.showAlert('Vorlage erfolgreich dupliziert!', 'success');
-            this.loadAll();
-        } catch (error) {
-            console.error('Duplicate template error:', error);
-            Utils.showAlert('Fehler beim Duplizieren der Vorlage: ' + error.message, 'error');
-        }
-    },
-
-    // Export templates
-    exportTemplates() {
-        if (!this.templates.length) {
-            Utils.showAlert('Keine Vorlagen zum Exportieren', 'warning');
-            return;
-        }
-
-        const filename = `gym-tracker-templates-${new Date().toISOString().split('T')[0]}.json`;
-        Utils.downloadJSON(this.templates, filename);
-        Utils.showAlert('Vorlagen exportiert', 'success');
     }
 };

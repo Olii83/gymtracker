@@ -1,4 +1,4 @@
-// Workouts module for Gym Tracker - Updated without duration and rest time
+// Workouts module for Gym Tracker - FIXED VERSION
 
 const Workouts = {
     // State
@@ -11,14 +11,17 @@ const Workouts = {
     // Initialize workouts module
     init() {
         this.setupEventListeners();
+        console.log('Workouts module initialized');
     },
 
     // Setup event listeners
     setupEventListeners() {
-        const newWorkoutForm = document.getElementById('newWorkoutForm');
-        if (newWorkoutForm) {
-            newWorkoutForm.addEventListener('submit', this.handleCreateWorkout.bind(this));
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const newWorkoutForm = document.getElementById('newWorkoutForm');
+            if (newWorkoutForm) {
+                newWorkoutForm.addEventListener('submit', this.handleCreateWorkout.bind(this));
+            }
+        });
     },
 
     // Load all workouts
@@ -251,11 +254,18 @@ const Workouts = {
         if (workoutDateInput) {
             workoutDateInput.value = Utils.getCurrentDate();
         }
+        
+        console.log('Workout form reset');
     },
 
-    // Add exercise to workout
+    // Add exercise to workout - FIXED VERSION
     addExercise() {
         const select = document.getElementById('exerciseSelect');
+        if (!select) {
+            console.error('Exercise select not found');
+            return;
+        }
+        
         const exerciseId = parseInt(select.value);
         
         if (!exerciseId) {
@@ -265,6 +275,12 @@ const Workouts = {
 
         if (this.selectedExercises.find(ex => ex.exercise_id === exerciseId)) {
             Utils.showAlert('Diese Übung ist bereits hinzugefügt.', 'warning');
+            return;
+        }
+
+        // Check if Exercises module is loaded
+        if (!Exercises || !Exercises.exercises) {
+            Utils.showAlert('Übungen noch nicht geladen. Bitte warten Sie einen Moment.', 'warning');
             return;
         }
 
@@ -285,20 +301,27 @@ const Workouts = {
         };
 
         this.selectedExercises.push(workoutExercise);
+        console.log('Exercise added:', workoutExercise);
         this.updateSelectedExercisesDisplay();
         
         select.value = '';
+        Utils.showAlert('Übung hinzugefügt!', 'success');
     },
 
-    // Update selected exercises display
+    // Update selected exercises display - FIXED VERSION
     updateSelectedExercisesDisplay() {
         const container = document.getElementById('selectedExercises');
-        if (!container) return;
+        if (!container) {
+            console.error('Selected exercises container not found');
+            return;
+        }
         
         if (this.selectedExercises.length === 0) {
             container.innerHTML = '';
             return;
         }
+
+        console.log('Updating selected exercises display:', this.selectedExercises);
 
         container.innerHTML = `
             <h3 style="margin-bottom: 15px; color: #333;">Ausgewählte Übungen:</h3>
@@ -325,7 +348,7 @@ const Workouts = {
                     <div style="margin-top: 15px;">
                         <label>Notizen:</label>
                         <input type="text" placeholder="Besonderheiten, Technik-Tipps..." 
-                               value="${exercise.notes}"
+                               value="${exercise.notes || ''}"
                                onchange="Workouts.selectedExercises[${index}].notes = this.value"
                                style="width: 100%; margin-top: 5px; padding: 8px;">
                     </div>
@@ -333,6 +356,7 @@ const Workouts = {
             `).join('')}
         `;
 
+        // Generate sets display for each exercise
         this.selectedExercises.forEach((exercise, index) => {
             this.updateSetsDisplay(index);
         });
@@ -379,8 +403,10 @@ const Workouts = {
 
     // Remove exercise from workout
     removeExercise(index) {
+        console.log('Removing exercise at index:', index);
         this.selectedExercises.splice(index, 1);
         this.updateSelectedExercisesDisplay();
+        Utils.showAlert('Übung entfernt', 'info');
     },
 
     // Handle workout creation/update
@@ -392,7 +418,7 @@ const Workouts = {
         
         try {
             submitButton.disabled = true;
-            submitButton.innerHTML = '<div class="loading"></div>';
+            submitButton.innerHTML = '<div class="loading"></div> Speichern...';
             
             const workoutData = {
                 name: document.getElementById('workoutName').value.trim(),
@@ -408,6 +434,8 @@ const Workouts = {
             if (!workoutData.date) {
                 throw new Error('Datum ist erforderlich');
             }
+
+            console.log('Saving workout:', workoutData);
 
             let response;
             if (this.isEditing && this.editingWorkoutId) {
@@ -426,6 +454,7 @@ const Workouts = {
                 Utils.showAlert('Training erfolgreich gespeichert!', 'success');
             }
 
+            console.log('Workout saved:', response);
             this.resetForm();
             App.showSection('dashboard');
         } catch (error) {
@@ -439,9 +468,13 @@ const Workouts = {
 
     // Load template into workout form
     async loadTemplate(templateId) {
-        if (!templateId) return;
+        if (!templateId) {
+            console.log('No template selected');
+            return;
+        }
         
         try {
+            console.log('Loading template:', templateId);
             const template = await Utils.apiCall(`/templates/${templateId}`);
             
             // Fill form with template data
