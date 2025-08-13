@@ -17,7 +17,7 @@ const App = {
         Templates.init();
         Profile.init();
         Modals.init();
-        Utils.init();
+        //Utils.init();
         Settings.init();
 
         // Set today's date as default for new workout
