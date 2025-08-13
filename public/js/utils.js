@@ -1,21 +1,28 @@
-// Utility functions for Gym Tracker
+// Utility-Funktionen für Gym Tracker
 
 const Utils = {
-    // API Base URL
     API_BASE: '/api',
 
-    // Show alert message
+    /**
+     * Zeigt eine Benachrichtigung an
+     * @param {string} message - Nachricht
+     * @param {string} type - Typ: 'info', 'success', 'error', 'warning'
+     * @param {string} containerId - ID des Alert-Containers
+     */
     showAlert(message, type = 'info', containerId = 'alertContainer') {
-        const alertContainer = document.getElementById(containerId) || document.getElementById('alertContainer');
+        const alertContainer = document.getElementById(containerId);
         if (!alertContainer) return;
 
+        // Erstelle neues Alert-Element
         const alert = document.createElement('div');
         alert.className = `alert alert-${type}`;
         alert.textContent = message;
         
+        // Ersetze vorherige Alerts
         alertContainer.innerHTML = '';
         alertContainer.appendChild(alert);
         
+        // Automatisches Ausblenden nach 5 Sekunden
         setTimeout(() => {
             if (alert.parentElement) {
                 alert.remove();
@@ -23,7 +30,11 @@ const Utils = {
         }, 5000);
     },
 
-    // Format date for display
+    /**
+     * Formatiert ein Datum für die Anzeige
+     * @param {string} dateString - ISO Datum String
+     * @returns {string} - Formatiertes Datum
+     */
     formatDate(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -34,7 +45,11 @@ const Utils = {
         });
     },
 
-    // Format date and time
+    /**
+     * Formatiert Datum und Uhrzeit
+     * @param {string} dateString - ISO Datum String
+     * @returns {string} - Formatiertes Datum mit Uhrzeit
+     */
     formatDateTime(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -47,12 +62,20 @@ const Utils = {
         });
     },
 
-    // Get current date in YYYY-MM-DD format
+    /**
+     * Gibt das aktuelle Datum im YYYY-MM-DD Format zurück
+     * @returns {string} - Aktuelles Datum
+     */
     getCurrentDate() {
         return new Date().toISOString().split('T')[0];
     },
 
-    // API call helper
+    /**
+     * API-Aufruf mit automatischer Token-Behandlung
+     * @param {string} endpoint - API Endpunkt
+     * @param {object} options - Fetch-Optionen
+     * @returns {Promise} - API Response
+     */
     async apiCall(endpoint, options = {}) {
         const url = `${this.API_BASE}${endpoint}`;
         const authToken = localStorage.getItem('authToken');
@@ -67,8 +90,8 @@ const Utils = {
         try {
             const response = await fetch(url, { ...defaultOptions, ...options });
             
+            // Token abgelaufen - automatisch ausloggen
             if (response.status === 401) {
-                // Token expired or invalid
                 Auth.logout();
                 throw new Error('Sitzung abgelaufen. Bitte melden Sie sich erneut an.');
             }
@@ -86,39 +109,32 @@ const Utils = {
         }
     },
 
-    // Show/hide loading state for buttons
-    setButtonLoading(buttonId, loading = true) {
-        const button = document.getElementById(buttonId);
-        if (!button) return;
-
-        const textSpan = button.querySelector('span');
-        const loadingDiv = button.querySelector('.loading');
-
-        if (loading) {
-            button.disabled = true;
-            if (textSpan) textSpan.style.display = 'none';
-            if (loadingDiv) loadingDiv.classList.remove('hidden');
-        } else {
-            button.disabled = false;
-            if (textSpan) textSpan.style.display = 'inline';
-            if (loadingDiv) loadingDiv.classList.add('hidden');
-        }
-    },
-
-    // Validate email format
+    /**
+     * Validiert E-Mail-Format
+     * @param {string} email - E-Mail-Adresse
+     * @returns {boolean} - Gültig oder nicht
+     */
     isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     },
 
-    // Validate password strength
+    /**
+     * Validiert Passwort-Stärke
+     * @param {string} password - Passwort
+     * @returns {string|null} - Fehlermeldung oder null wenn gültig
+     */
     validatePassword(password) {
         if (!password) return 'Passwort ist erforderlich';
         if (password.length < 6) return 'Passwort muss mindestens 6 Zeichen lang sein';
         return null;
     },
 
-    // Sanitize input to prevent XSS
+    /**
+     * Bereinigt Eingaben zur XSS-Prävention
+     * @param {string} input - Eingabetext
+     * @returns {string} - Bereinigter Text
+     */
     sanitizeInput(input) {
         if (typeof input !== 'string') return input;
         
@@ -127,7 +143,12 @@ const Utils = {
         return div.innerHTML;
     },
 
-    // Parse JSON safely
+    /**
+     * Parst JSON sicher
+     * @param {string} jsonString - JSON String
+     * @param {*} defaultValue - Standardwert bei Fehler
+     * @returns {*} - Geparste Daten oder Standardwert
+     */
     parseJSON(jsonString, defaultValue = null) {
         try {
             return JSON.parse(jsonString);
@@ -137,7 +158,12 @@ const Utils = {
         }
     },
 
-    // Debounce function
+    /**
+     * Debounce-Funktion für Performance-Optimierung
+     * @param {Function} func - Auszuführende Funktion
+     * @param {number} wait - Wartezeit in ms
+     * @returns {Function} - Debounced Funktion
+     */
     debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -150,7 +176,11 @@ const Utils = {
         };
     },
 
-    // Deep clone object
+    /**
+     * Erstellt eine tiefe Kopie eines Objekts
+     * @param {*} obj - Zu kopierendes Objekt
+     * @returns {*} - Kopierte Daten
+     */
     deepClone(obj) {
         if (obj === null || typeof obj !== 'object') return obj;
         if (obj instanceof Date) return new Date(obj);
@@ -165,13 +195,10 @@ const Utils = {
         return cloned;
     },
 
-    // Check if user is admin
-    isAdmin() {
-        const user = this.getCurrentUser();
-        return user && user.role === 'admin';
-    },
-
-    // Get current user from localStorage or session
+    /**
+     * Lädt aktuellen Benutzer aus localStorage
+     * @returns {object|null} - Benutzerdaten oder null
+     */
     getCurrentUser() {
         try {
             const userData = localStorage.getItem('currentUser');
@@ -182,7 +209,10 @@ const Utils = {
         }
     },
 
-    // Set current user
+    /**
+     * Speichert aktuellen Benutzer in localStorage
+     * @param {object|null} user - Benutzerdaten
+     */
     setCurrentUser(user) {
         if (user) {
             localStorage.setItem('currentUser', JSON.stringify(user));
@@ -191,7 +221,11 @@ const Utils = {
         }
     },
 
-    // Toggle element visibility
+    /**
+     * Schaltet Sichtbarkeit eines Elements um
+     * @param {string} elementId - Element-ID
+     * @param {boolean|null} show - Explizit anzeigen/verstecken oder umschalten
+     */
     toggleElement(elementId, show = null) {
         const element = document.getElementById(elementId);
         if (!element) return;
@@ -207,7 +241,9 @@ const Utils = {
         }
     },
 
-    // Scroll to top smoothly
+    /**
+     * Scrollt sanft zum Seitenanfang
+     */
     scrollToTop() {
         window.scrollTo({
             top: 0,
@@ -215,7 +251,10 @@ const Utils = {
         });
     },
 
-    // Copy text to clipboard
+    /**
+     * Kopiert Text in die Zwischenablage
+     * @param {string} text - Zu kopierender Text
+     */
     async copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
@@ -226,7 +265,11 @@ const Utils = {
         }
     },
 
-    // Download data as JSON file
+    /**
+     * Lädt Daten als JSON-Datei herunter
+     * @param {object} data - Zu exportierende Daten
+     * @param {string} filename - Dateiname
+     */
     downloadJSON(data, filename = 'gym-tracker-data.json') {
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -240,7 +283,10 @@ const Utils = {
         URL.revokeObjectURL(url);
     },
 
-    // Get exercise categories
+    /**
+     * Gibt verfügbare Übungskategorien zurück
+     * @returns {string[]} - Array der Kategorien
+     */
     getExerciseCategories() {
         return [
             'Krafttraining',
@@ -250,7 +296,10 @@ const Utils = {
         ];
     },
 
-    // Get muscle groups
+    /**
+     * Gibt verfügbare Muskelgruppen zurück
+     * @returns {string[]} - Array der Muskelgruppen
+     */
     getMuscleGroups() {
         return [
             'Brust',
@@ -264,7 +313,11 @@ const Utils = {
         ];
     },
 
-    // Format workout duration
+    /**
+     * Formatiert Trainingsdauer in lesbarer Form
+     * @param {number} minutes - Dauer in Minuten
+     * @returns {string} - Formatierte Dauer
+     */
     formatDuration(minutes) {
         if (!minutes || minutes <= 0) return 'Dauer nicht erfasst';
         
@@ -282,12 +335,19 @@ const Utils = {
         }
     },
 
-    // Generate unique ID
+    /**
+     * Generiert eindeutige ID
+     * @returns {string} - Eindeutige ID
+     */
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     },
 
-    // Local storage helpers
+    /**
+     * Speichert Daten in localStorage
+     * @param {string} key - Schlüssel
+     * @param {*} value - Wert
+     */
     setLocalStorage(key, value) {
         try {
             localStorage.setItem(key, JSON.stringify(value));
@@ -296,6 +356,12 @@ const Utils = {
         }
     },
 
+    /**
+     * Lädt Daten aus localStorage
+     * @param {string} key - Schlüssel
+     * @param {*} defaultValue - Standardwert wenn nicht vorhanden
+     * @returns {*} - Geladene Daten oder Standardwert
+     */
     getLocalStorage(key, defaultValue = null) {
         try {
             const item = localStorage.getItem(key);
@@ -306,6 +372,10 @@ const Utils = {
         }
     },
 
+    /**
+     * Entfernt Daten aus localStorage
+     * @param {string} key - Schlüssel
+     */
     removeLocalStorage(key) {
         try {
             localStorage.removeItem(key);
@@ -314,7 +384,11 @@ const Utils = {
         }
     },
 
-    // Check if element is in viewport
+    /**
+     * Prüft ob Element im Viewport sichtbar ist
+     * @param {Element} element - DOM Element
+     * @returns {boolean} - Sichtbar oder nicht
+     */
     isElementInViewport(element) {
         const rect = element.getBoundingClientRect();
         return (
@@ -325,7 +399,10 @@ const Utils = {
         );
     },
 
-    // Smooth scroll to element
+    /**
+     * Scrollt sanft zu einem Element
+     * @param {string} elementId - Element-ID
+     */
     scrollToElement(elementId) {
         const element = document.getElementById(elementId);
         if (element) {
@@ -334,22 +411,30 @@ const Utils = {
                 block: 'start'
             });
         }
+    },
+
+    /**
+     * Event-Delegation Helper
+     * @param {Element} parent - Parent Element
+     * @param {string} eventType - Event-Typ
+     * @param {string} selector - CSS-Selektor
+     * @param {Function} handler - Event-Handler
+     */
+    delegate(parent, eventType, selector, handler) {
+        parent.addEventListener(eventType, function(event) {
+            const target = event.target.closest(selector);
+            if (target && parent.contains(target)) {
+                handler.call(target, event);
+            }
+        });
     }
 };
 
-// Event delegation helper
-Utils.delegate = function(parent, eventType, selector, handler) {
-    parent.addEventListener(eventType, function(event) {
-        const target = event.target.closest(selector);
-        if (target && parent.contains(target)) {
-            handler.call(target, event);
-        }
-    });
-};
-
-// Initialize utility functions when DOM is loaded
+// Initialisierung nach DOM-Load
 document.addEventListener('DOMContentLoaded', function() {
-    // Close modals when clicking outside
+    console.log('Utils: Initialisiere Event-Listener...');
+    
+    // Modal-Schließung bei Klick außerhalb
     window.onclick = function(event) {
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
@@ -359,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // Close modals with Escape key
+    // Modal-Schließung mit Escape-Taste
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal').forEach(modal => {
@@ -368,47 +453,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add ripple effect to buttons (optional)
-    Utils.delegate(document, 'click', '.btn', function(e) {
-        const button = this;
-        const ripple = document.createElement('span');
-        const rect = button.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        
-        ripple.style.cssText = `
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.6);
-            width: ${size}px;
-            height: ${size}px;
-            left: ${x}px;
-            top: ${y}px;
-            transform: scale(0);
-            animation: ripple 0.6s linear;
-            pointer-events: none;
-        `;
-        
-        if (!document.head.querySelector('#ripple-style')) {
-            const style = document.createElement('style');
-            style.id = 'ripple-style';
-            style.textContent = `
-                @keyframes ripple {
-                    to {
-                        transform: scale(4);
-                        opacity: 0;
-                    }
-                }
-                .btn {
-                    position: relative;
-                    overflow: hidden;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        button.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 600);
-    });
+    console.log('Utils: Event-Listener erfolgreich eingerichtet');
 });

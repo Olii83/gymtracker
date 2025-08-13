@@ -1,23 +1,27 @@
-// Profile module for Gym Tracker - Fixed with Modal functionality
-// Save as: public/js/profile.js (replace existing)
+// Profilmodul für Gym Tracker
 
 const Profile = {
-    // Initialize profile module
+    /**
+     * Initialisiert das Profilmodul
+     */
     init() {
-        console.log('Profile module initialized');
+        console.log('Profile: Modul initialisiert');
         this.setupEventListeners();
         this.createModals();
     },
 
-    // Setup event listeners
+    /**
+     * Richtet Event-Listener ein
+     */
     setupEventListeners() {
-        // Will be set up after DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
+            // Profil-Update-Formular
             const updateProfileForm = document.getElementById('updateProfileForm');
             if (updateProfileForm) {
                 updateProfileForm.addEventListener('submit', this.handleUpdateProfile.bind(this));
             }
 
+            // Passwort-Änderung-Formular
             const changePasswordForm = document.getElementById('changePasswordForm');
             if (changePasswordForm) {
                 changePasswordForm.addEventListener('submit', this.handleChangePassword.bind(this));
@@ -25,24 +29,26 @@ const Profile = {
         });
     },
 
-    // Create modal HTML
+    /**
+     * Erstellt Modal-HTML für Profil-Bearbeitung
+     */
     createModals() {
         const modalHTML = `
-            <!-- Modal: Profile Edit -->
+            <!-- Profil-Bearbeitungs-Modal -->
             <div id="profileModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2 class="modal-title">👤 Profil bearbeiten</h2>
+                        <h2 class="modal-title">Profil bearbeiten</h2>
                         <button class="close" onclick="Profile.closeModal()">&times;</button>
                     </div>
                     <div class="modal-body">
+                        <!-- Profil-Update-Formular -->
                         <form id="updateProfileForm">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="profileFirstName">Vorname</label>
                                     <input type="text" id="profileFirstName" name="first_name" placeholder="Ihr Vorname">
                                 </div>
-                                
                                 <div class="form-group">
                                     <label for="profileLastName">Nachname</label>
                                     <input type="text" id="profileLastName" name="last_name" placeholder="Ihr Nachname">
@@ -59,15 +65,17 @@ const Profile = {
                                 <input type="email" id="profileEmail" name="email" required placeholder="ihre.email@domain.de">
                             </div>
                             
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button type="submit" class="btn btn-success">💾 Profil speichern</button>
-                                <button type="button" class="btn btn-outline" onclick="Profile.closeModal()">❌ Abbrechen</button>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Profil speichern</button>
+                                <button type="button" class="btn btn-outline" onclick="Profile.closeModal()">Abbrechen</button>
                             </div>
                         </form>
                         
-                        <hr style="margin: 30px 0;">
+                        <!-- Trennlinie -->
+                        <div style="margin: 30px 0; border-top: 1px solid var(--border-color);"></div>
                         
-                        <h3>🔐 Passwort ändern</h3>
+                        <!-- Passwort-Änderung -->
+                        <h3>Passwort ändern</h3>
                         <form id="changePasswordForm">
                             <div class="form-group">
                                 <label for="currentPassword">Aktuelles Passwort *</label>
@@ -84,8 +92,8 @@ const Profile = {
                                 <input type="password" id="confirmNewPassword" name="confirmNewPassword" required minlength="6">
                             </div>
                             
-                            <div style="text-align: center; margin-top: 15px;">
-                                <button type="submit" class="btn btn-warning">🔐 Passwort ändern</button>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-warning">Passwort ändern</button>
                             </div>
                         </form>
                     </div>
@@ -93,7 +101,7 @@ const Profile = {
             </div>
         `;
 
-        // Add modal to page if not exists
+        // Modal zu Seite hinzufügen
         let container = document.getElementById('modals-container');
         if (!container) {
             container = document.createElement('div');
@@ -103,21 +111,25 @@ const Profile = {
         container.innerHTML += modalHTML;
     },
 
-    // Show profile modal
+    /**
+     * Zeigt Profil-Modal an
+     */
     showModal() {
-        console.log('Opening profile modal...');
+        console.log('Profile: Öffne Profil-Modal...');
         this.loadProfileData();
         const modal = document.getElementById('profileModal');
         if (modal) {
             modal.style.display = 'block';
         } else {
-            console.error('Profile modal not found!');
+            console.error('Profile: Profil-Modal nicht gefunden!');
         }
     },
 
-    // Close profile modal
+    /**
+     * Schließt Profil-Modal
+     */
     closeModal() {
-        console.log('Closing profile modal...');
+        console.log('Profile: Schließe Profil-Modal...');
         const modal = document.getElementById('profileModal');
         if (modal) {
             modal.style.display = 'none';
@@ -125,7 +137,9 @@ const Profile = {
         this.resetForms();
     },
 
-    // Reset forms
+    /**
+     * Setzt Formulare zurück
+     */
     resetForms() {
         const updateForm = document.getElementById('updateProfileForm');
         const passwordForm = document.getElementById('changePasswordForm');
@@ -134,30 +148,40 @@ const Profile = {
         if (passwordForm) passwordForm.reset();
     },
 
-    // Load user profile data
+    /**
+     * Lädt Benutzerprofil-Daten in das Formular
+     */
     async loadProfileData() {
         try {
             const user = Auth.getCurrentUser();
             if (user) {
-                const firstNameField = document.getElementById('profileFirstName');
-                const lastNameField = document.getElementById('profileLastName');
-                const usernameField = document.getElementById('profileUsername');
-                const emailField = document.getElementById('profileEmail');
+                // Formularfelder mit Benutzerdaten füllen
+                const fields = {
+                    profileFirstName: user.first_name || '',
+                    profileLastName: user.last_name || '',
+                    profileUsername: user.username || '',
+                    profileEmail: user.email || ''
+                };
 
-                if (firstNameField) firstNameField.value = user.first_name || '';
-                if (lastNameField) lastNameField.value = user.last_name || '';
-                if (usernameField) usernameField.value = user.username || '';
-                if (emailField) emailField.value = user.email || '';
+                // Felder setzen
+                Object.entries(fields).forEach(([fieldId, value]) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) field.value = value;
+                });
 
-                console.log('Profile data loaded:', user.username);
+                console.log('Profile: Profildaten geladen:', user.username);
             }
         } catch (error) {
-            console.error('Load profile data error:', error);
+            console.error('Profile: Fehler beim Laden der Profildaten:', error);
             Utils.showAlert('Fehler beim Laden der Profildaten', 'error');
         }
     },
 
-    // Update user profile
+    /**
+     * Aktualisiert Benutzerprofil via API
+     * @param {object} profileData - Neue Profildaten
+     * @returns {Promise<boolean>} - Erfolgsstatus
+     */
     async updateProfile(profileData) {
         try {
             await Utils.apiCall('/user/profile', {
@@ -168,13 +192,17 @@ const Profile = {
             Utils.showAlert('Profil erfolgreich aktualisiert!', 'success');
             return true;
         } catch (error) {
-            console.error('Update profile error:', error);
+            console.error('Profile: Profil-Update-Fehler:', error);
             Utils.showAlert('Fehler beim Aktualisieren des Profils: ' + error.message, 'error');
             throw error;
         }
     },
 
-    // Change user password
+    /**
+     * Ändert Benutzerpasswort via API
+     * @param {object} passwordData - Passwort-Daten
+     * @returns {Promise<boolean>} - Erfolgsstatus
+     */
     async changePassword(passwordData) {
         try {
             await Utils.apiCall('/user/password', {
@@ -185,24 +213,29 @@ const Profile = {
             Utils.showAlert('Passwort erfolgreich geändert!', 'success');
             return true;
         } catch (error) {
-            console.error('Change password error:', error);
+            console.error('Profile: Passwort-Änderungs-Fehler:', error);
             Utils.showAlert('Fehler beim Ändern des Passworts: ' + error.message, 'error');
             throw error;
         }
     },
 
-    // Handle profile update form submission
+    /**
+     * Behandelt Profil-Update-Formular-Einreichung
+     * @param {Event} event - Form-Submit-Event
+     */
     async handleUpdateProfile(event) {
         event.preventDefault();
-        console.log('Handling profile update...');
+        console.log('Profile: Behandle Profil-Update...');
         
         const submitButton = event.target.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
         
         try {
+            // Button-Zustand während Request ändern
             submitButton.disabled = true;
             submitButton.innerHTML = '<div class="loading"></div> Speichern...';
             
+            // Formulardaten sammeln
             const formData = new FormData(event.target);
             const profileData = {
                 username: formData.get('username')?.trim(),
@@ -211,7 +244,7 @@ const Profile = {
                 last_name: formData.get('last_name')?.trim() || null
             };
             
-            // Validation
+            // Validierung
             if (!profileData.username) {
                 throw new Error('Benutzername ist erforderlich');
             }
@@ -220,13 +253,16 @@ const Profile = {
                 throw new Error('Gültige E-Mail-Adresse ist erforderlich');
             }
             
+            // Profil aktualisieren
             await this.updateProfile(profileData);
             
-            // Update current user data
+            // Aktuelle Benutzerdaten aktualisieren
             const currentUser = Auth.getCurrentUser();
             if (currentUser) {
                 Object.assign(currentUser, profileData);
                 Utils.setCurrentUser(currentUser);
+                
+                // Begrüßungsnachricht aktualisieren
                 if (Auth.updateWelcomeMessage) {
                     Auth.updateWelcomeMessage();
                 }
@@ -234,32 +270,37 @@ const Profile = {
             
             this.closeModal();
         } catch (error) {
-            console.error('Profile update failed:', error);
-            // Error already shown in updateProfile
+            console.error('Profile: Profil-Update fehlgeschlagen:', error);
         } finally {
+            // Button-Zustand zurücksetzen
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
         }
     },
 
-    // Handle password change form submission
+    /**
+     * Behandelt Passwort-Änderungs-Formular-Einreichung
+     * @param {Event} event - Form-Submit-Event
+     */
     async handleChangePassword(event) {
         event.preventDefault();
-        console.log('Handling password change...');
+        console.log('Profile: Behandle Passwort-Änderung...');
         
         const submitButton = event.target.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
         
         try {
+            // Button-Zustand während Request ändern
             submitButton.disabled = true;
             submitButton.innerHTML = '<div class="loading"></div> Ändern...';
             
+            // Formulardaten sammeln
             const formData = new FormData(event.target);
             const currentPassword = formData.get('currentPassword');
             const newPassword = formData.get('newPassword');
             const confirmPassword = formData.get('confirmNewPassword');
             
-            // Validation
+            // Validierung
             if (!currentPassword) {
                 throw new Error('Aktuelles Passwort ist erforderlich');
             }
@@ -277,26 +318,33 @@ const Profile = {
                 throw new Error('Neue Passwörter stimmen nicht überein');
             }
             
+            // Passwort-Daten für API
             const passwordData = {
                 currentPassword: currentPassword,
                 newPassword: newPassword
             };
             
+            // Passwort ändern
             await this.changePassword(passwordData);
             
-            // Clear password form
+            // Passwort-Formular zurücksetzen
             event.target.reset();
             
         } catch (error) {
-            console.error('Password change failed:', error);
+            console.error('Profile: Passwort-Änderung fehlgeschlagen:', error);
             Utils.showAlert(error.message, 'error');
         } finally {
+            // Button-Zustand zurücksetzen
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
         }
     },
 
-    // Validate profile data
+    /**
+     * Validiert Profildaten
+     * @param {object} data - Zu validierende Profildaten
+     * @returns {string[]} - Array von Fehlermeldungen
+     */
     validateProfileData(data) {
         const errors = [];
         
@@ -311,31 +359,9 @@ const Profile = {
         return errors;
     },
 
-    // Validate password change data
-    validatePasswordData(data) {
-        const errors = [];
-        
-        if (!data.currentPassword) {
-            errors.push('Aktuelles Passwort erforderlich');
-        }
-        
-        if (!data.newPassword) {
-            errors.push('Neues Passwort erforderlich');
-        }
-        
-        const passwordError = Utils.validatePassword(data.newPassword);
-        if (passwordError) {
-            errors.push(passwordError);
-        }
-        
-        if (data.newPassword !== data.confirmNewPassword) {
-            errors.push('Neue Passwörter stimmen nicht überein');
-        }
-        
-        return errors;
-    },
-
-    // Export user data
+    /**
+     * Exportiert Benutzerdaten
+     */
     async exportUserData() {
         try {
             const data = await Utils.apiCall('/user/export');
@@ -343,23 +369,31 @@ const Profile = {
             Utils.downloadJSON(data, filename);
             Utils.showAlert('Profildaten exportiert', 'success');
         } catch (error) {
-            console.error('Export user data error:', error);
+            console.error('Profile: Export-Fehler:', error);
             Utils.showAlert('Fehler beim Exportieren der Daten: ' + error.message, 'error');
         }
     },
 
-    // Get current profile data
+    /**
+     * Gibt aktuelle Profildaten zurück
+     * @returns {object|null} - Profildaten oder null
+     */
     getCurrentProfileData() {
         return Auth.getCurrentUser();
     },
 
-    // Check if profile is complete
+    /**
+     * Prüft ob Profil vollständig ist
+     * @returns {boolean} - Vollständig oder nicht
+     */
     isProfileComplete() {
         const user = Auth.getCurrentUser();
         return user && user.username && user.email;
     },
 
-    // Show profile completion reminder
+    /**
+     * Zeigt Vervollständigungs-Erinnerung an
+     */
     showCompletionReminder() {
         if (!this.isProfileComplete()) {
             Utils.showAlert('Bitte vervollständigen Sie Ihr Profil', 'info');
@@ -368,7 +402,7 @@ const Profile = {
     }
 };
 
-// Global function for backward compatibility
+// Globale Funktionen für Rückwärtskompatibilität
 window.showProfileModal = function() {
     Profile.showModal();
 };

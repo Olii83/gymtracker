@@ -1,18 +1,22 @@
-// Exercises module for Gym Tracker - Updated with edit/delete functionality
+// Übungsmodul für Gym Tracker
 
 const Exercises = {
-    // State
+    // Zustandsvariablen
     exercises: [],
     currentExercise: null,
     isEditing: false,
     editingExerciseId: null,
 
-    // Initialize exercises module
+    /**
+     * Initialisiert das Übungsmodul
+     */
     init() {
         this.setupEventListeners();
     },
 
-    // Setup event listeners
+    /**
+     * Richtet Event-Listener ein
+     */
     setupEventListeners() {
         const newExerciseForm = document.getElementById('newExerciseForm');
         if (newExerciseForm) {
@@ -20,7 +24,10 @@ const Exercises = {
         }
     },
 
-    // Load all exercises
+    /**
+     * Lädt alle Übungen vom Server
+     * @returns {Promise<Array>} - Array der Übungen
+     */
     async loadAll() {
         try {
             const exercises = await Utils.apiCall('/exercises');
@@ -28,13 +35,15 @@ const Exercises = {
             this.updateExerciseSelect();
             return this.exercises;
         } catch (error) {
-            console.error('Exercises load error:', error);
+            console.error('Exercises: Ladefehler:', error);
             this.exercises = [];
             return [];
         }
     },
 
-    // Load exercises list for display
+    /**
+     * Lädt Übungsliste für Anzeige
+     */
     async loadList() {
         try {
             App.showLoading('exercisesList');
@@ -42,29 +51,121 @@ const Exercises = {
             const exercises = await this.loadAll();
             this.displayExercisesList(exercises);
         } catch (error) {
-            console.error('Exercises list load error:', error);
+            console.error('Exercises: Listen-Ladefehler:', error);
             Utils.showAlert('Fehler beim Laden der Übungen: ' + error.message, 'error');
             this.displayExercisesList([]);
         }
     },
 
-    // Display exercises list
+    /**
+     * Zeigt Übungsliste gruppiert nach Kategorien an
+     * @param {Array} exercises - Array der anzuzeigenden Übungen
+     */
     displayExercisesList(exercises) {
         const container = document.getElementById('exercisesList');
-        if (!container) return;
+    /**
+     * Validiert Übungsdaten
+     * @param {object} data - Zu validierende Übungsdaten
+     * @returns {string[]} - Array von Fehlermeldungen
+     */
+    validateExerciseData(data) {
+        const errors = [];
+        
+        if (!data.name || data.name.trim().length < 2) {
+            errors.push('Name muss mindestens 2 Zeichen lang sein');
+        }
+        
+        if (!data.category) {
+            errors.push('Kategorie ist erforderlich');
+        }
+        
+        if (!data.muscle_group) {
+            errors.push('Muskelgruppe ist erforderlich');
+        }
+        
+        // Gültige Kategorien prüfen
+        const validCategories = Utils.getExerciseCategories();
+        if (data.category && !validCategories.includes(data.category)) {
+            errors.push('Ungültige Kategorie');
+        }
+        
+        // Gültige Muskelgruppen prüfen
+        const validMuscleGroups = Utils.getMuscleGroups();
+        if (data.muscle_group && !validMuscleGroups.includes(data.muscle_group)) {
+            errors.push('Ungültige Muskelgruppe');
+        }
+        
+        return errors;
+    },
+
+    /**
+     * Exportiert Übungen als JSON
+     */
+    exportExercises() {
+        if (!this.exercises.length) {
+            Utils.showAlert('Keine Übungen zum Exportieren', 'warning');
+            return;
+        }
+
+        const filename = `gym-tracker-exercises-${new Date().toISOString().split('T')[0]}.json`;
+        Utils.downloadJSON(this.exercises, filename);
+        Utils.showAlert('Übungen exportiert', 'success');
+    },
+
+    /**
+     * Importiert Übungen aus JSON-Daten
+     * @param {Array} exercisesData - Array von Übungsdaten
+     */
+    async importExercises(exercisesData) {
+        if (!Array.isArray(exercisesData)) {
+            throw new Error('Ungültiges Datenformat');
+        }
+
+        let imported = 0;
+        let errors = 0;
+
+        // Jede Übung einzeln importieren
+        for (const exerciseData of exercisesData) {
+            try {
+                const validationErrors = this.validateExerciseData(exerciseData);
+                if (validationErrors.length > 0) {
+                    errors++;
+                    continue;
+                }
+
+                await Utils.apiCall('/exercises', {
+                    method: 'POST',
+                    body: JSON.stringify(exerciseData)
+                });
+                imported++;
+            } catch (error) {
+                errors++;
+            }
+        }
+
+        // Übungen neu laden
+        await this.loadAll();
+        if (App.currentSection === 'exercises') {
+            this.loadList();
+        }
+
+        Utils.showAlert(`Import abgeschlossen: ${imported} erfolgreich, ${errors} Fehler`, 
+                       errors > 0 ? 'warning' : 'success');
+    }
+};container) return;
         
         if (exercises.length === 0) {
             App.showEmptyState('exercisesList',
-                '💪 Noch keine Übungen vorhanden',
+                'Noch keine Übungen vorhanden',
                 {
-                    text: '➕ Erste Übung erstellen',
+                    text: 'Erste Übung erstellen',
                     action: 'Exercises.showNewModal()'
                 }
             );
             return;
         }
 
-        // Group exercises by category
+        // Übungen nach Kategorie gruppieren
         const groupedExercises = exercises.reduce((groups, exercise) => {
             const category = exercise.category;
             if (!groups[category]) {
@@ -74,9 +175,10 @@ const Exercises = {
             return groups;
         }, {});
 
+        // HTML für jede Kategorie generieren
         container.innerHTML = Object.keys(groupedExercises).map(category => `
             <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">
+                <h3 style="color: var(--accent-primary); margin-bottom: 15px; border-bottom: 2px solid var(--accent-primary); padding-bottom: 5px;">
                     ${Utils.sanitizeInput(category)}
                 </h3>
                 <div>
@@ -90,16 +192,16 @@ const Exercises = {
                                 <div class="exercise-description">${Utils.sanitizeInput(exercise.description)}</div>
                             ` : ''}
                             ${exercise.instructions ? `
-                                <div style="margin-top: 8px; color: #666; font-size: 13px;">
+                                <div style="margin-top: 8px; color: var(--text-secondary); font-size: 13px;">
                                     <strong>Ausführung:</strong> ${Utils.sanitizeInput(exercise.instructions)}
                                 </div>
                             ` : ''}
                             <div class="exercise-actions">
-                                <button class="btn btn-sm btn-info" onclick="Exercises.editExercise(${exercise.id})" title="Bearbeiten">
-                                    ✏️
+                                <button class="btn btn-info" onclick="Exercises.editExercise(${exercise.id})" title="Bearbeiten">
+                                    Bearbeiten
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="Exercises.deleteExercise(${exercise.id})" title="Löschen">
-                                    🗑️
+                                <button class="btn btn-danger" onclick="Exercises.deleteExercise(${exercise.id})" title="Löschen">
+                                    Löschen
                                 </button>
                             </div>
                         </div>
@@ -109,7 +211,9 @@ const Exercises = {
         `).join('');
     },
 
-    // Update exercise select dropdown
+    /**
+     * Aktualisiert Dropdown-Auswahl für Übungen
+     */
     updateExerciseSelect() {
         const select = document.getElementById('exerciseSelect');
         if (!select) return;
@@ -122,34 +226,33 @@ const Exercises = {
             option.textContent = `${exercise.name} (${exercise.muscle_group})`;
             select.appendChild(option);
         });
+    },
 
-        // Also update template exercise select if it exists
-        const templateSelect = document.getElementById('templateExerciseSelect');
-        if (templateSelect) {
-            templateSelect.innerHTML = '<option value="">-- Übung auswählen --</option>';
-            
-            this.exercises.forEach(exercise => {
-                const option = document.createElement('option');
-                option.value = exercise.id;
-                option.textContent = `${exercise.name} (${exercise.muscle_group})`;
-                templateSelect.appendChild(option);
-            });
+    /**
+     * Zeigt Modal für neue Übung an
+     */
+    showNewModal() {
+        this.resetForm();
+        const modal = document.getElementById('newExerciseModal');
+        if (modal) {
+            modal.style.display = 'block';
         }
     },
 
-    // Show new exercise modal
-    showNewModal() {
-        this.resetForm();
-        document.getElementById('newExerciseModal').style.display = 'block';
-    },
-
-    // Close new exercise modal
+    /**
+     * Schließt Modal für neue Übung
+     */
     closeNewModal() {
-        document.getElementById('newExerciseModal').style.display = 'none';
+        const modal = document.getElementById('newExerciseModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
         this.resetForm();
     },
 
-    // Reset exercise form
+    /**
+     * Setzt Übungsformular zurück
+     */
     resetForm() {
         const form = document.getElementById('newExerciseForm');
         if (form) {
@@ -159,55 +262,64 @@ const Exercises = {
         this.isEditing = false;
         this.editingExerciseId = null;
         
-        // Reset modal title and button
+        // Modal-Titel und Button zurücksetzen
         const modalTitle = document.querySelector('#newExerciseModal .modal-title');
         if (modalTitle) {
-            modalTitle.textContent = '💪 Neue Übung erstellen';
+            modalTitle.textContent = 'Neue Übung erstellen';
         }
         
         const submitButton = document.querySelector('#newExerciseForm button[type="submit"]');
         if (submitButton) {
-            submitButton.innerHTML = '💾 Übung speichern';
+            submitButton.innerHTML = 'Übung speichern';
         }
     },
 
-    // Edit exercise
+    /**
+     * Lädt Übung zur Bearbeitung
+     * @param {number} exerciseId - ID der zu bearbeitenden Übung
+     */
     async editExercise(exerciseId) {
         try {
             const exercise = await Utils.apiCall(`/exercises/${exerciseId}`);
             
-            // Set editing mode
+            // Bearbeitungsmodus setzen
             this.isEditing = true;
             this.editingExerciseId = exerciseId;
             
-            // Fill form with exercise data
+            // Formular mit Übungsdaten füllen
             document.getElementById('exerciseName').value = exercise.name;
             document.getElementById('exerciseCategory').value = exercise.category;
             document.getElementById('exerciseMuscleGroup').value = exercise.muscle_group;
             document.getElementById('exerciseDescription').value = exercise.description || '';
             document.getElementById('exerciseInstructions').value = exercise.instructions || '';
             
-            // Update modal title and button
+            // Modal-Titel und Button aktualisieren
             const modalTitle = document.querySelector('#newExerciseModal .modal-title');
             if (modalTitle) {
-                modalTitle.textContent = '✏️ Übung bearbeiten';
+                modalTitle.textContent = 'Übung bearbeiten';
             }
             
             const submitButton = document.querySelector('#newExerciseForm button[type="submit"]');
             if (submitButton) {
-                submitButton.innerHTML = '💾 Übung aktualisieren';
+                submitButton.innerHTML = 'Übung aktualisieren';
             }
             
-            // Show modal
-            document.getElementById('newExerciseModal').style.display = 'block';
+            // Modal anzeigen
+            const modal = document.getElementById('newExerciseModal');
+            if (modal) {
+                modal.style.display = 'block';
+            }
             
         } catch (error) {
-            console.error('Edit exercise error:', error);
+            console.error('Exercises: Bearbeitungs-Ladefehler:', error);
             Utils.showAlert('Fehler beim Laden der Übung: ' + error.message, 'error');
         }
     },
 
-    // Delete exercise
+    /**
+     * Löscht eine Übung
+     * @param {number} exerciseId - ID der zu löschenden Übung
+     */
     async deleteExercise(exerciseId) {
         const exercise = this.getById(exerciseId);
         const exerciseName = exercise ? exercise.name : 'diese Übung';
@@ -223,20 +335,23 @@ const Exercises = {
             
             Utils.showAlert('Übung erfolgreich gelöscht!', 'success');
             
-            // Reload exercises
+            // Übungen neu laden
             await this.loadAll();
             
-            // Refresh current view if on exercises page
+            // Aktuelle Ansicht aktualisieren falls auf Übungsseite
             if (App.currentSection === 'exercises') {
                 this.loadList();
             }
         } catch (error) {
-            console.error('Delete exercise error:', error);
+            console.error('Exercises: Löschfehler:', error);
             Utils.showAlert('Fehler beim Löschen der Übung: ' + error.message, 'error');
         }
     },
 
-    // Handle exercise creation/update
+    /**
+     * Behandelt Übungserstellung/Aktualisierung
+     * @param {Event} e - Form-Submit-Event
+     */
     async handleCreateExercise(e) {
         e.preventDefault();
         
@@ -244,9 +359,11 @@ const Exercises = {
         const originalText = submitButton.innerHTML;
         
         try {
+            // Button-Zustand während Request ändern
             submitButton.disabled = true;
             submitButton.innerHTML = '<div class="loading"></div>';
             
+            // Übungsdaten sammeln
             const exerciseData = {
                 name: document.getElementById('exerciseName').value.trim(),
                 category: document.getElementById('exerciseCategory').value,
@@ -255,6 +372,7 @@ const Exercises = {
                 instructions: document.getElementById('exerciseInstructions').value.trim() || null
             };
 
+            // Validierung
             if (!exerciseData.name) {
                 throw new Error('Name ist erforderlich');
             }
@@ -269,14 +387,14 @@ const Exercises = {
 
             let response;
             if (this.isEditing && this.editingExerciseId) {
-                // Update existing exercise
+                // Bestehende Übung aktualisieren
                 response = await Utils.apiCall(`/exercises/${this.editingExerciseId}`, {
                     method: 'PUT',
                     body: JSON.stringify(exerciseData)
                 });
                 Utils.showAlert('Übung erfolgreich aktualisiert!', 'success');
             } else {
-                // Create new exercise
+                // Neue Übung erstellen
                 response = await Utils.apiCall('/exercises', {
                     method: 'POST',
                     body: JSON.stringify(exerciseData)
@@ -286,26 +404,29 @@ const Exercises = {
 
             this.closeNewModal();
             
-            // Reload exercises
+            // Übungen neu laden
             await this.loadAll();
             
-            // Refresh current view if on exercises page
+            // Aktuelle Ansicht aktualisieren falls auf Übungsseite
             if (App.currentSection === 'exercises') {
                 this.loadList();
             }
 
             return response;
         } catch (error) {
-            console.error('Save exercise error:', error);
+            console.error('Exercises: Speicherfehler:', error);
             Utils.showAlert('Fehler beim Speichern der Übung: ' + error.message, 'error');
             throw error;
         } finally {
+            // Button-Zustand zurücksetzen
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
         }
     },
 
-    // Quick add exercise (for workout creation)
+    /**
+     * Schnelle Übungserstellung für Training-Workflow
+     */
     async quickAdd() {
         const name = document.getElementById('quickExerciseName').value.trim();
         const category = document.getElementById('quickExerciseCategory').value;
@@ -329,10 +450,10 @@ const Exercises = {
             });
             
             if (response && response.exerciseId) {
-                // Reload exercises
+                // Übungen neu laden
                 await this.loadAll();
                 
-                // Add the new exercise to workout
+                // Neue Übung zum Training hinzufügen
                 const newExercise = {
                     id: response.exerciseId,
                     name,
@@ -350,10 +471,13 @@ const Exercises = {
                     notes: ''
                 };
                 
-                Workouts.selectedExercises.push(workoutExercise);
-                Workouts.updateSelectedExercisesDisplay();
+                // Zu ausgewählten Übungen hinzufügen (falls Workouts-Modul verfügbar)
+                if (typeof Workouts !== 'undefined') {
+                    Workouts.selectedExercises.push(workoutExercise);
+                    Workouts.updateSelectedExercisesDisplay();
+                }
                 
-                // Clear quick add fields
+                // Quick-Add-Felder zurücksetzen
                 document.getElementById('quickExerciseName').value = '';
                 document.getElementById('quickExerciseCategory').value = '';
                 document.getElementById('quickExerciseMuscle').value = '';
@@ -361,27 +485,43 @@ const Exercises = {
                 Utils.showAlert('Übung erstellt und hinzugefügt!', 'success');
             }
         } catch (error) {
-            console.error('Quick add exercise error:', error);
+            console.error('Exercises: Quick-Add-Fehler:', error);
             Utils.showAlert('Fehler beim Erstellen der Übung: ' + error.message, 'error');
         }
     },
 
-    // Get exercise by ID
+    /**
+     * Gibt Übung nach ID zurück
+     * @param {number} exerciseId - Übungs-ID
+     * @returns {object|undefined} - Übungs-Objekt oder undefined
+     */
     getById(exerciseId) {
         return this.exercises.find(ex => ex.id === exerciseId);
     },
 
-    // Get exercises by category
+    /**
+     * Gibt Übungen nach Kategorie zurück
+     * @param {string} category - Kategorie
+     * @returns {Array} - Array der Übungen
+     */
     getByCategory(category) {
         return this.exercises.filter(ex => ex.category === category);
     },
 
-    // Get exercises by muscle group
+    /**
+     * Gibt Übungen nach Muskelgruppe zurück
+     * @param {string} muscleGroup - Muskelgruppe
+     * @returns {Array} - Array der Übungen
+     */
     getByMuscleGroup(muscleGroup) {
         return this.exercises.filter(ex => ex.muscle_group === muscleGroup);
     },
 
-    // Search exercises
+    /**
+     * Durchsucht Übungen
+     * @param {string} query - Suchbegriff
+     * @returns {Array} - Array der gefundenen Übungen
+     */
     search(query) {
         if (!query || query.length < 2) return this.exercises;
         
@@ -394,15 +534,20 @@ const Exercises = {
         );
     },
 
-    // Get exercise statistics
+    /**
+     * Gibt Übungsstatistiken zurück
+     * @returns {object|null} - Statistik-Objekt oder null
+     */
     getExerciseStats() {
         if (!this.exercises.length) return null;
 
+        // Kategorien-Statistiken
         const categoryStats = this.exercises.reduce((stats, ex) => {
             stats[ex.category] = (stats[ex.category] || 0) + 1;
             return stats;
         }, {});
 
+        // Muskelgruppen-Statistiken
         const muscleGroupStats = this.exercises.reduce((stats, ex) => {
             stats[ex.muscle_group] = (stats[ex.muscle_group] || 0) + 1;
             return stats;
@@ -421,7 +566,9 @@ const Exercises = {
         };
     },
 
-    // Clear cached data
+    /**
+     * Löscht zwischengespeicherte Daten
+     */
     clearCache() {
         this.exercises = [];
         this.currentExercise = null;
@@ -429,19 +576,20 @@ const Exercises = {
         this.editingExerciseId = null;
     },
 
-    // Get exercises data
+    /**
+     * Gibt Übungsdaten zurück
+     * @returns {Array} - Array der Übungen
+     */
     getExercises() {
         return this.exercises;
     },
 
-    // Get popular exercises (based on usage in workouts)
-    getPopularExercises(limit = 10) {
-        // This would need workout data to calculate usage
-        // For now, return first N exercises
-        return this.exercises.slice(0, limit);
-    },
-
-    // Filter exercises for dropdown
+    /**
+     * Filtert Übungen für Dropdown-Auswahl
+     * @param {string|null} category - Kategorie (optional)
+     * @param {string|null} muscleGroup - Muskelgruppe (optional)
+     * @returns {Array} - Gefilterte Übungen
+     */
     filterForSelect(category = null, muscleGroup = null) {
         let filtered = this.exercises;
         
@@ -456,82 +604,12 @@ const Exercises = {
         return filtered;
     },
 
-    // Validate exercise data
+    /**
+     * Validiert Übungsdaten
+     * @param {object} data - Zu validierende Übungsdaten
+     * @returns {string[]} - Array von Fehlermeldungen
+     */
     validateExerciseData(data) {
         const errors = [];
         
-        if (!data.name || data.name.trim().length < 2) {
-            errors.push('Name muss mindestens 2 Zeichen lang sein');
-        }
-        
-        if (!data.category) {
-            errors.push('Kategorie ist erforderlich');
-        }
-        
-        if (!data.muscle_group) {
-            errors.push('Muskelgruppe ist erforderlich');
-        }
-        
-        // Check for valid categories
-        const validCategories = Utils.getExerciseCategories();
-        if (data.category && !validCategories.includes(data.category)) {
-            errors.push('Ungültige Kategorie');
-        }
-        
-        // Check for valid muscle groups
-        const validMuscleGroups = Utils.getMuscleGroups();
-        if (data.muscle_group && !validMuscleGroups.includes(data.muscle_group)) {
-            errors.push('Ungültige Muskelgruppe');
-        }
-        
-        return errors;
-    },
-
-    // Export exercises
-    exportExercises() {
-        if (!this.exercises.length) {
-            Utils.showAlert('Keine Übungen zum Exportieren', 'warning');
-            return;
-        }
-
-        const filename = `gym-tracker-exercises-${new Date().toISOString().split('T')[0]}.json`;
-        Utils.downloadJSON(this.exercises, filename);
-        Utils.showAlert('Übungen exportiert', 'success');
-    },
-
-    // Import exercises (for future use)
-    async importExercises(exercisesData) {
-        if (!Array.isArray(exercisesData)) {
-            throw new Error('Ungültiges Datenformat');
-        }
-
-        let imported = 0;
-        let errors = 0;
-
-        for (const exerciseData of exercisesData) {
-            try {
-                const validationErrors = this.validateExerciseData(exerciseData);
-                if (validationErrors.length > 0) {
-                    errors++;
-                    continue;
-                }
-
-                await Utils.apiCall('/exercises', {
-                    method: 'POST',
-                    body: JSON.stringify(exerciseData)
-                });
-                imported++;
-            } catch (error) {
-                errors++;
-            }
-        }
-
-        await this.loadAll();
-        if (App.currentSection === 'exercises') {
-            this.loadList();
-        }
-
-        Utils.showAlert(`Import abgeschlossen: ${imported} erfolgreich, ${errors} Fehler`, 
-                       errors > 0 ? 'warning' : 'success');
-    }
-};
+        if (!

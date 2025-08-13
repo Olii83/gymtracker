@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Tracker - Ihr persönlicher Fitness-Begleiter</title>
-    <meta name="description" content="Verfolgen Sie Ihre Workouts, überwachen Sie Ihren Fortschritt und erreichen Sie Ihre Fitnessziele mit Gym Tracker.">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>Gym Tracker</title>
+    <meta name="description" content="Fitness-Tracking System">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -13,349 +12,218 @@
     <div id="loginScreen" class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h1 class="login-title">💪 Gym Tracker</h1>
-                <p class="login-subtitle">Ihr persönlicher Fitness-Begleiter</p>
+                <h1 class="login-title">Gym Tracker</h1>
+                <p class="login-subtitle">Fitness-Tracking System</p>
             </div>
             
+            <!-- Tab-Navigation zwischen Login und Registrierung -->
             <div class="auth-tabs">
                 <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
                 <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
             </div>
             
+            <!-- Container für Fehlermeldungen -->
             <div id="alertContainer"></div>
             
-            <!-- Login Form -->
+            <!-- Login Formular -->
             <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="loginUsername">Benutzername oder E-Mail</label>
-                    <input type="text" id="loginUsername" name="username" required autocomplete="username" placeholder="Ihr Benutzername oder E-Mail">
+                    <input type="text" id="loginUsername" name="username" required placeholder="Ihr Benutzername">
                 </div>
                 
                 <div class="form-group">
                     <label for="loginPassword">Passwort</label>
-                    <input type="password" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Ihr Passwort">
+                    <input type="password" id="loginPassword" name="password" required placeholder="Ihr Passwort">
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                <button type="submit" class="btn btn-primary full-width">
                     <span id="loginButtonText">Anmelden</span>
                     <div id="loginLoading" class="loading hidden"></div>
                 </button>
                 
+                <!-- Hilfetext für Admin-Zugang -->
                 <div class="auth-help">
                     <p>Standard Admin-Zugang: <strong>admin</strong> / <strong>admin123</strong></p>
                     <small>Bitte ändern Sie das Passwort nach der ersten Anmeldung!</small>
                 </div>
             </form>
             
-            <!-- Register Form -->
+            <!-- Registrierungs Formular -->
             <form id="registerForm" class="auth-form hidden">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="registerFirstName">Vorname</label>
-                        <input type="text" id="registerFirstName" name="first_name" maxlength="50" placeholder="Ihr Vorname">
+                        <input type="text" id="registerFirstName" name="first_name" placeholder="Vorname (optional)">
                     </div>
-                    
                     <div class="form-group">
                         <label for="registerLastName">Nachname</label>
-                        <input type="text" id="registerLastName" name="last_name" maxlength="50" placeholder="Ihr Nachname">
+                        <input type="text" id="registerLastName" name="last_name" placeholder="Nachname (optional)">
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="registerUsername">Benutzername *</label>
-                    <input type="text" id="registerUsername" name="username" required minlength="3" maxlength="50" placeholder="Wählen Sie einen Benutzernamen">
+                    <input type="text" id="registerUsername" name="username" required minlength="3" placeholder="Benutzername">
                 </div>
                 
                 <div class="form-group">
                     <label for="registerEmail">E-Mail-Adresse *</label>
-                    <input type="email" id="registerEmail" name="email" required placeholder="ihre.email@domain.de">
+                    <input type="email" id="registerEmail" name="email" required placeholder="email@domain.de">
                 </div>
                 
                 <div class="form-group">
                     <label for="registerPassword">Passwort *</label>
-                    <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password" placeholder="Mindestens 6 Zeichen">
+                    <input type="password" id="registerPassword" name="password" required minlength="6" placeholder="Mindestens 6 Zeichen">
                 </div>
                 
                 <div class="form-group">
                     <label for="registerPasswordConfirm">Passwort bestätigen *</label>
-                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password" placeholder="Passwort wiederholen">
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required minlength="6" placeholder="Passwort wiederholen">
                 </div>
                 
-                <button type="submit" class="btn btn-success" style="width: 100%; margin-bottom: 15px;">
+                <button type="submit" class="btn btn-success full-width">
                     <span id="registerButtonText">Konto erstellen</span>
                     <div id="registerLoading" class="loading hidden"></div>
                 </button>
-                
-                <div class="auth-help">
-                    <small>Mit der Registrierung stimmen Sie den Nutzungsbedingungen zu.</small>
-                </div>
             </form>
         </div>
     </div>
 
-    <!-- Main Application -->
+    <!-- Hauptanwendung -->
     <div id="mainApp" class="hidden">
+        <!-- Header mit Navigation -->
         <div class="header">
             <nav class="nav">
+                <!-- Logo und Benutzerbegrüßung -->
                 <div class="logo">
-                    <span class="logo-icon">💪</span>
                     <span class="logo-text">Gym Tracker</span>
                     <span id="userWelcome" class="user-welcome"></span>
                 </div>
+                
+                <!-- Navigationsbuttons -->
                 <div class="nav-buttons">
-                    <button class="btn nav-btn" onclick="App.showSection('dashboard')" data-section="dashboard">
-                        <span class="btn-icon">📊</span>
-                        <span class="btn-text">Dashboard</span>
+                    <button class="btn nav-btn active" onclick="App.showSection('dashboard')" data-section="dashboard">
+                        Dashboard
                     </button>
                     <button class="btn nav-btn" onclick="App.showSection('workouts')" data-section="workouts">
-                        <span class="btn-icon">🏋️</span>
-                        <span class="btn-text">Workouts</span>
+                        Trainings
                     </button>
                     <button class="btn nav-btn" onclick="App.showSection('exercises')" data-section="exercises">
-                        <span class="btn-icon">💪</span>
-                        <span class="btn-text">Übungen</span>
+                        Übungen
                     </button>
-                    <button class="btn nav-btn" onclick="App.showSection('templates')" data-section="templates">
-                        <span class="btn-icon">📋</span>
-                        <span class="btn-text">Vorlagen</span>
+                    <button class="btn nav-btn" onclick="App.showSection('newWorkout')" data-section="newWorkout">
+                        Neues Training
                     </button>
-                    <button class="btn btn-success nav-btn" onclick="App.showSection('newWorkout')" data-section="newWorkout">
-                        <span class="btn-icon">➕</span>
-                        <span class="btn-text">Neues Training</span>
+                    
+                    <!-- Admin-Button (nur für Admins sichtbar) -->
+                    <button id="adminButton" class="btn nav-btn btn-admin hidden" onclick="App.showSection('admin')" data-section="admin">
+                        Admin
                     </button>
-                    <button id="adminButton" class="btn btn-admin nav-btn hidden" onclick="App.showSection('admin')" data-section="admin">
-                        <span class="btn-icon">👑</span>
-                        <span class="btn-text">Admin</span>
-                    </button>
+                    
+                    <!-- Profil-Dropdown -->
                     <div class="nav-dropdown">
-                        <button class="btn btn-info dropdown-toggle">
-                            <span class="btn-icon">👤</span>
-                            <span class="btn-text">Profil</span>
+                        <button class="btn nav-btn dropdown-toggle" type="button">
+                            Profil
                             <span class="dropdown-arrow">▼</span>
                         </button>
                         <div class="dropdown-menu">
-                            <a href="#" onclick="Profile.showModal()">👤 Profil bearbeiten</a>
-                            <a href="#" onclick="App.exportData()">💾 Daten exportieren</a>
-                            <hr>
-                            <a href="#" onclick="Auth.logout()" class="logout-link">🚪 Abmelden</a>
+                            <a href="#" onclick="Profile.showModal(); return false;">Profil bearbeiten</a>
+                            <a href="#" onclick="App.exportData(); return false;">Daten exportieren</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" onclick="Auth.logout(); return false;" class="logout-link">Abmelden</a>
                         </div>
                     </div>
                 </div>
             </nav>
         </div>
 
+        <!-- Hauptcontainer für Inhalte -->
         <div class="main-container">
-            <!-- Dashboard Section -->
+            <!-- Dashboard Sektion -->
             <div id="dashboard" class="section">
                 <div class="section-header">
-                    <h1 class="section-title">📊 Dashboard</h1>
+                    <h1 class="section-title">Dashboard</h1>
                     <p class="section-subtitle">Übersicht über Ihre Fitness-Fortschritte</p>
                 </div>
                 
+                <!-- Statistik-Karten -->
                 <div class="stats-grid">
-                    <div class="stat-card primary">
-                        <div class="stat-icon">🏋️</div>
+                    <div class="stat-card">
                         <div class="stat-content">
                             <div class="stat-number" id="totalWorkouts">0</div>
                             <div class="stat-label">Trainings gesamt</div>
                         </div>
                     </div>
-                    <div class="stat-card secondary">
-                        <div class="stat-icon">📅</div>
+                    <div class="stat-card">
                         <div class="stat-content">
                             <div class="stat-number" id="thisWeekWorkouts">0</div>
                             <div class="stat-label">Diese Woche</div>
                         </div>
                     </div>
-                    <div class="stat-card success">
-                        <div class="stat-icon">🔥</div>
+                    <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-number" id="currentStreak">0</div>
-                            <div class="stat-label">Tage in Folge</div>
+                            <div class="stat-number" id="totalTime">0</div>
+                            <div class="stat-label">Minuten gesamt</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="dashboard-grid">
-                    <div class="card recent-workouts">
-                        <div class="card-header">
-                            <h2 class="card-title">📈 Letzte Trainings</h2>
-                            <button class="btn btn-sm btn-outline" onclick="App.showSection('workouts')">Alle anzeigen</button>
-                        </div>
-                        <div class="card-content">
-                            <div id="recentWorkouts" class="workouts-list">
-                                <div class="loading-state">
-                                    <div class="loading"></div>
-                                    <p>Lade Trainings...</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card quick-actions">
-                        <div class="card-header">
-                            <h2 class="card-title">⚡ Schnellaktionen</h2>
-                        </div>
-                        <div class="card-content">
-                            <div class="quick-actions-grid">
-                                <button class="quick-action-btn" onclick="App.showSection('newWorkout')">
-                                    <span class="quick-action-icon">➕</span>
-                                    <span class="quick-action-text">Neues Training</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="Exercises.showNewModal()">
-                                    <span class="quick-action-icon">💪</span>
-                                    <span class="quick-action-text">Neue Übung</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="App.exportData()">
-                                    <span class="quick-action-icon">💾</span>
-                                    <span class="quick-action-text">Daten exportieren</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="Profile.showModal()">
-                                    <span class="quick-action-icon">👤</span>
-                                    <span class="quick-action-text">Profil bearbeiten</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin Section -->
-            <div id="admin" class="section hidden">
-                <div class="section-header">
-                    <h1 class="section-title">👑 Admin-Bereich</h1>
-                    <p class="section-subtitle">Benutzerverwaltung und Systemstatistiken</p>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card primary">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="totalUsers">0</div>
-                            <div class="stat-label">Benutzer gesamt</div>
-                        </div>
-                    </div>
-                    <div class="stat-card success">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="activeUsers">0</div>
-                            <div class="stat-label">Aktive Benutzer</div>
-                        </div>
-                    </div>
-                    <div class="stat-card accent">
-                        <div class="stat-icon">🏋️</div>
-                        <div class="stat-content">
-                            <div class="stat-number" id="totalAdminWorkouts">0</div>
-                            <div class="stat-label">Trainings gesamt</div>
-                        </div>
-                    </div>
-                </div>
-                
+                <!-- Letzte Trainings -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">👥 Benutzerverwaltung</h2>
-                        <button class="btn btn-success" onclick="Admin.exportUsers()">📊 Export</button>
+                        <h2 class="card-title">Letzte Trainings</h2>
+                        <button class="btn btn-outline" onclick="App.showSection('workouts')">Alle anzeigen</button>
                     </div>
                     <div class="card-content">
-                        <div class="table-container">
-                            <table class="user-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Benutzername</th>
-                                        <th>E-Mail</th>
-                                        <th>Name</th>
-                                        <th>Rolle</th>
-                                        <th>Status</th>
-                                        <th>Erstellt</th>
-                                        <th>Aktionen</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="userTableBody">
-                                    <tr>
-                                        <td colspan="8" class="loading-state">
-                                            <div class="loading"></div>
-                                            <span>Lade Benutzer...</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div id="recentWorkouts" class="workouts-list">
+                            <div class="loading-state">
+                                <div class="loading"></div>
+                                <p>Lade Trainings...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Workout Templates Section -->
-            <div id="templates" class="section hidden">
+
+            <!-- Weitere Sektionen (werden dynamisch geladen) -->
+            <div id="admin" class="section hidden">
                 <div class="section-header">
-                    <h1 class="section-title">📋 Workout-Vorlagen</h1>
-                    <p class="section-subtitle">Erstellen und verwalten Sie wiederverwendbare Workout-Templates</p>
-                    <div style="margin-top: 20px;">
-                        <button class="btn btn-success" onclick="Templates.showNewModal()">➕ Neue Vorlage erstellen</button>
-                    </div>
+                    <h1 class="section-title">Admin-Bereich</h1>
                 </div>
-                <div id="templatesList">
-                    <div class="loading-state">
-                        <div class="loading"></div>
-                        <p>Lade Vorlagen...</p>
-                    </div>
-                </div>
+                <div id="adminContent">Laden...</div>
             </div>
             
             <div id="workouts" class="section hidden">
                 <div class="section-header">
-                    <h1 class="section-title">🏋️ Meine Trainings</h1>
-                    <p class="section-subtitle">Übersicht über alle Ihre Trainingseinheiten</p>
+                    <h1 class="section-title">Meine Trainings</h1>
                 </div>
-                <div id="workoutsList">
-                    <div class="loading-state">
-                        <div class="loading"></div>
-                        <p>Lade Trainings...</p>
-                    </div>
-                </div>
+                <div id="workoutsList">Laden...</div>
             </div>
             
             <div id="exercises" class="section hidden">
                 <div class="section-header">
-                    <h1 class="section-title">💪 Übungen</h1>
-                    <p class="section-subtitle">Verwalten Sie Ihre Übungsdatenbank</p>
-                    <div style="margin-top: 20px;">
-                        <button class="btn btn-success" onclick="Exercises.showNewModal()">➕ Neue Übung hinzufügen</button>
-                    </div>
+                    <h1 class="section-title">Übungen</h1>
+                    <button class="btn btn-success" onclick="Exercises.showNewModal()">Neue Übung hinzufügen</button>
                 </div>
-                <div id="exercisesList">
-                    <div class="loading-state">
-                        <div class="loading"></div>
-                        <p>Lade Übungen...</p>
-                    </div>
-                </div>
+                <div id="exercisesList">Laden...</div>
             </div>
             
             <div id="newWorkout" class="section hidden">
                 <div class="section-header">
-                    <h1 class="section-title">➕ Neues Training</h1>
-                    <p class="section-subtitle">Erstellen Sie ein neues Trainingsprogramm</p>
+                    <h1 class="section-title">Neues Training</h1>
                 </div>
                 
+                <!-- Trainings-Erstellungsformular -->
                 <form id="newWorkoutForm">
                     <div class="form-section">
-                        <h3 class="form-section-title">📝 Trainings-Informationen</h3>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="workoutTemplate">Vorlage verwenden (optional)</label>
-                                <select id="workoutTemplate" onchange="Workouts.loadTemplate(this.value)">
-                                    <option value="">-- Keine Vorlage verwenden --</option>
-                                </select>
-                            </div>
-                        </div>
+                        <h3 class="form-section-title">Trainings-Informationen</h3>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="workoutName">Trainingsname *</label>
-                                <input type="text" id="workoutName" name="workoutName" required placeholder="z.B. Push-Training, Laufen">
+                                <input type="text" id="workoutName" name="workoutName" required placeholder="z.B. Push-Training">
                             </div>
-                            
                             <div class="form-group">
                                 <label for="workoutDate">Datum *</label>
                                 <input type="date" id="workoutDate" name="workoutDate" required>
@@ -368,8 +236,9 @@
                         </div>
                     </div>
                     
+                    <!-- Übungsauswahl -->
                     <div class="exercise-selector">
-                        <h3 class="form-section-title">💪 Übungen hinzufügen</h3>
+                        <h3 class="form-section-title">Übungen hinzufügen</h3>
                         
                         <div class="selector-row">
                             <div class="form-group">
@@ -378,104 +247,53 @@
                                     <option value="">-- Übung auswählen --</option>
                                 </select>
                             </div>
-                            
                             <button type="button" class="btn btn-primary" onclick="Workouts.addExercise()">Hinzufügen</button>
                         </div>
-                        
-                        <div class="quick-exercise-add">
-                            <h4 class="quick-add-title">🚀 Schnell neue Übung erstellen</h4>
-                            <div class="quick-add-grid">
-                                <div class="form-group">
-                                    <label for="quickExerciseName">Name der Übung</label>
-                                    <input type="text" id="quickExerciseName" placeholder="z.B. Bankdrücken">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="quickExerciseCategory">Kategorie</label>
-                                    <select id="quickExerciseCategory">
-                                        <option value="">Wählen...</option>
-                                        <option value="Krafttraining">Krafttraining</option>
-                                        <option value="Cardio">Cardio</option>
-                                        <option value="Stretching">Stretching</option>
-                                        <option value="Functional">Functional</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="quickExerciseMuscle">Muskelgruppe</label>
-                                    <select id="quickExerciseMuscle">
-                                        <option value="">Wählen...</option>
-                                        <option value="Brust">Brust</option>
-                                        <option value="Rücken">Rücken</option>
-                                        <option value="Schultern">Schultern</option>
-                                        <option value="Arme">Arme</option>
-                                        <option value="Beine">Beine</option>
-                                        <option value="Core">Core</option>
-                                        <option value="Cardio">Cardio</option>
-                                        <option value="Ganzkörper">Ganzkörper</option>
-                                    </select>
-                                </div>
-                                
-                                <button type="button" class="btn btn-success" onclick="Exercises.quickAdd()">Erstellen & Hinzufügen</button>
-                            </div>
-                        </div>
                     </div>
                     
-                    <div id="selectedExercises">
-                        <!-- Selected exercises will be displayed here -->
-                    </div>
+                    <!-- Ausgewählte Übungen werden hier angezeigt -->
+                    <div id="selectedExercises"></div>
                     
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 15px 30px;">
-                            💾 Training speichern
-                        </button>
-                        <button type="button" class="btn btn-info" onclick="Templates.saveAsTemplate()" style="margin-left: 15px;">
-                            📋 Als Vorlage speichern
-                        </button>
-                        <button type="button" class="btn btn-outline" onclick="Workouts.resetForm()" style="margin-left: 15px;">
-                            🔄 Zurücksetzen
-                        </button>
+                    <!-- Formular-Buttons -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">Training speichern</button>
+                        <button type="button" class="btn btn-outline" onclick="Workouts.resetForm()">Zurücksetzen</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modals container -->
-    <div id="modals-container">
-        <!-- Modals will be loaded here by JavaScript -->
-    </div>
+    <!-- Container für Modals -->
+    <div id="modals-container"></div>
 
-    <!-- Scripts -->
+    <!-- JavaScript Dateien laden -->
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/profile.js"></script>
-    <script src="js/templates.js"></script>
     <script src="js/workouts.js"></script>
     <script src="js/exercises.js"></script>
-    <script src="js/settings.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/modals.js"></script>
     <script src="js/app.js"></script>
 
-    <!-- Initialize Application -->
+    <!-- Anwendung initialisieren -->
     <script>
+        // Warten bis DOM vollständig geladen ist
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing Gym Tracker...');
+            console.log('DOM geladen, initialisiere Gym Tracker...');
             
-            // Initialize all modules
+            // Alle Module initialisieren
             if (typeof Utils !== 'undefined') Utils.init?.();
             if (typeof Auth !== 'undefined') Auth.init();
             if (typeof Profile !== 'undefined') Profile.init();
-            if (typeof Templates !== 'undefined') Templates.init();
             if (typeof Workouts !== 'undefined') Workouts.init();
             if (typeof Exercises !== 'undefined') Exercises.init();
-            if (typeof Settings !== 'undefined') Settings.init();
             if (typeof Admin !== 'undefined') Admin.init();
             if (typeof Modals !== 'undefined') Modals.init();
             if (typeof App !== 'undefined') App.init();
             
-            console.log('✅ Gym Tracker initialized successfully');
+            console.log('Gym Tracker erfolgreich initialisiert');
         });
     </script>
 </body>

@@ -1,16 +1,20 @@
-// Admin module for Gym Tracker
+// Admin-Modul für Gym Tracker
 
 const Admin = {
-    // State
+    // Zustandsvariablen
     users: [],
     stats: null,
 
-    // Initialize admin module
+    /**
+     * Initialisiert das Admin-Modul
+     */
     init() {
         this.setupEventListeners();
     },
 
-    // Setup event listeners
+    /**
+     * Richtet Event-Listener ein
+     */
     setupEventListeners() {
         const passwordResetForm = document.getElementById('adminPasswordResetForm');
         if (passwordResetForm) {
@@ -23,7 +27,9 @@ const Admin = {
         }
     },
 
-    // Load admin dashboard
+    /**
+     * Lädt Admin-Dashboard
+     */
     async loadDashboard() {
         if (!Auth.isAdmin()) {
             Utils.showAlert('Keine Admin-Berechtigung', 'error');
@@ -32,6 +38,7 @@ const Admin = {
         }
 
         try {
+            // Benutzer und Statistiken parallel laden
             const [users, stats] = await Promise.all([
                 Utils.apiCall('/admin/users'),
                 Utils.apiCall('/admin/stats')
@@ -43,12 +50,15 @@ const Admin = {
             this.displayStats(this.stats);
             this.displayUsersTable(this.users);
         } catch (error) {
-            console.error('Admin dashboard load error:', error);
+            console.error('Admin: Dashboard-Ladefehler:', error);
             Utils.showAlert('Fehler beim Laden der Admin-Daten: ' + error.message, 'error');
         }
     },
 
-    // Display admin statistics
+    /**
+     * Zeigt Admin-Statistiken an
+     * @param {object} stats - Statistik-Daten
+     */
     displayStats(stats) {
         const elements = {
             totalUsers: document.getElementById('totalUsers'),
@@ -56,6 +66,7 @@ const Admin = {
             totalAdminWorkouts: document.getElementById('totalAdminWorkouts')
         };
 
+        // Statistiken in entsprechende Elemente einfügen
         if (elements.totalUsers) {
             elements.totalUsers.textContent = stats.totalUsers || 0;
         }
@@ -69,7 +80,10 @@ const Admin = {
         }
     },
 
-    // Display users table
+    /**
+     * Zeigt Benutzertabelle an
+     * @param {Array} users - Array der Benutzer
+     */
     displayUsersTable(users) {
         const tbody = document.getElementById('userTableBody');
         if (!tbody) return;
@@ -79,6 +93,7 @@ const Admin = {
             return;
         }
         
+        // Benutzer-HTML generieren
         tbody.innerHTML = users.map(user => `
             <tr>
                 <td>${user.id}</td>
@@ -91,16 +106,16 @@ const Admin = {
                 <td>
                     <div class="user-actions">
                         <button class="btn btn-warning" onclick="Admin.showPasswordResetModal(${user.id}, '${Utils.sanitizeInput(user.username)}')" title="Passwort zurücksetzen">
-                            🔑
+                            Passwort
                         </button>
                         <button class="btn ${user.is_active ? 'btn-danger' : 'btn-success'}" 
                                 onclick="Admin.toggleUserStatus(${user.id}, ${!user.is_active})" 
                                 title="${user.is_active ? 'Deaktivieren' : 'Aktivieren'}">
-                            ${user.is_active ? '🚫' : '✅'}
+                            ${user.is_active ? 'Deaktivieren' : 'Aktivieren'}
                         </button>
                         ${user.id !== Auth.getCurrentUser().id ? `
                             <button class="btn btn-danger" onclick="Admin.showDeleteUserModal(${user.id}, '${Utils.sanitizeInput(user.username)}')" title="Benutzer löschen">
-                                🗑️
+                                Löschen
                             </button>
                         ` : ''}
                     </div>
@@ -109,7 +124,11 @@ const Admin = {
         `).join('');
     },
 
-    // Toggle user status (active/inactive)
+    /**
+     * Schaltet Benutzerstatus um (aktiv/inaktiv)
+     * @param {number} userId - Benutzer-ID
+     * @param {boolean} activate - Aktivieren oder deaktivieren
+     */
     async toggleUserStatus(userId, activate) {
         try {
             await Utils.apiCall(`/admin/users/${userId}/status`, {
@@ -120,25 +139,34 @@ const Admin = {
             Utils.showAlert(`Benutzer ${activate ? 'aktiviert' : 'deaktiviert'}`, 'success');
             this.loadDashboard();
         } catch (error) {
-            console.error('Toggle user status error:', error);
+            console.error('Admin: Fehler beim Ändern des Benutzerstatus:', error);
             Utils.showAlert('Fehler beim Ändern des Benutzerstatus: ' + error.message, 'error');
         }
     },
 
-    // Show password reset modal
+    /**
+     * Zeigt Passwort-Zurücksetzungs-Modal an
+     * @param {number} userId - Benutzer-ID
+     * @param {string} username - Benutzername
+     */
     showPasswordResetModal(userId, username) {
         document.getElementById('resetUserId').value = userId;
         document.getElementById('resetUsername').textContent = username;
         document.getElementById('passwordResetModal').style.display = 'block';
     },
 
-    // Close password reset modal
+    /**
+     * Schließt Passwort-Zurücksetzungs-Modal
+     */
     closePasswordResetModal() {
         document.getElementById('passwordResetModal').style.display = 'none';
         document.getElementById('adminPasswordResetForm').reset();
     },
 
-    // Handle password reset
+    /**
+     * Behandelt Passwort-Zurücksetzung
+     * @param {Event} e - Form-Submit-Event
+     */
     async handlePasswordReset(e) {
         e.preventDefault();
         
@@ -146,16 +174,15 @@ const Admin = {
         const originalText = submitButton.innerHTML;
         
         try {
+            // Button-Zustand während Request ändern
             submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <span style="display: none;">Passwort zurücksetzen</span>
-                <div class="loading" style="margin-left: 10px; display: inline-block;"></div>
-            `;
+            submitButton.innerHTML = '<div class="loading"></div>';
             
             const newPassword = document.getElementById('adminNewPassword').value;
             const confirmPassword = document.getElementById('adminConfirmPassword').value;
             const userId = document.getElementById('resetUserId').value;
             
+            // Validierung
             if (!newPassword || !confirmPassword) {
                 throw new Error('Bitte füllen Sie alle Felder aus');
             }
@@ -169,6 +196,7 @@ const Admin = {
                 throw new Error('Passwörter stimmen nicht überein');
             }
             
+            // Passwort zurücksetzen
             await Utils.apiCall(`/admin/users/${userId}/reset-password`, {
                 method: 'POST',
                 body: JSON.stringify({ newPassword })
@@ -177,28 +205,38 @@ const Admin = {
             Utils.showAlert('Passwort erfolgreich zurückgesetzt', 'success');
             this.closePasswordResetModal();
         } catch (error) {
-            console.error('Password reset error:', error);
+            console.error('Admin: Passwort-Zurücksetzungs-Fehler:', error);
             Utils.showAlert('Fehler beim Zurücksetzen des Passworts: ' + error.message, 'error');
         } finally {
+            // Button-Zustand zurücksetzen
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
         }
     },
 
-    // Show delete user modal
+    /**
+     * Zeigt Benutzer-Löschungs-Modal an
+     * @param {number} userId - Benutzer-ID
+     * @param {string} username - Benutzername
+     */
     showDeleteUserModal(userId, username) {
         document.getElementById('deleteUserId').value = userId;
         document.getElementById('deleteUsername').textContent = username;
         document.getElementById('deleteUserModal').style.display = 'block';
     },
 
-    // Close delete user modal
+    /**
+     * Schließt Benutzer-Löschungs-Modal
+     */
     closeDeleteUserModal() {
         document.getElementById('deleteUserModal').style.display = 'none';
         document.getElementById('deleteUserForm').reset();
     },
 
-    // Handle user deletion
+    /**
+     * Behandelt Benutzer-Löschung
+     * @param {Event} e - Form-Submit-Event
+     */
     async handleDeleteUser(e) {
         e.preventDefault();
         
@@ -206,24 +244,24 @@ const Admin = {
         const originalText = submitButton.innerHTML;
         
         try {
+            // Button-Zustand während Request ändern
             submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <span style="display: none;">Benutzer löschen</span>
-                <div class="loading" style="margin-left: 10px; display: inline-block;"></div>
-            `;
+            submitButton.innerHTML = '<div class="loading"></div>';
             
             const confirmation = document.getElementById('deleteConfirmation').value;
             const userId = document.getElementById('deleteUserId').value;
             
+            // Bestätigung prüfen
             if (confirmation !== 'LÖSCHEN') {
                 throw new Error('Bitte geben Sie "LÖSCHEN" ein, um zu bestätigen');
             }
 
-            // Check if trying to delete own account
+            // Prüfen ob eigenes Konto gelöscht werden soll
             if (parseInt(userId) === Auth.getCurrentUser().id) {
                 throw new Error('Sie können Ihr eigenes Konto nicht löschen');
             }
             
+            // Benutzer löschen
             await Utils.apiCall(`/admin/users/${userId}`, {
                 method: 'DELETE'
             });
@@ -232,36 +270,29 @@ const Admin = {
             this.closeDeleteUserModal();
             this.loadDashboard();
         } catch (error) {
-            console.error('Delete user error:', error);
+            console.error('Admin: Benutzer-Löschungs-Fehler:', error);
             Utils.showAlert('Fehler beim Löschen des Benutzers: ' + error.message, 'error');
         } finally {
+            // Button-Zustand zurücksetzen
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
         }
     },
 
-    // Delete user
-    async deleteUser(userId) {
-        try {
-            await Utils.apiCall(`/admin/users/${userId}`, {
-                method: 'DELETE'
-            });
-            
-            Utils.showAlert('Benutzer erfolgreich gelöscht', 'success');
-            this.loadDashboard();
-        } catch (error) {
-            console.error('Delete user error:', error);
-            Utils.showAlert('Fehler beim Löschen des Benutzers: ' + error.message, 'error');
-            throw error;
-        }
-    },
-
-    // Get user by ID
+    /**
+     * Gibt Benutzer nach ID zurück
+     * @param {number} userId - Benutzer-ID
+     * @returns {object|undefined} - Benutzer-Objekt oder undefined
+     */
     getUserById(userId) {
         return this.users.find(u => u.id === userId);
     },
 
-    // Search users
+    /**
+     * Durchsucht Benutzer
+     * @param {string} query - Suchbegriff
+     * @returns {Array} - Array der gefundenen Benutzer
+     */
     searchUsers(query) {
         if (!query || query.length < 2) return this.users;
         
@@ -274,17 +305,28 @@ const Admin = {
         );
     },
 
-    // Filter users by status
+    /**
+     * Filtert Benutzer nach Status
+     * @param {boolean} isActive - Aktiv-Status
+     * @returns {Array} - Gefilterte Benutzer
+     */
     filterUsersByStatus(isActive) {
         return this.users.filter(user => user.is_active === isActive);
     },
 
-    // Filter users by role
+    /**
+     * Filtert Benutzer nach Rolle
+     * @param {string} role - Benutzerrolle
+     * @returns {Array} - Gefilterte Benutzer
+     */
     filterUsersByRole(role) {
         return this.users.filter(user => user.role === role);
     },
 
-    // Get user statistics
+    /**
+     * Gibt Benutzerstatistiken zurück
+     * @returns {object|null} - Statistik-Objekt oder null
+     */
     getUserStats() {
         if (!this.users.length) return null;
 
@@ -293,7 +335,7 @@ const Admin = {
         const adminUsers = this.users.filter(u => u.role === 'admin').length;
         const regularUsers = this.users.length - adminUsers;
 
-        // Calculate registration trends (last 30 days)
+        // Registrierungstrends berechnen (letzte 30 Tage)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
@@ -312,13 +354,16 @@ const Admin = {
         };
     },
 
-    // Export users data
+    /**
+     * Exportiert Benutzerdaten
+     */
     exportUsers() {
         if (!this.users.length) {
             Utils.showAlert('Keine Benutzerdaten zum Exportieren', 'warning');
             return;
         }
 
+        // Sensible Daten für Export entfernen
         const exportData = this.users.map(user => ({
             id: user.id,
             username: user.username,
@@ -335,7 +380,10 @@ const Admin = {
         Utils.showAlert('Benutzerdaten exportiert', 'success');
     },
 
-    // Create user (for future use)
+    /**
+     * Erstellt neuen Benutzer (für zukünftige Verwendung)
+     * @param {object} userData - Benutzerdaten
+     */
     async createUser(userData) {
         try {
             await Utils.apiCall('/admin/users', {
@@ -346,13 +394,17 @@ const Admin = {
             Utils.showAlert('Benutzer erfolgreich erstellt', 'success');
             this.loadDashboard();
         } catch (error) {
-            console.error('Create user error:', error);
+            console.error('Admin: Benutzer-Erstellungs-Fehler:', error);
             Utils.showAlert('Fehler beim Erstellen des Benutzers: ' + error.message, 'error');
             throw error;
         }
     },
 
-    // Update user (for future use)
+    /**
+     * Aktualisiert Benutzer (für zukünftige Verwendung)
+     * @param {number} userId - Benutzer-ID
+     * @param {object} userData - Neue Benutzerdaten
+     */
     async updateUser(userId, userData) {
         try {
             await Utils.apiCall(`/admin/users/${userId}`, {
@@ -363,56 +415,40 @@ const Admin = {
             Utils.showAlert('Benutzer erfolgreich aktualisiert', 'success');
             this.loadDashboard();
         } catch (error) {
-            console.error('Update user error:', error);
+            console.error('Admin: Benutzer-Update-Fehler:', error);
             Utils.showAlert('Fehler beim Aktualisieren des Benutzers: ' + error.message, 'error');
             throw error;
         }
     },
 
-    // Send system message to user (for future use)
-    async sendSystemMessage(userId, message) {
-        try {
-            await Utils.apiCall(`/admin/users/${userId}/message`, {
-                method: 'POST',
-                body: JSON.stringify({ message })
-            });
-            
-            Utils.showAlert('Nachricht gesendet', 'success');
-        } catch (error) {
-            console.error('Send message error:', error);
-            Utils.showAlert('Fehler beim Senden der Nachricht: ' + error.message, 'error');
-            throw error;
-        }
-    },
-
-    // Get system logs (for future use)
-    async getSystemLogs(limit = 100) {
-        try {
-            const logs = await Utils.apiCall(`/admin/logs?limit=${limit}`);
-            return logs || [];
-        } catch (error) {
-            console.error('Get logs error:', error);
-            Utils.showAlert('Fehler beim Laden der Logs: ' + error.message, 'error');
-            return [];
-        }
-    },
-
-    // Clear cached data
+    /**
+     * Löscht zwischengespeicherte Daten
+     */
     clearCache() {
         this.users = [];
         this.stats = null;
     },
 
-    // Get admin data
+    /**
+     * Gibt Benutzerdaten zurück
+     * @returns {Array} - Array der Benutzer
+     */
     getUsers() {
         return this.users;
     },
 
+    /**
+     * Gibt Statistiken zurück
+     * @returns {object|null} - Statistik-Objekt oder null
+     */
     getStats() {
         return this.stats;
     },
 
-    // Validate admin permissions
+    /**
+     * Validiert Admin-Berechtigungen
+     * @throws {Error} - Wenn keine Berechtigung vorhanden
+     */
     validateAdminAccess() {
         if (!Auth.isAuthenticated()) {
             throw new Error('Nicht angemeldet');
@@ -425,7 +461,9 @@ const Admin = {
         return true;
     },
 
-    // Database maintenance (for future use)
+    /**
+     * Führt Datenbankwartung durch (für zukünftige Verwendung)
+     */
     async performMaintenance() {
         try {
             this.validateAdminAccess();
@@ -436,13 +474,15 @@ const Admin = {
             
             Utils.showAlert('Wartung erfolgreich durchgeführt', 'success');
         } catch (error) {
-            console.error('Maintenance error:', error);
+            console.error('Admin: Wartungs-Fehler:', error);
             Utils.showAlert('Fehler bei der Wartung: ' + error.message, 'error');
             throw error;
         }
     },
 
-    // Backup database (for future use)
+    /**
+     * Erstellt Datenbank-Backup (für zukünftige Verwendung)
+     */
     async createBackup() {
         try {
             this.validateAdminAccess();
@@ -457,7 +497,7 @@ const Admin = {
                 Utils.showAlert('Backup erfolgreich erstellt', 'success');
             }
         } catch (error) {
-            console.error('Backup error:', error);
+            console.error('Admin: Backup-Fehler:', error);
             Utils.showAlert('Fehler beim Erstellen des Backups: ' + error.message, 'error');
             throw error;
         }
