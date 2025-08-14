@@ -6,12 +6,13 @@
     <title>Gym Tracker</title>
     <meta name="description" content="Fitness-Tracking System">
     <link rel="stylesheet" href="css/styles.css">
-    <!-- Lucide Icons -->
-    <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50%' y='50%' style='dominant-baseline:central;text-anchor:middle;font-size:90px;'>🏋️</text></svg>">
+    <!-- Lucide Icons einbinden -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <!-- Login/Register Screen -->
-    <div id="loginScreen" class="login-container active">
+    <div id="loginScreen" class="login-container">
         <div class="login-card">
             <div class="login-header">
                 <h1 class="login-title">Gym Tracker</h1>
@@ -20,15 +21,15 @@
             
             <!-- Tab-Navigation zwischen Login und Registrierung -->
             <div class="auth-tabs">
-                <button id="loginTabBtn" class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
-                <button id="registerTabBtn" class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
+                <button class="auth-tab active" onclick="Auth.showTab('login')">Anmelden</button>
+                <button class="auth-tab" onclick="Auth.showTab('register')">Registrieren</button>
             </div>
             
             <!-- Container für Fehlermeldungen -->
-            <div id="alertContainer" class="alert-container"></div>
+            <div id="alertContainer"></div>
             
             <!-- Login Formular -->
-            <form id="loginForm" class="auth-form active">
+            <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="loginUsername">Benutzername oder E-Mail</label>
                     <input type="text" id="loginUsername" name="username" required placeholder="Ihr Benutzername">
@@ -39,254 +40,165 @@
                     <input type="password" id="loginPassword" name="password" required placeholder="Ihr Passwort">
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-block">Anmelden</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Anmelden</button>
+                </div>
             </form>
             
             <!-- Registrierungs Formular -->
-            <form id="registerForm" class="auth-form">
+            <form id="registerForm" class="auth-form hidden">
                 <div class="form-group">
                     <label for="registerUsername">Benutzername</label>
-                    <input type="text" id="registerUsername" name="username" required placeholder="Gewünschter Benutzername">
+                    <input type="text" id="registerUsername" name="username" required placeholder="Ihr Benutzername">
                 </div>
-                
                 <div class="form-group">
                     <label for="registerEmail">E-Mail</label>
                     <input type="email" id="registerEmail" name="email" required placeholder="Ihre E-Mail-Adresse">
                 </div>
-                
                 <div class="form-group">
                     <label for="registerPassword">Passwort</label>
-                    <input type="password" id="registerPassword" name="password" required placeholder="Mind. 6 Zeichen">
+                    <input type="password" id="registerPassword" name="password" required placeholder="Ein sicheres Passwort">
                 </div>
-                
-                <button type="submit" class="btn btn-secondary btn-block">Registrieren</button>
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Passwort bestätigen</label>
+                    <input type="password" id="registerPasswordConfirm" name="passwordConfirm" required placeholder="Passwort wiederholen">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Registrieren</button>
+                </div>
             </form>
         </div>
     </div>
     
-    <!-- Main Application UI -->
-    <div id="appContainer" class="app-container">
-        <!-- Top Navigation -->
+    <!-- Haupt-Anwendung -->
+    <div id="appContainer" class="main-container hidden">
+        <!-- Hauptnavigation -->
         <nav class="nav">
-            <div class="nav-brand">
-                <h1>Gym Tracker</h1>
-            </div>
+            <a href="#" class="nav-logo">Gym Tracker</a>
             <div class="nav-buttons">
-                <button id="dashboardNav" class="btn btn-nav active" onclick="App.showSection('dashboard')">
-                    <i data-lucide="layout-dashboard"></i> Dashboard
+                <button id="navDashboardButton" class="nav-button" onclick="App.showSection('dashboard')">
+                    <i data-lucide="layout-dashboard"></i> 
+                    <span>Dashboard</span>
                 </button>
-                <button id="workoutsNav" class="btn btn-nav" onclick="App.showSection('workouts')">
-                    <i data-lucide="dumbbell"></i> Workouts
+                <button id="navWorkoutsButton" class="nav-button" onclick="App.showSection('workouts')">
+                    <i data-lucide="dumbbell"></i>
+                    <span>Workouts</span>
                 </button>
-                <button id="exercisesNav" class="btn btn-nav" onclick="App.showSection('exercises')">
-                    <i data-lucide="barbell"></i> Übungen
+                <button id="navExercisesButton" class="nav-button" onclick="App.showSection('exercises')">
+                    <i data-lucide="list-checks"></i>
+                    <span>Übungen</span>
                 </button>
-                <button id="templatesNav" class="btn btn-nav" onclick="App.showSection('templates')">
-                    <i data-lucide="book-check"></i> Vorlagen
+                <button id="navTemplatesButton" class="nav-button" onclick="App.showSection('templates')">
+                    <i data-lucide="copy"></i>
+                    <span>Vorlagen</span>
+                </button>
+                <button id="navStatsButton" class="nav-button" onclick="App.showSection('stats')">
+                    <i data-lucide="line-chart"></i>
+                    <span>Statistiken</span>
                 </button>
             </div>
+            
             <div class="nav-actions">
-                <button id="adminButton" class="btn btn-nav hidden" onclick="App.showSection('admin')">
-                    <i data-lucide="shield"></i> Admin
+                <button id="navProfileButton" class="nav-button" onclick="Profile.showModal()">
+                    <i data-lucide="user"></i>
+                    <span>Profil</span>
                 </button>
-                <button id="profileButton" class="btn btn-nav" onclick="Profile.showModal()">
-                    <i data-lucide="user"></i> Profil
+                <button id="navSettingsButton" class="nav-button" onclick="Settings.showModal()">
+                    <i data-lucide="settings"></i>
+                    <span>Einstellungen</span>
                 </button>
-                <button id="logoutButton" class="btn btn-nav" onclick="Auth.logout()">
-                    <i data-lucide="log-out"></i> Abmelden
+                <button id="navAdminButton" class="nav-button hidden" onclick="Admin.showDashboard()">
+                    <i data-lucide="key"></i>
+                    <span>Admin</span>
+                </button>
+                <button id="navLogoutButton" class="nav-button hidden" onclick="Auth.logout()">
+                    <i data-lucide="log-out"></i>
+                    <span>Abmelden</span>
+                </button>
+                <button id="navLoginButton" class="nav-button" onclick="Auth.showLoginScreen()">
+                    <i data-lucide="log-in"></i>
+                    <span>Anmelden</span>
+                </button>
+                <button id="navRegisterButton" class="nav-button" onclick="Auth.showTab('register')">
+                    <i data-lucide="user-plus"></i>
+                    <span>Registrieren</span>
                 </button>
             </div>
         </nav>
-
-        <!-- Main Content Container -->
-        <main class="main-container">
-            <!-- Loading Indicator -->
-            <div id="loading" class="loading-overlay hidden">
-                <div class="spinner"></div>
-            </div>
-            
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="section active">
-                <div class="card">
-                    <h2 class="section-title">Willkommen, <span id="dashboardUsername"></span>!</h2>
-                    <p class="section-subtitle">Ihr persönlicher Fitness-Überblick.</p>
-                    <div id="dashboardStats" class="stats-grid">
-                        <!-- Stats will be loaded here -->
+        
+        <!-- Hauptinhalt des Dashboards -->
+        <main id="mainContent">
+            <!-- Dashboard-Sektion -->
+            <section id="dashboard" class="content-section">
+                <h2>Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i data-lucide="trending-up" class="stat-icon"></i>
+                        <div>
+                            <h4>Trainings diese Woche</h4>
+                            <p>3</p>
+                        </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- Workouts Section -->
-            <section id="workouts" class="section">
-                <div class="card">
-                    <h2 class="section-title">Workouts</h2>
-                    <div class="controls-row">
-                        <button class="btn btn-success" onclick="Workouts.startNewWorkout()">
-                            <i data-lucide="plus-circle"></i> Neues Workout
-                        </button>
-                        <button class="btn btn-info" onclick="Workouts.loadAll()">
-                            <i data-lucide="rotate-ccw"></i> Aktualisieren
-                        </button>
+                    <div class="stat-card">
+                        <i data-lucide="bar-chart" class="stat-icon"></i>
+                        <div>
+                            <h4>Letztes Training</h4>
+                            <p>Gestern</p>
+                        </div>
                     </div>
-                </div>
-                <div class="card mt-md">
-                    <h3 class="card-title">Ihre Trainings</h3>
-                    <div id="workoutsList" class="workout-list">
-                        <!-- Workouts will be loaded here -->
+                    <div class="stat-card">
+                        <i data-lucide="line-chart" class="stat-icon"></i>
+                        <div>
+                            <h4>Fortschritt</h4>
+                            <p>+5kg Bankdrücken</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i data-lucide="award" class="stat-icon"></i>
+                        <div>
+                            <h4>Bestleistung</h4>
+                            <p>150kg Kreuzheben</p>
+                        </div>
                     </div>
                 </div>
             </section>
             
-            <!-- New Workout Section -->
-            <section id="newWorkout" class="section">
-                <div class="card">
-                    <h2 class="section-title">Neues Workout</h2>
-                    <form id="newWorkoutForm" class="form-stacked">
-                        <input type="hidden" id="workoutId">
-                        <div class="form-group">
-                            <label for="workoutName">Workout Name *</label>
-                            <input type="text" id="workoutName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="workoutDate">Datum *</label>
-                            <input type="date" id="workoutDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="workoutNotes">Notizen</label>
-                            <textarea id="workoutNotes" rows="3"></textarea>
-                        </div>
-                        
-                        <h3 class="card-title mt-lg">Gewählte Übungen</h3>
-                        <div id="selectedExercisesContainer" class="selected-exercises-container">
-                            <!-- Selected exercises will be displayed here -->
-                        </div>
-                        
-                        <h3 class="card-title mt-lg">Übungen hinzufügen</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="exerciseSelect">Übung auswählen</label>
-                                <select id="exerciseSelect" class="form-select"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="setsCount">Sätze</label>
-                                <input type="number" id="setsCount" value="3" min="1">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Spezifische Sätze/Wiederholungen/Gewichte (optional)</label>
-                            <div id="setsInputs" class="sets-input-container">
-                                <!-- Set inputs will be added here -->
-                            </div>
-                            <button type="button" class="btn btn-sm btn-info mt-sm" onclick="Workouts.addSetRow()">
-                                <i data-lucide="plus-circle"></i> Satz hinzufügen
-                            </button>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="Workouts.addExerciseToWorkout()">
-                                <i data-lucide="plus"></i> Übung hinzufügen
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="saveWorkoutBtn">
-                                <i data-lucide="save"></i> Workout speichern
-                            </button>
-                            <button type="button" class="btn btn-danger" onclick="Workouts.resetForm()">
-                                <i data-lucide="refresh-ccw"></i> Zurücksetzen
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <!-- Workouts-Sektion -->
+            <section id="workouts" class="content-section hidden">
+                <h2>Workouts</h2>
+                <p>Hier werden deine Trainings angezeigt.</p>
             </section>
-
-            <!-- Exercises Section -->
-            <section id="exercises" class="section">
-                <div class="card">
-                    <h2 class="section-title">Übungen</h2>
-                    <div class="controls-row">
-                        <button class="btn btn-success" onclick="Exercises.showCreateExerciseModal()">
-                            <i data-lucide="plus-circle"></i> Neue Übung
-                        </button>
-                        <button class="btn btn-info" onclick="Exercises.loadAll()">
-                            <i data-lucide="rotate-ccw"></i> Aktualisieren
-                        </button>
-                    </div>
-                </div>
-                <div class="card mt-md">
-                    <h3 class="card-title">Alle Übungen</h3>
-                    <div id="exercisesList" class="table-container">
-                        <!-- Exercises list will be loaded here -->
-                    </div>
-                </div>
+            
+            <!-- Übungen-Sektion -->
+            <section id="exercises" class="content-section hidden">
+                <h2>Übungen</h2>
+                <p>Hier werden deine Übungen angezeigt.</p>
             </section>
-
-            <!-- Templates Section -->
-            <section id="templates" class="section">
-                <div class="card">
-                    <h2 class="section-title">Workout-Vorlagen</h2>
-                    <div class="controls-row">
-                        <button class="btn btn-success" onclick="Templates.showNewModal()">
-                            <i data-lucide="plus-circle"></i> Neue Vorlage
-                        </button>
-                        <button class="btn btn-info" onclick="Templates.loadAll()">
-                            <i data-lucide="rotate-ccw"></i> Aktualisieren
-                        </button>
-                    </div>
-                </div>
-                <div class="card mt-md">
-                    <h3 class="card-title">Ihre Vorlagen</h3>
-                    <div id="templatesList" class="table-container">
-                        <!-- Templates will be loaded here -->
-                    </div>
-                </div>
+            
+            <!-- Vorlagen-Sektion -->
+            <section id="templates" class="content-section hidden">
+                <h2>Vorlagen</h2>
+                <p>Hier werden deine Trainingsvorlagen angezeigt.</p>
             </section>
-
-            <!-- Admin Section -->
-            <section id="admin" class="section">
-                <div class="card">
-                    <h2 class="section-title">Admin Dashboard</h2>
-                    <p class="section-subtitle">Verwaltung von Benutzern und Systemstatistiken.</p>
-                </div>
-                
-                <div class="card mt-md">
-                    <h3 class="card-title">Statistiken</h3>
-                    <div id="adminStats" class="stats-grid">
-                        <!-- Admin stats will be loaded here -->
-                    </div>
-                </div>
-                
-                <div class="card mt-md">
-                    <h3 class="card-title">Benutzerverwaltung</h3>
-                    <div class="controls-row">
-                        <button id="adminBackupButton" class="btn btn-info">
-                            <i data-lucide="save"></i> Backup erstellen
-                        </button>
-                        <button id="adminMaintenanceButton" class="btn btn-warning">
-                            <i data-lucide="database"></i> Wartung
-                        </button>
-                    </div>
-                    <div class="table-container mt-md">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Benutzername</th>
-                                    <th>E-Mail</th>
-                                    <th>Rolle</th>
-                                    <th>Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminUsersTableBody">
-                                <!-- User data will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            
+            <!-- Statistiken-Sektion -->
+            <section id="stats" class="content-section hidden">
+                <h2>Statistiken</h2>
+                <p>Hier werden deine Statistiken angezeigt.</p>
+            </section>
+            
+            <!-- Admin-Sektion -->
+            <section id="admin" class="content-section hidden">
+                <h2>Admin Dashboard</h2>
+                <p>Verwaltung von Benutzern und System.</p>
             </section>
         </main>
     </div>
-
-    <!-- Container for all Modals -->
+    
+    <!-- Container für Modals -->
     <div id="modals-container"></div>
 
-    <!-- JavaScript Files load -->
+    <!-- JavaScript Dateien laden -->
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/profile.js"></script>
@@ -294,27 +206,16 @@
     <script src="js/exercises.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/modals.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/templates.js"></script>
     <script src="js/app.js"></script>
-
-    <!-- Initialization script -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Lucide Icons
-            lucide.createIcons();
-
-            // Initialize all modules
-            if (typeof Utils !== 'undefined') Utils.init?.();
-            if (typeof Auth !== 'undefined') Auth.init();
-            if (typeof Settings !== 'undefined') Settings.init();
-            if (typeof Profile !== 'undefined') Profile.init();
-            if (typeof Workouts !== 'undefined') Workouts.init();
-            if (typeof Exercises !== 'undefined') Exercises.init();
-            if (typeof Templates !== 'undefined') Templates.init();
-            if (typeof Admin !== 'undefined') Admin.init();
-            if (typeof Modals !== 'undefined') Modals.init();
-            if (typeof App !== 'undefined') App.init();
+        // Initialisiere Lucide Icons
+        document.addEventListener('DOMContentLoaded', () => {
+             // Warten bis DOM vollständig geladen ist
+            console.log('DOM geladen, initialisiere Gym Tracker...');
+            // Initialisiere die Anwendung nach den Icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         });
     </script>
 </body>

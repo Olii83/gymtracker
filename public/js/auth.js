@@ -1,172 +1,302 @@
-// Authentifizierungsmodul für Gym Tracker - Überarbeitete Version
-// Verwaltet die Benutzer-Authentifizierung, -Registrierung und -Sitzung.
+// Authentifizierungsmodul für Gym Tracker - Überarbeitete und vollständige Version
 
 const Auth = {
-    // Zustandsvariablen
+    // Zustandsvariablen für den aktuellen Benutzer und den Authentifizierungs-Token
     currentUser: null,
     authToken: null,
 
     /**
      * Initialisiert das Authentifizierungsmodul.
-     * Prüft auf einen gespeicherten Token und versucht die Anmeldung.
+     * Prüft beim Start, ob ein gespeicherter Token vorhanden ist.
      */
     init() {
         console.log('Auth: Initialisiere...');
-        
         this.setupEventListeners();
-        this.loadTokenAndUser();
-        this.updateNavUI();
+        this.loadTokenAndUser(); // Trennung der Initialisierungslogik
     },
-    
+
     /**
-     * Lädt den gespeicherten Token und den Benutzer aus dem localStorage und verifiziert ihn.
+     * Lädt den gespeicherten Token und Benutzerdaten aus dem lokalen Speicher und verifiziert sie.
      */
-    loadTokenAndUser() {
-        this.authToken = localStorage.getItem('authToken');
-        this.currentUser = Utils.getLocalStorage('currentUser');
+    async loadTokenAndUser() {
+        const token = localStorage.getItem('authToken');
+        const userJson = Utils.getLocalStorage('currentUser');
         
-        if (this.authToken && this.currentUser) {
+        if (token && userJson) {
             console.log('Auth: Token und Benutzerdaten gefunden, verifiziere...');
-            this.verifyTokenAndLogin();
+            this.authToken = token;
+            this.currentUser = userJson;
+            await this.verifyTokenAndLogin();
         } else {
-            console.log('Auth: Kein Token gefunden oder ungültig, zeige Login-Bildschirm');
+            console.log('Auth: Kein gültiger Token oder Benutzer gefunden, zeige Login-Bildschirm.');
             this.showLoginScreen();
         }
     },
 
     /**
-     * Richtet Event-Listener für Formulare ein.
+     * Richtet alle Event-Listener für Formulare (Login und Registrierung) ein.
      */
     setupEventListeners() {
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', this.handleLogin.bind(this));
+            console.log('Auth: Login-Formular Event-Listener hinzugefügt');
         }
 
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
             registerForm.addEventListener('submit', this.handleRegister.bind(this));
-        }
-        
-        const logoutButton = document.getElementById('logoutButton');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', this.logout.bind(this));
+            console.log('Auth: Registrierungs-Formular Event-Listener hinzugefügt');
         }
     },
 
     /**
-     * Verarbeitet das Login-Formular-Submit.
-     * @param {Event} event - Das Formular-Submit-Event.
+     * Zeigt den Login-Bildschirm an.
+     * Stellt sicher, dass das entsprechende HTML-Element existiert, bevor es verwendet wird.
+     */
+    showLoginScreen() {
+        console.log('Auth: Zeige Login-Bildschirm');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        if (loginScreen) {
+            loginScreen.classList.remove('hidden');
+        }
+        if (appContainer) {
+            appContainer.classList.add('hidden');
+        }
+        if (typeof App !== 'undefined' && App.showSection) {
+            App.showSection('login');
+        }
+        this.updateNavUI(); // UI aktualisieren
+    },
+
+    /**
+     * Zeigt den Haupt-App-Container an.
+     * Stellt sicher, dass das entsprechende HTML-Element existiert, bevor es verwendet wird.
+     */
+    showAppContainer() {
+        console.log('Auth: Zeige App-Container');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        if (loginScreen) {
+            loginScreen.classList.add('hidden');
+        }
+        if (appContainer) {
+            appContainer.classList.remove('hidden');
+        }
+    },
+
+    /**
+     * Zeigt den entsprechenden Anmelde- oder Registrierungs-Tab an.
+     * @param {string} tabName - Der Name des Tabs ('login' oder 'register')
+     */
+    showTab(tabName) {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginTabButton = document.querySelector('.auth-tab[onclick*="login"]');
+        const registerTabButton = document.querySelector('.auth-tab[onclick*="register"]');
+
+        if (tabName === 'login') {
+            loginForm?.classList.remove('hidden');
+            registerForm?.classList.add('hidden');
+            loginTabButton?.classList.add('active');
+            registerTabButton?.classList.remove('active');
+        } else if (tabName === 'register') {
+            loginForm?.classList.add('hidden');
+            registerForm?.classList.remove('hidden');
+            loginTabButton?.classList.remove('active');
+            registerTabButton?.classList.add('active');
+        }
+    },
+
+    /**
+     * Behandelt das Login-Formular.
+     * Fügt Null-Checks für die Formularfelder hinzu, um Fehler zu vermeiden.
+     * @param {Event} event - Das Submit-Event
      */
     async handleLogin(event) {
         event.preventDefault();
         
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
+        const usernameInput = document.getElementById('loginUsername');
+        const passwordInput = document.getElementById('loginPassword');
+
+        if (!usernameInput || !passwordInput) {
+            Utils.showAlert('Login-Formular nicht gefunden.', 'error');
+            return;
+        }
+
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+
+        if (!username || !password) {
+            Utils.showAlert('Bitte Benutzername und Passwort eingeben.', 'warning');
+            return;
+        }
         
         try {
+            if (typeof App !== 'undefined' && App.showLoading) {
+                App.showLoading();
+            }
             const response = await Utils.apiCall('/auth/login', {
                 method: 'POST',
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ username, password })
             });
+
+            this.authToken = response.token;
+            this.currentUser = response.user;
             
-            if (response && response.token && response.user) {
-                this.handleSuccessfulAuth(response.token, response.user);
-            } else {
-                throw new Error('Ungültige Antwort vom Server.');
+            // Token und Benutzerdaten im Local Storage speichern
+            localStorage.setItem('authToken', this.authToken);
+            Utils.setLocalStorage('currentUser', this.currentUser);
+
+            this.updateNavUI();
+            
+            // Dashboard laden und anzeigen
+            this.showAppContainer();
+            if (typeof App !== 'undefined' && App.showSection) {
+                App.showSection('dashboard');
             }
+            Utils.showAlert('Anmeldung erfolgreich!', 'success');
         } catch (error) {
             console.error('Auth: Login-Fehler:', error);
-            Utils.showAlert('Anmeldung fehlgeschlagen: ' + error.message, 'error');
+            Utils.showAlert('Login fehlgeschlagen: ' + error.message, 'error');
+        } finally {
+            if (typeof App !== 'undefined' && App.hideLoading) {
+                 App.hideLoading();
+            }
         }
     },
 
     /**
-     * Verarbeitet das Registrierungs-Formular-Submit.
-     * @param {Event} event - Das Formular-Submit-Event.
+     * Behandelt das Registrierungs-Formular.
+     * @param {Event} event - Das Submit-Event
      */
     async handleRegister(event) {
         event.preventDefault();
         
-        const username = document.getElementById('registerUsername').value;
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        
+        const username = document.getElementById('registerUsername')?.value;
+        const email = document.getElementById('registerEmail')?.value;
+        const password = document.getElementById('registerPassword')?.value;
+        const passwordConfirm = document.getElementById('registerPasswordConfirm')?.value;
+
+        if (!username || !email || !password || !passwordConfirm) {
+            Utils.showAlert('Bitte alle Felder ausfüllen.', 'warning');
+            return;
+        }
+
+        if (password !== passwordConfirm) {
+            Utils.showAlert('Passwörter stimmen nicht überein.', 'warning');
+            return;
+        }
+
         try {
-            const response = await Utils.apiCall('/auth/register', {
+            if (typeof App !== 'undefined' && App.showLoading) {
+                App.showLoading();
+            }
+            await Utils.apiCall('/auth/register', {
                 method: 'POST',
                 body: JSON.stringify({ username, email, password })
             });
             
-            if (response && response.token && response.user) {
-                this.handleSuccessfulAuth(response.token, response.user);
-            } else {
-                throw new Error('Ungültige Antwort vom Server.');
-            }
+            Utils.showAlert('Registrierung erfolgreich! Sie können sich jetzt anmelden.', 'success');
+            this.showTab('login');
         } catch (error) {
             console.error('Auth: Registrierungs-Fehler:', error);
             Utils.showAlert('Registrierung fehlgeschlagen: ' + error.message, 'error');
+        } finally {
+            if (typeof App !== 'undefined' && App.hideLoading) {
+                App.hideLoading();
+            }
         }
     },
 
     /**
-     * Speichert den Token und die Benutzerdaten bei erfolgreicher Authentifizierung.
-     * @param {string} token - Der JWT-Token.
-     * @param {object} user - Das Benutzer-Objekt.
-     */
-    handleSuccessfulAuth(token, user) {
-        this.authToken = token;
-        this.currentUser = user;
-        localStorage.setItem('authToken', token);
-        Utils.setLocalStorage('currentUser', user);
-        
-        Utils.showAlert('Anmeldung erfolgreich!', 'success');
-        this.updateNavUI();
-        App.showSection('dashboard');
-    },
-
-    /**
-     * Verifiziert den Token beim Anwendungsstart und meldet den Benutzer an.
+     * Verifiziert den Token und loggt den Benutzer ein, falls der Token gültig ist.
      */
     async verifyTokenAndLogin() {
         try {
+            if (typeof App !== 'undefined' && App.showLoading) {
+                 App.showLoading();
+            }
             const response = await Utils.apiCall('/auth/verify-token', {
-                method: 'POST'
+                method: 'POST',
+                body: JSON.stringify({ token: this.authToken })
             });
-            
-            if (response && response.user) {
-                this.currentUser = response.user;
-                Utils.setLocalStorage('currentUser', response.user);
+
+            if (response.isValid) {
                 this.updateNavUI();
-                App.showSection('dashboard');
+                this.showAppContainer();
+                if (typeof App !== 'undefined' && App.showSection) {
+                    App.showSection('dashboard');
+                }
+                Utils.showAlert('Anmeldung erfolgreich fortgesetzt!', 'success');
             } else {
-                throw new Error('Token-Verifizierung fehlgeschlagen.');
+                this.logout();
             }
         } catch (error) {
             console.error('Auth: Token-Verifizierungsfehler:', error);
-            this.showLoginScreen();
+            this.logout();
+        } finally {
+            if (typeof App !== 'undefined' && App.hideLoading) {
+                App.hideLoading();
+            }
         }
-    },
-    
-    /**
-     * Zeigt den Anmeldebildschirm und versteckt die Hauptanwendung.
-     */
-    showLoginScreen() {
-        document.getElementById('loginPage').classList.remove('hidden');
-        document.getElementById('appShell').classList.add('hidden');
-        this.updateNavUI();
-    },
-    
-    /**
-     * Zeigt die Hauptanwendung und versteckt den Anmeldebildschirm.
-     */
-    showAppShell() {
-        document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('appShell').classList.remove('hidden');
     },
 
     /**
-     * Loggt den Benutzer aus, löscht den Token und die lokalen Daten.
+     * Aktualisiert die Navigationsleiste basierend auf dem Anmeldestatus und der Benutzerrolle.
+     * Fügt Null-Checks hinzu, um Fehler zu vermeiden, wenn Elemente nicht existieren.
+     */
+    updateNavUI() {
+        const navButtons = {
+            loginButton: document.getElementById('navLoginButton'),
+            registerButton: document.getElementById('navRegisterButton'),
+            adminButton: document.getElementById('navAdminButton'),
+            logoutButton: document.getElementById('navLogoutButton'),
+            profileButton: document.getElementById('navProfileButton'),
+            workoutsButton: document.getElementById('navWorkoutsButton'),
+            exercisesButton: document.getElementById('navExercisesButton'),
+            templatesButton: document.getElementById('navTemplatesButton'),
+            statsButton: document.getElementById('navStatsButton'),
+            settingsButton: document.getElementById('navSettingsButton')
+        };
+    
+        if (this.isAuthenticated()) {
+            navButtons.loginButton?.classList.add('hidden');
+            navButtons.registerButton?.classList.add('hidden');
+            navButtons.logoutButton?.classList.remove('hidden');
+            
+            // Zeige Dashboard-Buttons
+            navButtons.profileButton?.classList.remove('hidden');
+            navButtons.workoutsButton?.classList.remove('hidden');
+            navButtons.exercisesButton?.classList.remove('hidden');
+            navButtons.templatesButton?.classList.remove('hidden');
+            navButtons.statsButton?.classList.remove('hidden');
+            navButtons.settingsButton?.classList.remove('hidden');
+
+            if (this.isAdmin()) {
+                navButtons.adminButton?.classList.remove('hidden');
+            } else {
+                navButtons.adminButton?.classList.add('hidden');
+            }
+        } else {
+            navButtons.loginButton?.classList.remove('hidden');
+            navButtons.registerButton?.classList.remove('hidden');
+            navButtons.logoutButton?.classList.add('hidden');
+            navButtons.adminButton?.classList.add('hidden');
+            
+            // Verstecke alle Dashboard-Buttons
+            navButtons.profileButton?.classList.add('hidden');
+            navButtons.workoutsButton?.classList.add('hidden');
+            navButtons.exercisesButton?.classList.add('hidden');
+            navButtons.templatesButton?.classList.add('hidden');
+            navButtons.statsButton?.classList.add('hidden');
+            navButtons.settingsButton?.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Loggt den Benutzer aus und löscht lokale Daten.
      */
     logout() {
         console.log('Auth: Logge aus...');
@@ -176,34 +306,22 @@ const Auth = {
         localStorage.removeItem('authToken');
         Utils.removeLocalStorage('currentUser');
         
-        App.resetState(); // Setze den Anwendungszustand zurück
         this.showLoginScreen();
+        
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) loginForm.reset();
+        
+        // App-Cache löschen, falls die Funktion existiert
+        if (typeof App !== 'undefined' && App.resetState) {
+            App.resetState();
+        }
         
         Utils.showAlert('Sie wurden erfolgreich abgemeldet', 'info');
     },
 
     /**
-     * Aktualisiert die Navigations-UI basierend auf dem Anmeldestatus.
-     */
-    updateNavUI() {
-        const isAuthenticated = this.isAuthenticated();
-        const isAdmin = this.isAdmin();
-        
-        document.getElementById('profileButton').classList.toggle('hidden', !isAuthenticated);
-        document.getElementById('logoutButton').classList.toggle('hidden', !isAuthenticated);
-        document.getElementById('adminButton').classList.toggle('hidden', !isAdmin);
-        document.getElementById('authNav').classList.toggle('hidden', isAuthenticated);
-        
-        if (isAuthenticated) {
-            this.showAppShell();
-        } else {
-            this.showLoginScreen();
-        }
-    },
-
-    /**
      * Prüft, ob der Benutzer authentifiziert ist.
-     * @returns {boolean} - True, wenn der Benutzer angemeldet ist.
+     * @returns {boolean} - Authentifiziert oder nicht
      */
     isAuthenticated() {
         return !!(this.authToken && this.currentUser);
@@ -211,15 +329,15 @@ const Auth = {
 
     /**
      * Prüft, ob der Benutzer Admin-Rechte hat.
-     * @returns {boolean} - True, wenn der Benutzer ein Admin ist.
+     * @returns {boolean} - Admin oder nicht
      */
     isAdmin() {
         return this.currentUser && this.currentUser.role === 'admin';
     },
 
     /**
-     * Gibt das aktuelle Benutzer-Objekt zurück.
-     * @returns {object|null} - Das Benutzer-Objekt oder null.
+     * Gibt den aktuellen Benutzer zurück.
+     * @returns {object|null} - Benutzerdaten oder null
      */
     getCurrentUser() {
         return this.currentUser;
