@@ -46,6 +46,35 @@ const Workouts = {
         });
         
         Utils.delegate(document.body, 'click', '.add-exercise-btn', this.showExerciseSelectionModal.bind(this));
+
+        // Editing controls for selected exercises
+        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-sets-count', (event) => {
+            const idx = Number(event.target.dataset.index);
+            const val = parseInt(event.target.value, 10) || 0;
+            this.updateExerciseField(idx, 'sets_count', val);
+        });
+        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-reps', (event) => {
+            const idx = Number(event.target.dataset.index);
+            const arr = this.parseCSV(event.target.value);
+            this.updateExerciseField(idx, 'reps', arr);
+        });
+        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-weights', (event) => {
+            const idx = Number(event.target.dataset.index);
+            const arr = this.parseCSV(event.target.value);
+            this.updateExerciseField(idx, 'weights', arr);
+        });
+        Utils.delegate(document.body, 'click', '#selectedExercisesList .ex-remove', (event) => {
+            const idx = Number(event.target.dataset.index);
+            this.removeExercise(idx);
+        });
+        Utils.delegate(document.body, 'click', '#selectedExercisesList .ex-move-up', (event) => {
+            const idx = Number(event.target.dataset.index);
+            this.moveExercise(idx, -1);
+        });
+        Utils.delegate(document.body, 'click', '#selectedExercisesList .ex-move-down', (event) => {
+            const idx = Number(event.target.dataset.index);
+            this.moveExercise(idx, 1);
+        });
     },
 
     /**
@@ -251,12 +280,30 @@ const Workouts = {
             return;
         }
 
-        const listHTML = this.selectedExercises.map(ex => `
-            <div class="selected-exercise-card">
-                <h4>${ex.name || ex.exercise_name}</h4>
+        const listHTML = this.selectedExercises.map((ex, idx) => `
+            <div class="selected-exercise-card" data-index="${idx}">
+                <div class="exercise-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <h4 style="margin:0;">${ex.name || ex.exercise_name}</h4>
+                    <div class="exercise-controls" style="display:flex;gap:6px;">
+                        <button class="btn btn-sm btn-secondary ex-move-up" data-index="${idx}">▲</button>
+                        <button class="btn btn-sm btn-secondary ex-move-down" data-index="${idx}">▼</button>
+                        <button class="btn btn-sm btn-danger ex-remove" data-index="${idx}">Entfernen</button>
+                    </div>
+                </div>
                 <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
-                <div class="exercise-details">
-                    <!-- Hier könnten Details wie Sätze, Wiederholungen, Gewicht angezeigt werden -->
+                <div class="form-row sets-input">
+                    <div class="form-group">
+                        <label>Sätze</label>
+                        <input type="number" class="ex-sets-count" data-index="${idx}" min="1" value="${ex.sets_count || 3}" />
+                    </div>
+                    <div class="form-group">
+                        <label>Wdh. (CSV)</label>
+                        <input type="text" class="ex-reps" data-index="${idx}" value="${(ex.reps || []).join(', ')}" />
+                    </div>
+                    <div class="form-group">
+                        <label>Gewichte (CSV)</label>
+                        <input type="text" class="ex-weights" data-index="${idx}" value="${(ex.weights || []).join(', ')}" />
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -414,7 +461,7 @@ const Workouts = {
         const added = [];
         checkboxes.forEach(cb => {
             const id = Number(cb.getAttribute('data-id'));
-            if (!this.selectedExercises.some(se => se.id === id)) {
+            if (!this.selectedExercises.some(se => (se.id || se.exercise_id) === id)) {
                 const ex = this.exerciseCatalog.find(e => e.id === id);
                 if (ex) {
                     this.selectedExercises.push({
@@ -438,7 +485,7 @@ const Workouts = {
             templateContainer.innerHTML = this.selectedExercises.length
                 ? this.selectedExercises.map(ex => `
                     <div class="selected-exercise-card">
-                        <h4>${ex.name}</h4>
+                        <h4>${ex.name || ex.exercise_name}</h4>
                         <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
                     </div>
                 `).join('')
@@ -451,6 +498,44 @@ const Workouts = {
         } else {
             Utils.showAlert('Keine neuen Übungen ausgewählt', 'info');
         }
+    },
+
+    /**
+     * Aktualisiert ein Feld einer ausgewählten Übung und rendert neu.
+     */
+    updateExerciseField(index, field, value) {
+        if (index < 0 || index >= this.selectedExercises.length) return;
+        this.selectedExercises[index][field] = value;
+        this.updateSelectedExercisesDisplay();
+    },
+
+    /**
+     * Entfernt eine Übung aus der Auswahl.
+     */
+    removeExercise(index) {
+        if (index < 0 || index >= this.selectedExercises.length) return;
+        this.selectedExercises.splice(index, 1);
+        this.updateSelectedExercisesDisplay();
+    },
+
+    /**
+     * Verschiebt eine Übung innerhalb der Auswahl.
+     */
+    moveExercise(index, delta) {
+        const newIndex = index + delta;
+        if (newIndex < 0 || newIndex >= this.selectedExercises.length) return;
+        const tmp = this.selectedExercises[index];
+        this.selectedExercises[index] = this.selectedExercises[newIndex];
+        this.selectedExercises[newIndex] = tmp;
+        this.updateSelectedExercisesDisplay();
+    },
+
+    /**
+     * Parst eine CSV-Zeichenkette in ein Array, entfernt Leerzeichen und leere Einträge.
+     */
+    parseCSV(text) {
+        if (!text) return [];
+        return text.split(',').map(s => s.trim()).filter(Boolean);
     },
 
     /**

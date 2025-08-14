@@ -443,11 +443,32 @@ app.get('/api/workouts', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/workouts', authenticateToken, async (req, res) => {
-  const { name, date, duration_minutes, notes, workout_type, rating } = req.body;
+  const { name, date, duration_minutes, notes, workout_type, rating, exercises } = req.body;
   if (!date) return res.status(400).json({ error: 'Datum ist erforderlich' });
   try {
     const result = await runAsync('INSERT INTO workouts (user_id, name, date, duration_minutes, notes, workout_type, rating) VALUES (?, ?, ?, ?, ?, ?, ?)', [req.user.id, name || null, date, duration_minutes || null, notes || null, workout_type || null, rating || null]);
-    const created = await getAsync('SELECT * FROM workouts WHERE id = ?', [result.lastID]);
+    const workoutId = result.lastID;
+
+    if (Array.isArray(exercises) && exercises.length) {
+      // Insert workout exercises
+      for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i];
+        await runAsync(
+          'INSERT INTO workout_exercises (workout_id, exercise_id, exercise_order, sets_count, reps, weights, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            workoutId,
+            ex.id || ex.exercise_id,
+            i + 1,
+            ex.sets_count || null,
+            ex.reps ? JSON.stringify(ex.reps) : null,
+            ex.weights ? JSON.stringify(ex.weights) : null,
+            ex.notes || null
+          ]
+        );
+      }
+    }
+
+    const created = await getAsync('SELECT * FROM workouts WHERE id = ?', [workoutId]);
     res.status(201).json(created);
   } catch (err) {
     console.error('Workout-Erstellungsfehler:', err);
@@ -457,9 +478,29 @@ app.post('/api/workouts', authenticateToken, async (req, res) => {
 
 app.put('/api/workouts/:id', authenticateToken, async (req, res) => {
   const id = Number(req.params.id);
-  const { name, date, duration_minutes, notes, workout_type, rating } = req.body;
+  const { name, date, duration_minutes, notes, workout_type, rating, exercises } = req.body;
   try {
     await runAsync('UPDATE workouts SET name = ?, date = ?, duration_minutes = ?, notes = ?, workout_type = ?, rating = ? WHERE id = ? AND user_id = ?', [name || null, date, duration_minutes || null, notes || null, workout_type || null, rating || null, id, req.user.id]);
+
+    if (Array.isArray(exercises)) {
+      await runAsync('DELETE FROM workout_exercises WHERE workout_id = ?', [id]);
+      for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i];
+        await runAsync(
+          'INSERT INTO workout_exercises (workout_id, exercise_id, exercise_order, sets_count, reps, weights, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            id,
+            ex.id || ex.exercise_id,
+            i + 1,
+            ex.sets_count || null,
+            ex.reps ? JSON.stringify(ex.reps) : null,
+            ex.weights ? JSON.stringify(ex.weights) : null,
+            ex.notes || null
+          ]
+        );
+      }
+    }
+
     const updated = await getAsync('SELECT * FROM workouts WHERE id = ? AND user_id = ?', [id, req.user.id]);
     res.json(updated || {});
   } catch (err) {
@@ -598,6 +639,21 @@ app.post('/api/admin/backup', authenticateToken, requireAdmin, async (_req, res)
     res.json({ message: 'Backup erstellt', filename: path.basename(backupFile) });
   } catch (err) {
     console.error('Backup Fehler:', err);
+    res.status(500).json({ error: 'Interner Serverfehler' });
+  }
+});
+
+// Dashboard stats
+app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const totalWorkouts = (await getAsync('SELECT COUNT(*) as c FROM workouts WHERE user_id = ?', [userId])).c;
+    const thisWeekWorkouts = (await getAsync('SELECT COUNT(*) as c FROM workouts WHERE user_id = ? AND date >= date("now", "-7 days")', [userId])).c;
+    const totalTime = (await getAsync('SELECT SUM(duration_minutes) as s FROM workouts WHERE user_id = ?', [userId])).s || 0;
+    const recentWorkouts = await allAsync('SELECT * FROM workouts WHERE user_id = ? ORDER BY date DESC LIMIT 5', [userId]);
+    res.json({ totalWorkouts, thisWeekWorkouts, totalTime, recentWorkouts });
+  } catch (err) {
+    console.error('Dashboard stats error:', err);
     res.status(500).json({ error: 'Interner Serverfehler' });
   }
 });
