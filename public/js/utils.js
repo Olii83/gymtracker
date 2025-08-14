@@ -37,8 +37,9 @@ const Utils = {
 
             if (!response.ok) {
                 let errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.error || errorData.message || `API-Fehler: ${response.statusText}`;
-                throw new Error(errorMessage);
+                const baseMsg = errorData.error || errorData.message || `API-Fehler: ${response.statusText}`;
+                const details = errorData.details ? ` (${errorData.details})` : '';
+                throw new Error(baseMsg + details);
             }
 
             return await response.json();
