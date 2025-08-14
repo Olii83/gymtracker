@@ -103,11 +103,11 @@
                     <i data-lucide="user"></i>
                     <span>Profil</span>
                 </button>
-                <button id="navSettingsButton" class="nav-button" onclick="Settings.showModal()">
+                <button id="navSettingsButton" class="nav-button" onclick="App.showSection('settings')">
                     <i data-lucide="settings"></i>
                     <span>Einstellungen</span>
                 </button>
-                <button id="navAdminButton" class="nav-button hidden" onclick="Admin.showDashboard()">
+                <button id="navAdminButton" class="nav-button hidden" onclick="App.showSection('admin'); Admin.loadDashboard()">
                     <i data-lucide="key"></i>
                     <span>Admin</span>
                 </button>
@@ -186,6 +186,55 @@
                 <h2>Statistiken</h2>
                 <p>Hier werden deine Statistiken angezeigt.</p>
             </section>
+
+            <!-- Einstellungen-Sektion -->
+            <section id="settings" class="content-section hidden">
+                <h2>Einstellungen</h2>
+                <form id="settingsForm">
+                    <div class="form-group">
+                        <label for="theme">Theme</label>
+                        <select name="theme" id="theme">
+                            <option value="light">Hell</option>
+                            <option value="dark">Dunkel</option>
+                            <option value="auto">Auto</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="language">Sprache</label>
+                        <select name="language" id="language">
+                            <option value="de">Deutsch</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="units">Einheiten</label>
+                        <select name="units" id="units">
+                            <option value="metric">Metrisch</option>
+                            <option value="imperial">Imperial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="notifications" />
+                            Benachrichtigungen aktivieren
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="autoSave" />
+                            Automatisches Speichern
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="defaultRestTime">Standard-Pausenzeit (Sekunden)</label>
+                        <input type="number" name="defaultRestTime" id="defaultRestTime" min="0" />
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="resetSettingsButton" class="btn btn-warning">Zurücksetzen</button>
+                        <button type="button" id="exportSettingsButton" class="btn btn-info">Exportieren</button>
+                    </div>
+                </form>
+            </section>
             
             <!-- Admin-Sektion -->
             <section id="admin" class="content-section hidden">
@@ -196,7 +245,43 @@
     </div>
     
     <!-- Container für Modals -->
-    <div id="modals-container"></div>
+    <div id="modals-container">
+        <!-- Profil-Modal -->
+        <div id="profileModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Profil</h3>
+                    <button class="close" onclick="Modals.closeModal('profileModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="profileDisplay"></div>
+                    <form id="updateProfileForm" class="form-group">
+                        <label>Benutzername</label>
+                        <input type="text" name="username" />
+                        <label>E-Mail</label>
+                        <input type="email" name="email" />
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Profil speichern</button>
+                        </div>
+                    </form>
+                    <form id="changePasswordForm" class="form-group">
+                        <label>Aktuelles Passwort</label>
+                        <input type="password" name="currentPassword" />
+                        <label>Neues Passwort</label>
+                        <input type="password" name="newPassword" />
+                        <label>Neues Passwort bestätigen</label>
+                        <input type="password" name="confirmPassword" />
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-secondary">Passwort ändern</button>
+                        </div>
+                    </form>
+                    <div class="form-actions">
+                        <button id="exportProfileDataButton" class="btn btn-info" type="button">Profildaten exportieren</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript Dateien laden -->
     <script src="js/utils.js"></script>
@@ -206,6 +291,7 @@
     <script src="js/workouts.js"></script>
     <script src="js/exercises.js"></script>
     <script src="js/templates.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/app.js"></script>
     <script>

@@ -356,7 +356,7 @@ p {
     gap: var(--spacing-sm);
 }
 
-.btn-nav {
+.btn-nav, .nav-button {
     background: none;
     border: none;
     color: var(--text-secondary);
@@ -365,13 +365,13 @@ p {
     transition: color 0.2s ease, background-color 0.2s ease;
 }
 
-.btn-nav:hover {
+.btn-nav:hover, .nav-button:hover {
     color: var(--text-primary);
     background-color: var(--bg-hover);
     border-radius: var(--radius-md);
 }
 
-.btn-nav.active {
+.btn-nav.active, .nav-button.active {
     color: var(--text-primary);
     background-color: var(--bg-tertiary);
 }
