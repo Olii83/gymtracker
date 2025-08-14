@@ -74,7 +74,7 @@
     <div id="appContainer" class="main-container hidden">
         <!-- Hauptnavigation -->
         <nav class="nav">
-            <a href="#" class="nav-logo">Gym Tracker</a>
+            <a href="#" class="nav-logo"><i data-lucide="dumbbell" class="logo-icon"></i><span class="logo-text">Gym Tracker</span></a>
             <div class="nav-buttons">
                 <button id="navDashboardButton" class="nav-button" onclick="App.showSection('dashboard')">
                     <i data-lucide="layout-dashboard"></i> 
@@ -166,19 +166,55 @@
             <!-- Workouts-Sektion -->
             <section id="workouts" class="content-section hidden">
                 <h2>Workouts</h2>
-                <p>Hier werden deine Trainings angezeigt.</p>
+                <div class="controls-row">
+                    <button class="btn btn-success" onclick="App.showSection('newWorkout')">Neues Training</button>
+                </div>
+                <div id="workoutsList" class="workouts-list"></div>
+            </section>
+
+            <!-- Neues Training-Sektion -->
+            <section id="newWorkout" class="content-section hidden">
+                <h2>Neues Training</h2>
+                <form id="newWorkoutForm" class="card">
+                    <div class="form-group">
+                        <label for="workoutName">Name</label>
+                        <input type="text" id="workoutName" name="workoutName" />
+                    </div>
+                    <div class="form-group">
+                        <label for="workoutDate">Datum</label>
+                        <input type="date" id="workoutDate" name="workoutDate" />
+                    </div>
+                    <div class="form-group">
+                        <label for="workoutNotes">Notizen</label>
+                        <textarea id="workoutNotes" name="workoutNotes"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary add-exercise-btn">Übung hinzufügen</button>
+                        <button id="newWorkoutFormButton" type="submit" class="btn btn-primary">Training erstellen</button>
+                    </div>
+                </form>
+                <div class="card">
+                    <h3>Ausgewählte Übungen</h3>
+                    <div id="selectedExercisesList"></div>
+                </div>
             </section>
             
             <!-- Übungen-Sektion -->
             <section id="exercises" class="content-section hidden">
                 <h2>Übungen</h2>
-                <p>Hier werden deine Übungen angezeigt.</p>
+                <div class="controls-row">
+                    <button class="btn btn-primary" onclick="Modals.showModal('newExerciseModal')">Neue Übung</button>
+                </div>
+                <div id="exercisesList" class="table-container"></div>
             </section>
             
             <!-- Vorlagen-Sektion -->
             <section id="templates" class="content-section hidden">
                 <h2>Vorlagen</h2>
-                <p>Hier werden deine Trainingsvorlagen angezeigt.</p>
+                <div class="controls-row">
+                    <button class="btn btn-primary" onclick="Modals.showModal('newTemplateModal')">Neue Vorlage</button>
+                </div>
+                <div id="templatesList"></div>
             </section>
             
             <!-- Statistiken-Sektion -->
@@ -239,7 +275,24 @@
             <!-- Admin-Sektion -->
             <section id="admin" class="content-section hidden">
                 <h2>Admin Dashboard</h2>
-                <p>Verwaltung von Benutzern und System.</p>
+                <div class="controls-row">
+                    <button id="adminBackupButton" class="btn btn-info" type="button">Backup erstellen</button>
+                    <button id="adminMaintenanceButton" class="btn btn-warning" type="button">Wartung</button>
+                </div>
+                <div id="adminStats" class="stats-grid"></div>
+                <div class="table-container card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Benutzername</th>
+                                <th>E-Mail</th>
+                                <th>Rolle</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersTableBody"></tbody>
+                    </table>
+                </div>
             </section>
         </main>
     </div>
@@ -278,6 +331,118 @@
                     <div class="form-actions">
                         <button id="exportProfileDataButton" class="btn btn-info" type="button">Profildaten exportieren</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Neue Übung Modal -->
+        <div id="newExerciseModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="newExerciseModalTitle" class="modal-title">Neue Übung erstellen</h3>
+                    <button class="close" onclick="Modals.closeModal('newExerciseModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="newExerciseForm">
+                        <div class="form-group">
+                            <label for="exerciseName">Name</label>
+                            <input type="text" id="exerciseName" name="exerciseName" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="exerciseCategory">Kategorie</label>
+                            <select id="exerciseCategory" name="exerciseCategory">
+                                <option value="Krafttraining">Krafttraining</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Stretching">Stretching</option>
+                                <option value="Functional">Functional</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="exerciseMuscleGroup">Muskelgruppe</label>
+                            <select id="exerciseMuscleGroup" name="exerciseMuscleGroup">
+                                <option value="Brust">Brust</option>
+                                <option value="Rücken">Rücken</option>
+                                <option value="Schultern">Schultern</option>
+                                <option value="Arme">Arme</option>
+                                <option value="Beine">Beine</option>
+                                <option value="Core">Core</option>
+                                <option value="Cardio">Cardio</option>
+                                <option value="Ganzkörper">Ganzkörper</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="exerciseDescription">Beschreibung</label>
+                            <textarea id="exerciseDescription" name="exerciseDescription"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button id="newExerciseFormButton" type="submit" class="btn btn-primary">Erstellen</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Neue Vorlage Modal -->
+        <div id="newTemplateModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Neue Vorlage erstellen</h3>
+                    <button class="close" onclick="Modals.closeModal('newTemplateModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="newTemplateForm">
+                        <div class="form-group">
+                            <label for="templateName">Name</label>
+                            <input type="text" id="templateName" name="templateName" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="templateDescription">Beschreibung</label>
+                            <textarea id="templateDescription" name="templateDescription"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button id="newTemplateFormButton" type="submit" class="btn btn-primary">Erstellen</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Passwort zurücksetzen Modal -->
+        <div id="adminPasswordResetModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Passwort zurücksetzen</h3>
+                    <button class="close" onclick="Modals.closeModal('adminPasswordResetModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="adminPasswordResetForm" data-user-id="">
+                        <div class="form-group">
+                            <label for="newPassword">Neues Passwort</label>
+                            <input type="password" id="newPassword" name="newPassword" required />
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Zurücksetzen</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Benutzer löschen Modal -->
+        <div id="deleteUserModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Benutzer löschen</h3>
+                    <button class="close" onclick="Modals.closeModal('deleteUserModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?</p>
+                    <form id="deleteUserForm" data-user-id="">
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-danger">Löschen</button>
+                            <button type="button" class="btn btn-secondary" onclick="Modals.closeModal('deleteUserModal')">Abbrechen</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
