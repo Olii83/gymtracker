@@ -446,33 +446,37 @@ app.post('/api/workouts', authenticateToken, async (req, res) => {
   const { name, date, duration_minutes, notes, workout_type, rating, exercises } = req.body;
   if (!date) return res.status(400).json({ error: 'Datum ist erforderlich' });
   try {
+    await runAsync('BEGIN');
     const result = await runAsync('INSERT INTO workouts (user_id, name, date, duration_minutes, notes, workout_type, rating) VALUES (?, ?, ?, ?, ?, ?, ?)', [req.user.id, name || null, date, duration_minutes || null, notes || null, workout_type || null, rating || null]);
     const workoutId = result.lastID;
 
     if (Array.isArray(exercises) && exercises.length) {
-      // Insert workout exercises
       for (let i = 0; i < exercises.length; i++) {
         const ex = exercises[i];
+        const exId = Number(ex.id || ex.exercise_id);
+        if (!Number.isInteger(exId)) continue;
         await runAsync(
           'INSERT INTO workout_exercises (workout_id, exercise_id, exercise_order, sets_count, reps, weights, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
             workoutId,
-            ex.id || ex.exercise_id,
+            exId,
             i + 1,
             ex.sets_count || null,
-            ex.reps ? JSON.stringify(ex.reps) : null,
-            ex.weights ? JSON.stringify(ex.weights) : null,
+            Array.isArray(ex.reps) ? JSON.stringify(ex.reps) : null,
+            Array.isArray(ex.weights) ? JSON.stringify(ex.weights) : null,
             ex.notes || null
           ]
         );
       }
     }
 
+    await runAsync('COMMIT');
     const created = await getAsync('SELECT * FROM workouts WHERE id = ?', [workoutId]);
     res.status(201).json(created);
   } catch (err) {
     console.error('Workout-Erstellungsfehler:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    try { await runAsync('ROLLBACK'); } catch (e) {}
+    res.status(500).json({ error: 'Interner Serverfehler', details: String(err && err.message || err) });
   }
 });
 
@@ -480,32 +484,37 @@ app.put('/api/workouts/:id', authenticateToken, async (req, res) => {
   const id = Number(req.params.id);
   const { name, date, duration_minutes, notes, workout_type, rating, exercises } = req.body;
   try {
+    await runAsync('BEGIN');
     await runAsync('UPDATE workouts SET name = ?, date = ?, duration_minutes = ?, notes = ?, workout_type = ?, rating = ? WHERE id = ? AND user_id = ?', [name || null, date, duration_minutes || null, notes || null, workout_type || null, rating || null, id, req.user.id]);
 
     if (Array.isArray(exercises)) {
       await runAsync('DELETE FROM workout_exercises WHERE workout_id = ?', [id]);
       for (let i = 0; i < exercises.length; i++) {
         const ex = exercises[i];
+        const exId = Number(ex.id || ex.exercise_id);
+        if (!Number.isInteger(exId)) continue;
         await runAsync(
           'INSERT INTO workout_exercises (workout_id, exercise_id, exercise_order, sets_count, reps, weights, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
             id,
-            ex.id || ex.exercise_id,
+            exId,
             i + 1,
             ex.sets_count || null,
-            ex.reps ? JSON.stringify(ex.reps) : null,
-            ex.weights ? JSON.stringify(ex.weights) : null,
+            Array.isArray(ex.reps) ? JSON.stringify(ex.reps) : null,
+            Array.isArray(ex.weights) ? JSON.stringify(ex.weights) : null,
             ex.notes || null
           ]
         );
       }
     }
 
+    await runAsync('COMMIT');
     const updated = await getAsync('SELECT * FROM workouts WHERE id = ? AND user_id = ?', [id, req.user.id]);
     res.json(updated || {});
   } catch (err) {
     console.error('Workout-Update-Fehler:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    try { await runAsync('ROLLBACK'); } catch (e) {}
+    res.status(500).json({ error: 'Interner Serverfehler', details: String(err && err.message || err) });
   }
 });
 

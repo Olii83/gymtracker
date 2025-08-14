@@ -49,15 +49,15 @@ const Workouts = {
             const val = parseInt(event.target.value, 10) || 0;
             this.updateExerciseField(idx, 'sets_count', val);
         });
-        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-reps', (event) => {
+        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-set-rep', (event) => {
             const idx = Number(event.target.dataset.index);
-            const arr = this.parseCSV(event.target.value);
-            this.updateExerciseField(idx, 'reps', arr);
+            const set = Number(event.target.dataset.set);
+            this.setSetValue(idx, set, 'reps', event.target.value);
         });
-        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-weights', (event) => {
+        Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-set-weight', (event) => {
             const idx = Number(event.target.dataset.index);
-            const arr = this.parseCSV(event.target.value);
-            this.updateExerciseField(idx, 'weights', arr);
+            const set = Number(event.target.dataset.set);
+            this.setSetValue(idx, set, 'weights', event.target.value);
         });
         Utils.delegate(document.body, 'click', '#selectedExercisesList .ex-remove', (event) => {
             const idx = Number(event.target.dataset.index);
@@ -276,35 +276,54 @@ const Workouts = {
             return;
         }
 
-        const listHTML = this.selectedExercises.map((ex, idx) => `
-            <div class="selected-exercise-card" data-index="${idx}">
-                <div class="exercise-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                    <h4 style="margin:0;">${ex.name || ex.exercise_name}</h4>
-                    <div class="exercise-controls" style="display:flex;gap:6px;">
-                        <button class="btn btn-sm btn-secondary ex-move-up" data-index="${idx}">▲</button>
-                        <button class="btn btn-sm btn-secondary ex-move-down" data-index="${idx}">▼</button>
-                        <button class="btn btn-sm btn-danger ex-remove" data-index="${idx}">Entfernen</button>
+        let html = '';
+        this.selectedExercises.forEach((ex, idx) => {
+            const sets = Number(ex.sets_count) || 3;
+            if (!Array.isArray(ex.reps)) ex.reps = Array.from({ length: sets }, () => '');
+            if (!Array.isArray(ex.weights)) ex.weights = Array.from({ length: sets }, () => '');
+            // Trim or pad arrays to match sets
+            ex.reps = ex.reps.slice(0, sets).concat(Array(Math.max(0, sets - ex.reps.length)).fill(''));
+            ex.weights = ex.weights.slice(0, sets).concat(Array(Math.max(0, sets - ex.weights.length)).fill(''));
+            let rows = '';
+            for (let s = 0; s < sets; s++) {
+                rows += `
+                    <div class="form-row" style="gap:8px;align-items:center;">
+                        <div class="form-group" style="flex:0 0 80px;">
+                            <label>Satz ${s + 1}</label>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Wdh.</label>
+                            <input type="number" class="ex-set-rep" data-index="${idx}" data-set="${s}" min="0" value="${ex.reps[s] || ''}" />
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Gewicht</label>
+                            <input type="number" class="ex-set-weight" data-index="${idx}" data-set="${s}" step="0.01" min="0" value="${ex.weights[s] || ''}" />
+                        </div>
+                    </div>`;
+            }
+            html += `
+                <div class="selected-exercise-card" data-index="${idx}">
+                    <div class="exercise-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <h4 style="margin:0;">${ex.name || ex.exercise_name}</h4>
+                        <div class="exercise-controls" style="display:flex;gap:6px;">
+                            <button class="btn btn-sm btn-secondary ex-move-up" data-index="${idx}">▲</button>
+                            <button class="btn btn-sm btn-secondary ex-move-down" data-index="${idx}">▼</button>
+                            <button class="btn btn-sm btn-danger ex-remove" data-index="${idx}">Entfernen</button>
+                        </div>
                     </div>
-                </div>
-                <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
-                <div class="form-row sets-input">
-                    <div class="form-group">
-                        <label>Sätze</label>
-                        <input type="number" class="ex-sets-count" data-index="${idx}" min="1" value="${ex.sets_count || 3}" />
+                    <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
+                    <div class="form-row sets-input">
+                        <div class="form-group">
+                            <label>Sätze</label>
+                            <input type="number" class="ex-sets-count" data-index="${idx}" min="1" value="${sets}" />
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Wdh. (CSV)</label>
-                        <input type="text" class="ex-reps" data-index="${idx}" value="${(ex.reps || []).join(', ')}" />
+                    <div class="card" style="margin-top:8px;">
+                        ${rows}
                     </div>
-                    <div class="form-group">
-                        <label>Gewichte (CSV)</label>
-                        <input type="text" class="ex-weights" data-index="${idx}" value="${(ex.weights || []).join(', ')}" />
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
-        container.innerHTML = listHTML;
+                </div>`;
+        });
+        container.innerHTML = html;
     },
 
     /**
@@ -502,6 +521,7 @@ const Workouts = {
     updateExerciseField(index, field, value) {
         if (index < 0 || index >= this.selectedExercises.length) return;
         this.selectedExercises[index][field] = value;
+        if (field === 'sets_count') this.ensureSetsSize(index);
         this.updateSelectedExercisesDisplay();
     },
 
@@ -532,6 +552,32 @@ const Workouts = {
     parseCSV(text) {
         if (!text) return [];
         return text.split(',').map(s => s.trim()).filter(Boolean);
+    },
+
+    /**
+     * Stellt sicher, dass reps/weights Arrays die Länge von sets_count haben
+     */
+    ensureSetsSize(index) {
+        const ex = this.selectedExercises[index];
+        const sets = Number(ex.sets_count) || 0;
+        if (!Array.isArray(ex.reps)) ex.reps = [];
+        if (!Array.isArray(ex.weights)) ex.weights = [];
+        ex.reps = ex.reps.slice(0, sets).concat(Array(Math.max(0, sets - ex.reps.length)).fill(''));
+        ex.weights = ex.weights.slice(0, sets).concat(Array(Math.max(0, sets - ex.weights.length)).fill(''));
+    },
+
+    /**
+     * Setzt den Wert eines Satzes (rep/weight)
+     */
+    setSetValue(index, setIndex, type, value) {
+        const ex = this.selectedExercises[index];
+        if (!ex) return;
+        const sets = Number(ex.sets_count) || 0;
+        if (!Array.isArray(ex[type])) ex[type] = [];
+        while (ex[type].length < sets) ex[type].push('');
+        if (setIndex >= 0 && setIndex < sets) {
+            ex[type][setIndex] = value;
+        }
     },
 
     /**
