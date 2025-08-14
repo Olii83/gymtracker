@@ -34,12 +34,12 @@ const Exercises = {
 
         // Event-Delegation für dynamisch erstellte Buttons (Bearbeiten/Löschen)
         Utils.delegate(document.body, 'click', '.edit-exercise-btn', (event) => {
-            const exerciseId = event.target.closest('button').dataset.id;
+            const exerciseId = Number(event.target.closest('button').dataset.id);
             this.startEdit(exerciseId);
         });
 
         Utils.delegate(document.body, 'click', '.delete-exercise-btn', (event) => {
-            const exerciseId = event.target.closest('button').dataset.id;
+            const exerciseId = Number(event.target.closest('button').dataset.id);
             this.handleDeleteExercise(exerciseId);
         });
     },

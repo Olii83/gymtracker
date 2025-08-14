@@ -7,7 +7,7 @@ const App = {
     dashboardData: null,         // Gecachte Daten für das Dashboard
     
     // Eine Liste aller verfügbaren Sektionen, um die Navigation zu validieren
-    validSections: new Set(['dashboard', 'workouts', 'newWorkout', 'exercises', 'admin', 'profile', 'settings']),
+    validSections: new Set(['dashboard', 'workouts', 'exercises', 'templates', 'stats', 'admin', 'profile', 'settings']),
 
     /**
      * Initialisiert die Anwendung und alle Untermodule.
@@ -97,7 +97,7 @@ const App = {
         }
         
         // Verstecke alle Sektionen
-        document.querySelectorAll('.app-section').forEach(section => {
+        document.querySelectorAll('.content-section').forEach(section => {
             section.classList.add('hidden');
         });
         

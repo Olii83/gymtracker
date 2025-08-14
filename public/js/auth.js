@@ -64,10 +64,7 @@ const Auth = {
         if (appContainer) {
             appContainer.classList.add('hidden');
         }
-        if (typeof App !== 'undefined' && App.showSection) {
-            App.showSection('login');
-        }
-        this.updateNavUI(); // UI aktualisieren
+        this.updateNavUI();
     },
 
     /**

@@ -13,6 +13,7 @@ const Modals = {
     init() {
         console.log('Modals: Initialisiere Modal-System...');
         this.createModalAnimations();
+        this.createConfirmationModal();
         this.setupGlobalListeners();
         console.log('Modals: System erfolgreich initialisiert');
     },

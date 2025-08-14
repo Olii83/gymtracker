@@ -30,17 +30,17 @@ const Workouts = {
         
         // Event-Delegation für dynamisch erstellte Buttons
         Utils.delegate(document.body, 'click', '.edit-workout-btn', (event) => {
-            const workoutId = event.target.closest('button').dataset.id;
+            const workoutId = Number(event.target.closest('button').dataset.id);
             this.startEdit(workoutId);
         });
 
         Utils.delegate(document.body, 'click', '.delete-workout-btn', (event) => {
-            const workoutId = event.target.closest('button').dataset.id;
+            const workoutId = Number(event.target.closest('button').dataset.id);
             this.handleDeleteWorkout(workoutId);
         });
         
         Utils.delegate(document.body, 'click', '.duplicate-workout-btn', (event) => {
-            const workoutId = event.target.closest('button').dataset.id;
+            const workoutId = Number(event.target.closest('button').dataset.id);
             this.duplicateWorkout(workoutId);
         });
         

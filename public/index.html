@@ -200,19 +200,18 @@
 
     <!-- JavaScript Dateien laden -->
     <script src="js/utils.js"></script>
+    <script src="js/modals.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/workouts.js"></script>
     <script src="js/exercises.js"></script>
+    <script src="js/templates.js"></script>
     <script src="js/admin.js"></script>
-    <script src="js/modals.js"></script>
     <script src="js/app.js"></script>
     <script>
         // Initialisiere Lucide Icons
         document.addEventListener('DOMContentLoaded', () => {
-             // Warten bis DOM vollständig geladen ist
             console.log('DOM geladen, initialisiere Gym Tracker...');
-            // Initialisiere die Anwendung nach den Icons
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }

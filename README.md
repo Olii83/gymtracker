@@ -120,7 +120,7 @@ cd /var/www/gym-tracker
 sudo npm install --production
 
 # 5. Konfiguration erstellen
-sudo cp .env.example .env
+sudo cp env_example .env
 sudo nano .env  # JWT_SECRET und andere Einstellungen anpassen
 
 # 6. Datenbank initialisieren

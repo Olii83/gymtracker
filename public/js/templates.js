@@ -24,12 +24,12 @@ const Templates = {
 
         // Event-Delegation für dynamisch erstellte Buttons (Anwenden/Löschen)
         Utils.delegate(document.body, 'click', '.apply-template-btn', (event) => {
-            const templateId = event.target.closest('button').dataset.id;
+            const templateId = Number(event.target.closest('button').dataset.id);
             this.applyTemplate(templateId);
         });
 
         Utils.delegate(document.body, 'click', '.delete-template-btn', (event) => {
-            const templateId = event.target.closest('button').dataset.id;
+            const templateId = Number(event.target.closest('button').dataset.id);
             this.handleDeleteTemplate(templateId);
         });
     },

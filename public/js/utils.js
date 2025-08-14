@@ -14,9 +14,10 @@ const Utils = {
      */
     async apiCall(endpoint, options = {}) {
         const url = `${this.API_BASE}${endpoint}`;
+        const token = (typeof Auth !== 'undefined' && Auth && Auth.authToken) ? Auth.authToken : null;
         const defaultHeaders = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Auth.authToken}`
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         };
 
         const config = {
@@ -30,14 +31,13 @@ const Utils = {
         try {
             const response = await fetch(url, config);
 
-            // Spezialfall für DELETE-Anfragen, die keinen Body zurückgeben
             if (response.status === 204) {
                 return {};
             }
 
             if (!response.ok) {
                 let errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.message || `API-Fehler: ${response.statusText}`;
+                const errorMessage = errorData.error || errorData.message || `API-Fehler: ${response.statusText}`;
                 throw new Error(errorMessage);
             }
 
