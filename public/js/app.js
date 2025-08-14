@@ -33,6 +33,7 @@ const App = {
         
         // Richte Navigation und URL-Behandlung ein
         this.setupNavigation();
+        this.setupDashboardClicks();
         
         console.log('App: Gym Tracker erfolgreich initialisiert');
     },
@@ -73,10 +74,31 @@ const App = {
             }
         });
     },
-
+    
     /**
-     * Behandelt URL-Änderungen und navigiert zur entsprechenden Sektion.
-     */
+    * Macht Dashboard-Karten klickbar und navigiert zu passenden Sektionen.
+    */
+    setupDashboardClicks() {
+    // Cursor-Hinweis setzen
+    document.querySelectorAll('#dashboard .stat-card').forEach(card => {
+    card.style.cursor = 'pointer';
+    });
+    // Delegierter Click-Handler
+    Utils.delegate(document, 'click', '#dashboard .stat-card', (event) => {
+    const card = event.target.closest('.stat-card');
+    if (!card) return;
+    const cards = Array.from(document.querySelectorAll('#dashboard .stat-card'));
+    const idx = cards.indexOf(card);
+    let target = 'workouts';
+    if (idx === 2) target = 'stats';
+    else if (idx === 3) target = 'exercises';
+    App.showSection(target);
+    });
+    },
+    
+    /**
+    * Behandelt URL-Änderungen und navigiert zur entsprechenden Sektion.
+    */
     handleUrlChange() {
         const hash = window.location.hash.substring(1);
         if (hash) {

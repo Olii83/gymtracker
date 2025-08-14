@@ -22,12 +22,8 @@ const Workouts = {
      * Richtet Event-Listener für das Modul ein.
      */
     setupEventListeners() {
-        document.addEventListener('DOMContentLoaded', () => {
-            const newWorkoutForm = document.getElementById('newWorkoutForm');
-            if (newWorkoutForm) {
-                newWorkoutForm.addEventListener('submit', this.handleCreateWorkout.bind(this));
-            }
-        });
+        // Use event delegation so handler is bound regardless of DOMContentLoaded timing
+        Utils.delegate(document, 'submit', '#newWorkoutForm', this.handleCreateWorkout.bind(this));
         
         // Event-Delegation für dynamisch erstellte Buttons
         Utils.delegate(document.body, 'click', '.edit-workout-btn', (event) => {
