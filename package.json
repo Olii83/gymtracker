@@ -40,9 +40,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Olii83/gymtracker.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Olii83/gymtracker/issues"
-  },
-  "homepage": "https://github.com/Olii83/gymtracker#readme"
+  }
 }

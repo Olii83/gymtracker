@@ -1,23 +1,29 @@
-// Hauptanwendungsmodul für Gym Tracker
+// Hauptanwendungsmodul für Gym Tracker - Überarbeitete Version
+// Dieses Modul steuert den globalen Anwendungsfluss, die Navigation und den Zustand.
 
 const App = {
     // Anwendungszustand
-    currentSection: 'dashboard',
-    dashboardData: null,
+    currentSection: 'dashboard', // Die aktuell angezeigte Sektion
+    dashboardData: null,         // Gecachte Daten für das Dashboard
+    
+    // Eine Liste aller verfügbaren Sektionen, um die Navigation zu validieren
+    validSections: new Set(['dashboard', 'workouts', 'newWorkout', 'exercises', 'admin', 'profile', 'settings']),
 
     /**
-     * Initialisiert die Anwendung
+     * Initialisiert die Anwendung und alle Untermodule.
      */
     init() {
         console.log('App: Initialisiere Gym Tracker...');
         
-        // Alle Module initialisieren
+        // Initialisiere alle Module. Verwende typeof, um Fehler zu vermeiden, falls ein Modul fehlt.
         Auth.init();
         if (typeof Workouts !== 'undefined') Workouts.init();
         if (typeof Exercises !== 'undefined') Exercises.init();
         if (typeof Admin !== 'undefined') Admin.init();
         if (typeof Profile !== 'undefined') Profile.init();
         if (typeof Modals !== 'undefined') Modals.init();
+        if (typeof Settings !== 'undefined') Settings.init();
+        if (typeof Templates !== 'undefined') Templates.init();
 
         // Heutiges Datum als Standard für neue Trainings setzen
         const workoutDateInput = document.getElementById('workoutDate');
@@ -25,368 +31,154 @@ const App = {
             workoutDateInput.value = Utils.getCurrentDate();
         }
         
-        // URL-Behandlung und Navigation einrichten
+        // Richte Navigation und URL-Behandlung ein
         this.setupNavigation();
         
         console.log('App: Gym Tracker erfolgreich initialisiert');
     },
 
     /**
-     * Richtet Navigation und URL-Behandlung ein
+     * Richtet die Navigation und URL-Behandlung ein.
      */
     setupNavigation() {
-        // Browser-Zurück/Vorwärts-Buttons behandeln
+        // Event-Listener für die Browser-Zurück/Vorwärts-Buttons
         window.addEventListener('popstate', (event) => {
             this.handleUrlChange();
         });
         
-        // Initial-URL bei Seitenload behandeln
+        // Behandle die initiale URL beim Laden der Seite
         this.handleUrlChange();
         
-        // Dropdown-Funktionalität einrichten
+        // Richte Dropdown-Funktionalität ein (aus Utils ausgelagert)
         this.setupDropdowns();
     },
-
+    
     /**
-     * Richtet Dropdown-Menü-Funktionalität ein
+     * Richte die Dropdown-Funktionalität für die Hauptnavigation ein.
      */
     setupDropdowns() {
-        document.addEventListener('click', (e) => {
-            // Dropdown öffnen/schließen bei Klick auf Toggle-Button
-            if (e.target.closest('.dropdown-toggle')) {
-                e.preventDefault();
-                
-                // Alle anderen Dropdowns schließen
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    if (!menu.closest('.nav-dropdown').contains(e.target)) {
-                        menu.classList.remove('show');
-                    }
-                });
-                
-                // Aktuelles Dropdown umschalten
-                const dropdown = e.target.closest('.nav-dropdown');
-                const menu = dropdown.querySelector('.dropdown-menu');
-                menu.classList.toggle('show');
-                
-                console.log('App: Dropdown umgeschaltet');
-            } else {
-                // Alle Dropdowns schließen bei Klick außerhalb
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.classList.remove('show');
+        Utils.delegate(document, 'click', '.dropdown-toggle', (event) => {
+            const dropdown = event.target.closest('.dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+            }
+        });
+        
+        // Schließe Dropdowns bei Klick außerhalb
+        window.addEventListener('click', (event) => {
+            if (!event.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                    dropdown.classList.remove('active');
                 });
             }
         });
     },
 
     /**
-     * Behandelt URL-Änderungen (Browser-Navigation)
+     * Behandelt URL-Änderungen und navigiert zur entsprechenden Sektion.
      */
     handleUrlChange() {
-        const hash = window.location.hash.slice(1); // # entfernen
-        const sectionFromUrl = hash || 'dashboard';
-        
-        // Nur Sektion wechseln wenn Benutzer authentifiziert ist
-        if (Auth.isAuthenticated()) {
-            if (this.isValidSection(sectionFromUrl)) {
-                this.showSection(sectionFromUrl, false); // false = URL nicht aktualisieren
-            } else {
-                // Ungültige Sektion, zu Dashboard weiterleiten
-                this.showSection('dashboard');
-            }
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            this.showSection(hash);
+        } else {
+            this.showSection('dashboard');
         }
     },
-
+    
     /**
-     * Prüft ob Sektionsname gültig ist
-     * @param {string} sectionName - Name der Sektion
-     * @returns {boolean} - Gültig oder nicht
+     * Navigiert zur gewünschten Sektion und aktualisiert die URL.
+     * @param {string} sectionName - Der Name der Sektion, zu der navigiert werden soll.
      */
-    isValidSection(sectionName) {
-        const validSections = ['dashboard', 'workouts', 'exercises', 'newWorkout', 'admin'];
-        return validSections.includes(sectionName);
-    },
-
-    /**
-     * Zeigt eine bestimmte Sektion mit URL-Verwaltung
-     * @param {string} sectionName - Name der anzuzeigenden Sektion
-     * @param {boolean} updateUrl - Ob URL aktualisiert werden soll
-     */
-    showSection(sectionName, updateUrl = true) {
-        console.log('App: Wechsle zu Sektion:', sectionName);
-        
-        // URL aktualisieren wenn angefordert
-        if (updateUrl) {
-            const newUrl = window.location.pathname + '#' + sectionName;
-            history.pushState({ section: sectionName }, '', newUrl);
+    showSection(sectionName) {
+        if (!this.isValidSection(sectionName)) {
+            console.error('App: Ungültige Sektion:', sectionName);
+            sectionName = 'dashboard';
         }
         
-        // Alle Sektionen verstecken
-        document.querySelectorAll('.section').forEach(section => {
+        // Verstecke alle Sektionen
+        document.querySelectorAll('.app-section').forEach(section => {
             section.classList.add('hidden');
         });
         
-        // Navigations-Button-Zustände aktualisieren
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        const activeBtn = document.querySelector(`[data-section="${sectionName}"]`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
-        
-        // Angeforderte Sektion anzeigen
-        const targetSection = document.getElementById(sectionName);
-        if (targetSection) {
-            targetSection.classList.remove('hidden');
+        // Zeige die ausgewählte Sektion
+        const section = document.getElementById(sectionName);
+        if (section) {
+            section.classList.remove('hidden');
             this.currentSection = sectionName;
             
-            // Sektions-spezifische Daten laden
+            // Setze die URL, ohne die Seite neu zu laden
+            history.pushState(null, '', `#${sectionName}`);
+            
+            // Lade Daten für die spezifischen Sektionen bei Bedarf
             this.loadSectionData(sectionName);
-        } else {
-            console.error(`App: Sektion '${sectionName}' nicht gefunden`);
         }
     },
-
+    
     /**
-     * Lädt Daten für eine bestimmte Sektion
-     * @param {string} sectionName - Name der Sektion
+     * Läd Daten, die für die aktuelle Sektion benötigt werden.
+     * @param {string} sectionName - Der Name der aktuellen Sektion.
      */
     loadSectionData(sectionName) {
-        switch(sectionName) {
-            case 'dashboard':
-                this.loadDashboard();
-                break;
+        switch (sectionName) {
             case 'workouts':
-                if (typeof Workouts !== 'undefined') Workouts.loadAll();
+                Workouts.loadAll();
                 break;
             case 'exercises':
-                if (typeof Exercises !== 'undefined') Exercises.loadList();
-                break;
-            case 'newWorkout':
-                // Formular zurücksetzen wenn nicht im Bearbeitungsmodus
-                if (typeof Workouts !== 'undefined' && !Workouts.isEditing) {
-                    Workouts.resetForm();
-                }
-                // Übungen für Auswahl laden
-                if (typeof Exercises !== 'undefined') Exercises.loadAll();
+                Exercises.loadAll();
                 break;
             case 'admin':
-                if (Auth.isAdmin()) {
-                    if (typeof Admin !== 'undefined') Admin.loadDashboard();
-                } else {
-                    Utils.showAlert('Keine Berechtigung für Admin-Bereich', 'error');
-                    this.showSection('dashboard');
-                }
+                Admin.loadDashboard();
+                break;
+            case 'profile':
+                Profile.loadProfile();
+                break;
+            case 'templates':
+                Templates.loadAll();
                 break;
             default:
-                console.log(`App: Kein spezifischer Loader für Sektion: ${sectionName}`);
+                // Lade nichts oder Dashboard-Daten
+                break;
         }
     },
 
     /**
-     * Lädt Dashboard-Daten
+     * Überprüft, ob der Sektionsname gültig ist.
+     * @param {string} sectionName - Der zu prüfende Sektionsname.
+     * @returns {boolean} - True, wenn der Name gültig ist.
      */
-    async loadDashboard() {
-        try {
-            const stats = await Utils.apiCall('/dashboard/stats');
-            
-            if (stats) {
-                this.dashboardData = stats;
-                this.displayDashboardStats(stats);
-                this.displayRecentWorkouts(stats.recentWorkouts || []);
-            }
-        } catch (error) {
-            console.error('App: Dashboard-Ladefehler:', error);
-            Utils.showAlert('Fehler beim Laden der Dashboard-Daten: ' + error.message, 'error');
-        }
+    isValidSection(sectionName) {
+        return this.validSections.has(sectionName);
     },
 
     /**
-     * Zeigt Dashboard-Statistiken an
-     * @param {object} stats - Statistik-Daten
-     */
-    displayDashboardStats(stats) {
-        const elements = {
-            totalWorkouts: document.getElementById('totalWorkouts'),
-            thisWeekWorkouts: document.getElementById('thisWeekWorkouts'),
-            totalTime: document.getElementById('totalTime')
-        };
-
-        // Statistiken in entsprechende Elemente einfügen
-        if (elements.totalWorkouts) {
-            elements.totalWorkouts.textContent = stats.totalWorkouts || 0;
-        }
-        
-        if (elements.thisWeekWorkouts) {
-            elements.thisWeekWorkouts.textContent = stats.thisWeekWorkouts || 0;
-        }
-        
-        if (elements.totalTime) {
-            elements.totalTime.textContent = stats.totalTime || 0;
-        }
-    },
-
-    /**
-     * Zeigt letzte Trainings im Dashboard an
-     * @param {Array} workouts - Array der letzten Trainings
-     */
-    displayRecentWorkouts(workouts) {
-        const container = document.getElementById('recentWorkouts');
-        if (!container) return;
-        
-        if (workouts.length === 0) {
-            // Leerzustand anzeigen
-            container.innerHTML = `
-                <div class="empty-state">
-                    <h3>Noch keine Trainings vorhanden</h3>
-                    <p>Erstellen Sie Ihr erstes Training, um loszulegen!</p>
-                    <button class="btn btn-success" onclick="App.showSection('newWorkout')">
-                        Erstes Training erstellen
-                    </button>
-                </div>
-            `;
-            return;
-        }
-
-        // Trainings-Liste generieren
-        container.innerHTML = workouts.map(workout => `
-            <div class="workout-item" onclick="Workouts.showDetail(${workout.id})">
-                <div class="workout-date">${Utils.formatDate(workout.date)}</div>
-                <div class="workout-name">${Utils.sanitizeInput(workout.name)}</div>
-                ${workout.notes ? `
-                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 5px;">
-                        ${Utils.sanitizeInput(workout.notes)}
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
-    },
-
-    /**
-     * Aktualisiert die aktuelle Sektion
-     */
-    refresh() {
-        this.loadSectionData(this.currentSection);
-    },
-
-    /**
-     * Löscht zwischengespeicherte Daten
-     */
-    clearCache() {
-        this.dashboardData = null;
-        if (typeof Workouts !== 'undefined') Workouts.clearCache();
-        if (typeof Exercises !== 'undefined') Exercises.clearCache();
-        if (typeof Admin !== 'undefined') Admin.clearCache();
-    },
-
-    /**
-     * Gibt Dashboard-Daten zurück
-     * @returns {object|null} - Dashboard-Daten oder null
-     */
-    getDashboardData() {
-        return this.dashboardData;
-    },
-
-    /**
-     * Zeigt Ladezustand in einem Container an
-     * @param {string} containerId - ID des Containers
+     * Zeigt einen Lade-Indikator an.
+     * @param {string} containerId - Die ID des Containers, in dem der Lade-Indikator angezeigt werden soll.
      */
     showLoading(containerId) {
         const container = document.getElementById(containerId);
         if (container) {
-            container.innerHTML = `
-                <div class="loading-state">
-                    <div class="loading"></div>
-                    <p>Lädt...</p>
-                </div>
-            `;
+            container.innerHTML = '<div class="loading-spinner"></div>';
         }
     },
-
+    
     /**
-     * Zeigt Leerzustand mit optionalem Aktions-Button an
-     * @param {string} containerId - ID des Containers
-     * @param {string} message - Nachricht
-     * @param {object|null} actionButton - Button-Konfiguration {text, action}
+     * Entfernt einen Lade-Indikator.
+     * @param {string} containerId - Die ID des Containers.
      */
-    showEmptyState(containerId, message, actionButton = null) {
+    hideLoading(containerId) {
         const container = document.getElementById(containerId);
         if (container) {
-            let html = `
-                <div class="empty-state">
-                    <h3>${message}</h3>
-            `;
-            
-            if (actionButton) {
-                html += `
-                    <button class="btn btn-success" onclick="${actionButton.action}">
-                        ${actionButton.text}
-                    </button>
-                `;
+            const spinner = container.querySelector('.loading-spinner');
+            if (spinner) {
+                spinner.remove();
             }
-            
-            html += '</div>';
-            container.innerHTML = html;
         }
     },
 
     /**
-     * Exportiert Benutzerdaten
-     */
-    async exportData() {
-        try {
-            Utils.showAlert('Exportiere Daten...', 'info');
-            
-            // Alle relevanten Daten parallel laden
-            const [workouts, exercises, profile] = await Promise.all([
-                Utils.apiCall('/workouts'),
-                Utils.apiCall('/exercises'),
-                Utils.apiCall('/user/profile')
-            ]);
-            
-            // Export-Objekt zusammenstellen
-            const exportData = {
-                export_date: new Date().toISOString(),
-                user: {
-                    username: profile.username,
-                    email: profile.email,
-                    first_name: profile.first_name,
-                    last_name: profile.last_name,
-                    created_at: profile.created_at
-                },
-                workouts: workouts || [],
-                exercises: exercises || [],
-                version: '2.0'
-            };
-            
-            // Datei-Download
-            const filename = `gym-tracker-export-${profile.username}-${new Date().toISOString().split('T')[0]}.json`;
-            Utils.downloadJSON(exportData, filename);
-            
-            Utils.showAlert('Daten erfolgreich exportiert!', 'success');
-        } catch (error) {
-            console.error('App: Export-Fehler:', error);
-            Utils.showAlert('Fehler beim Exportieren der Daten: ' + error.message, 'error');
-        }
-    },
-
-    /**
-     * Navigiert programmatisch zu einer Sektion
-     * @param {string} sectionName - Name der Ziel-Sektion
-     */
-    navigateTo(sectionName) {
-        if (this.isValidSection(sectionName)) {
-            this.showSection(sectionName);
-        } else {
-            console.error('App: Ungültige Sektion:', sectionName);
-            this.showSection('dashboard');
-        }
-    },
-
-    /**
-     * Gibt Anwendungsstatistiken zurück
-     * @returns {object} - Statistik-Objekt
+     * Gibt Anwendungsstatistiken zurück.
+     * @returns {object} - Statistik-Objekt.
      */
     getAppStats() {
         return {
@@ -399,35 +191,22 @@ const App = {
     },
 
     /**
-     * Setzt Anwendungszustand zurück
+     * Setzt den gesamten Anwendungszustand zurück, z.B. beim Logout.
      */
     resetState() {
         this.currentSection = 'dashboard';
         this.dashboardData = null;
-        this.clearCache();
+        // Lösche den Cache aller Module
+        if (Workouts.clearCache) Workouts.clearCache();
+        if (Exercises.clearCache) Exercises.clearCache();
+        if (Templates.clearCache) Templates.clearCache();
         
-        // URL zurücksetzen
         history.pushState(null, '', window.location.pathname);
-        
         console.log('App: Anwendungszustand zurückgesetzt');
     }
 };
 
-// Anwendung bei DOM-Load initialisieren
-document.addEventListener('DOMContentLoaded', function() {
+// Startpunkt der Anwendung nach dem Laden des DOM
+document.addEventListener('DOMContentLoaded', () => {
     App.init();
-});
-
-// Seiten-Entladung behandeln
-window.addEventListener('beforeunload', function(e) {
-    console.log('App: Seite wird entladen...');
-});
-
-// Online/Offline-Status behandeln
-window.addEventListener('online', function() {
-    Utils.showAlert('Internetverbindung wiederhergestellt', 'success');
-});
-
-window.addEventListener('offline', function() {
-    Utils.showAlert('Internetverbindung verloren', 'warning');
 });
