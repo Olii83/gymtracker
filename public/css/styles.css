@@ -510,7 +510,7 @@ p {
 }
 
 .auth-form {
-    display: none;
+    display: block;
 }
 
 .auth-form.active {
