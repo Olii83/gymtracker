@@ -8,6 +8,7 @@ const Workouts = {
     currentWorkout: null,
     isEditing: false,
     editingWorkoutId: null,
+    exerciseCatalog: [],
 
     /**
      * Initialisiert das Trainingsmodul.
@@ -252,7 +253,7 @@ const Workouts = {
 
         const listHTML = this.selectedExercises.map(ex => `
             <div class="selected-exercise-card">
-                <h4>${ex.exercise_name}</h4>
+                <h4>${ex.name || ex.exercise_name}</h4>
                 <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
                 <div class="exercise-details">
                     <!-- Hier könnten Details wie Sätze, Wiederholungen, Gewicht angezeigt werden -->
@@ -303,15 +304,152 @@ const Workouts = {
     },
 
     /**
-     * Öffnet den Auswahldialog für Übungen (Platzhalter).
-     * @param {Event} event
+     * Öffnet den Auswahldialog für Übungen und ermöglicht das Hinzufügen zur Auswahl.
      */
-    showExerciseSelectionModal(event) {
-        // Placeholder-Implementierung: Öffnet ein Bestätigungsmodal oder zeigt Info an
-        if (typeof Modals !== 'undefined' && Modals.showConfirmationModal) {
-            Modals.showConfirmationModal('Übungsauswahl ist noch nicht implementiert. Fortfahren?', () => {});
+    async showExerciseSelectionModal() {
+        try {
+            // Modal dynamisch erstellen, falls nicht vorhanden
+            if (!document.getElementById('exerciseSelectionModal')) {
+                const modalHTML = `
+                    <div id="exerciseSelectionModal" class="modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3 class="modal-title">Übungen auswählen</h3>
+                                <button class="close" onclick="Modals.closeModal('exerciseSelectionModal')">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="exerciseSelectionSearch">Suche</label>
+                                    <input type="text" id="exerciseSelectionSearch" placeholder="Name oder Muskelgruppe..." />
+                                </div>
+                                <div id="exerciseSelectionList" class="table-container"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" onclick="Modals.closeModal('exerciseSelectionModal')">Abbrechen</button>
+                                <button class="btn btn-primary" id="exerciseSelectionAddButton">Hinzufügen</button>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+            }
+
+            // Übungen laden (einmalig cachen)
+            if (!Array.isArray(this.exerciseCatalog) || this.exerciseCatalog.length === 0) {
+                const exercises = await Utils.apiCall('/exercises');
+                this.exerciseCatalog = Array.isArray(exercises) ? exercises : [];
+            }
+
+            // Liste initial rendern
+            this.renderExerciseSelectionList('');
+            Modals.showModal('exerciseSelectionModal');
+
+            // Events nur einmal binden
+            const searchInput = document.getElementById('exerciseSelectionSearch');
+            if (searchInput && !searchInput._gt_bound) {
+                searchInput.addEventListener('input', (e) => this.filterExerciseSelection(e.target.value));
+                searchInput._gt_bound = true;
+            }
+
+            const addButton = document.getElementById('exerciseSelectionAddButton');
+            if (addButton && !addButton._gt_bound) {
+                addButton.addEventListener('click', () => this.applySelectedExercises());
+                addButton._gt_bound = true;
+            }
+        } catch (error) {
+            console.error('Workouts: Fehler beim Öffnen der Übungsauswahl:', error);
+            Utils.showAlert('Fehler beim Laden der Übungsliste: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Rendert die Übungsliste im Auswahl-Modal mit optionalem Filter.
+     * @param {string} term - Suchbegriff
+     */
+    renderExerciseSelectionList(term = '') {
+        const container = document.getElementById('exerciseSelectionList');
+        if (!container) return;
+
+        const filter = (term || '').toLowerCase();
+        const items = this.exerciseCatalog.filter(ex => {
+            const hay = `${ex.name} ${ex.muscle_group} ${ex.category}`.toLowerCase();
+            return hay.includes(filter);
+        });
+
+        if (items.length === 0) {
+            container.innerHTML = '<p class="text-center">Keine Übungen gefunden.</p>';
+            return;
+        }
+
+        const html = items.map(ex => {
+            const checked = this.selectedExercises.some(se => se.id === ex.id) ? 'checked' : '';
+            return `
+                <div class="sets-input">
+                    <label>
+                        <input type="checkbox" class="exercise-select" data-id="${ex.id}" ${checked} />
+                        ${ex.name} <span class="text-muted">(${ex.muscle_group})</span>
+                    </label>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+    },
+
+    /**
+     * Filtert die angezeigte Übungsliste.
+     * @param {string} term
+     */
+    filterExerciseSelection(term) {
+        this.renderExerciseSelectionList(term);
+    },
+
+    /**
+     * Übernimmt die ausgewählten Übungen in die aktuelle Auswahl.
+     */
+    applySelectedExercises() {
+        const container = document.getElementById('exerciseSelectionList');
+        if (!container) return;
+
+        const checkboxes = container.querySelectorAll('.exercise-select:checked');
+        const added = [];
+        checkboxes.forEach(cb => {
+            const id = Number(cb.getAttribute('data-id'));
+            if (!this.selectedExercises.some(se => se.id === id)) {
+                const ex = this.exerciseCatalog.find(e => e.id === id);
+                if (ex) {
+                    this.selectedExercises.push({
+                        id: ex.id,
+                        name: ex.name,
+                        muscle_group: ex.muscle_group,
+                        sets_count: 3,
+                        reps: [],
+                        weights: []
+                    });
+                    added.push(ex.name);
+                }
+            }
+        });
+
+        this.updateSelectedExercisesDisplay();
+
+        // Falls Templates-Ansicht eine Auswahlanzeige hat, aktualisieren
+        const templateContainer = document.getElementById('templateSelectedExercisesList');
+        if (templateContainer) {
+            templateContainer.innerHTML = this.selectedExercises.length
+                ? this.selectedExercises.map(ex => `
+                    <div class="selected-exercise-card">
+                        <h4>${ex.name}</h4>
+                        <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
+                    </div>
+                `).join('')
+                : '<p class="text-center">Keine Übungen ausgewählt.</p>';
+        }
+
+        Modals.closeModal('exerciseSelectionModal');
+        if (added.length) {
+            Utils.showAlert(`${added.length} Übung(en) hinzugefügt`, 'success');
         } else {
-            Utils.showAlert('Übungsauswahl ist noch nicht implementiert.', 'info');
+            Utils.showAlert('Keine neuen Übungen ausgewählt', 'info');
         }
     },
 

@@ -136,9 +136,44 @@ const App = {
             case 'templates':
                 Templates.loadAll();
                 break;
+            case 'stats':
+                this.loadStats();
+                break;
             default:
                 // Lade nichts oder Dashboard-Daten
                 break;
+        }
+    },
+
+    /**
+     * Läd und rendert die Statistik-Ansicht.
+     */
+    async loadStats() {
+        const container = document.getElementById('statsContent');
+        if (!container) return;
+        container.innerHTML = '<div class="loading-spinner"></div>';
+        try {
+            const stats = await Utils.apiCall('/dashboard/stats');
+            const recent = (stats.recentWorkouts || []).map(w => `
+                <div class="workout-item">
+                    <div class="workout-date">${Utils.formatDate(w.date)}</div>
+                    <div class="workout-name">${w.name || 'Ohne Namen'}</div>
+                    <div class="workout-duration">${w.duration_minutes ? `${w.duration_minutes} Min.` : ''}</div>
+                </div>
+            `).join('');
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card"><div><h4>Trainings gesamt</h4><p>${stats.totalWorkouts || 0}</p></div></div>
+                    <div class="stat-card"><div><h4>Diese Woche</h4><p>${stats.thisWeekWorkouts || 0}</p></div></div>
+                    <div class="stat-card"><div><h4>Minuten gesamt</h4><p>${stats.totalTime || 0}</p></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Letzte Trainings</div>
+                    <div class="workouts-list">${recent || '<p class="text-center">Keine Trainings vorhanden.</p>'}</div>
+                </div>
+            `;
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-error">Fehler beim Laden: ${err.message}</div>`;
         }
     },
 

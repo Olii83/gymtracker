@@ -74,7 +74,7 @@
     <div id="appContainer" class="main-container hidden">
         <!-- Hauptnavigation -->
         <nav class="nav">
-            <a href="#" class="nav-logo"><i data-lucide="dumbbell" class="logo-icon"></i><span class="logo-text">Gym Tracker</span></a>
+            <a href="#" class="nav-logo"><span class="logo-text">Gym Tracker</span></a>
             <div class="nav-buttons">
                 <button id="navDashboardButton" class="nav-button" onclick="App.showSection('dashboard')">
                     <i data-lucide="layout-dashboard"></i> 
@@ -212,7 +212,7 @@
             <section id="templates" class="content-section hidden">
                 <h2>Vorlagen</h2>
                 <div class="controls-row">
-                    <button class="btn btn-primary" onclick="Modals.showModal('newTemplateModal')">Neue Vorlage</button>
+                    <button class="btn btn-primary" onclick="Modals.showModal('newTemplateModal'); Templates.renderSelectionPreview()">Neue Vorlage</button>
                 </div>
                 <div id="templatesList"></div>
             </section>
@@ -220,7 +220,7 @@
             <!-- Statistiken-Sektion -->
             <section id="stats" class="content-section hidden">
                 <h2>Statistiken</h2>
-                <p>Hier werden deine Statistiken angezeigt.</p>
+                <div id="statsContent"></div>
             </section>
 
             <!-- Einstellungen-Sektion -->
@@ -403,6 +403,10 @@
                             <button id="newTemplateFormButton" type="submit" class="btn btn-primary">Erstellen</button>
                         </div>
                     </form>
+                    <div class="card mt-md">
+                        <h3>Ausgewählte Übungen</h3>
+                        <div id="templateSelectedExercisesList"></div>
+                    </div>
                 </div>
             </div>
         </div>

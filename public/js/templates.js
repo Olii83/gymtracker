@@ -35,6 +35,34 @@ const Templates = {
     },
     
     /**
+     * Rendert eine Vorschau der aktuell im Workout ausgewählten Übungen
+     * innerhalb des Vorlage-Erstellen Modals.
+     */
+    renderSelectionPreview() {
+        const container = document.getElementById('templateSelectedExercisesList');
+        if (!container) return;
+
+        const selected = (typeof Workouts !== 'undefined' && Array.isArray(Workouts.selectedExercises))
+            ? Workouts.selectedExercises
+            : [];
+
+        if (!selected.length) {
+            container.innerHTML = '<p class="text-center">Keine Übungen ausgewählt. Füge Übungen in "Neues Training" hinzu.</p>';
+            return;
+        }
+
+        container.innerHTML = selected.map(ex => `
+            <div class="selected-exercise-card">
+                <h4>${ex.name || ex.exercise_name}</h4>
+                <p><strong>Muskelgruppe:</strong> ${ex.muscle_group}</p>
+                ${ex.sets_count ? `<p><strong>Sätze:</strong> ${ex.sets_count}</p>` : ''}
+                ${ex.reps && ex.reps.length ? `<p><strong>Wdh.:</strong> ${ex.reps.join(', ')}</p>` : ''}
+                ${ex.weights && ex.weights.length ? `<p><strong>Gewichte:</strong> ${ex.weights.join(', ')}</p>` : ''}
+            </div>
+        `).join('');
+    },
+
+    /**
      * Läd alle Vorlagen des Benutzers von der API.
      */
     async loadAll() {
