@@ -99,6 +99,27 @@ function allAsync(sql, params = []) {
   });
 }
 
+// --- Schema migration helpers ---
+async function columnExists(table, column) {
+  const rows = await allAsync(`PRAGMA table_info(${table})`);
+  return rows.some(r => r.name === column);
+}
+
+async function ensureColumn(table, column, definition) {
+  const exists = await columnExists(table, column);
+  if (!exists) {
+    await runAsync(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+    console.log(`Schema: added column ${column} to ${table}`);
+  }
+}
+
+async function upgradeSchema() {
+  // Workouts table columns
+  await ensureColumn('workouts', 'workout_type', 'workout_type VARCHAR(50)');
+  await ensureColumn('workouts', 'rating', 'rating INTEGER');
+  await ensureColumn('workouts', 'is_template', 'is_template BOOLEAN DEFAULT 0');
+}
+
 async function initDatabase() {
   try {
     await runAsync(`
@@ -192,6 +213,9 @@ async function initDatabase() {
         FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
       );
     `);
+
+    // Ensure backward-compatible schema
+    await upgradeSchema();
 
     // Optional seed
     if (String(process.env.SEED_DB).toLowerCase() === 'true') {
