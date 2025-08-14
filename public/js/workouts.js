@@ -303,6 +303,19 @@ const Workouts = {
     },
 
     /**
+     * Öffnet den Auswahldialog für Übungen (Platzhalter).
+     * @param {Event} event
+     */
+    showExerciseSelectionModal(event) {
+        // Placeholder-Implementierung: Öffnet ein Bestätigungsmodal oder zeigt Info an
+        if (typeof Modals !== 'undefined' && Modals.showConfirmationModal) {
+            Modals.showConfirmationModal('Übungsauswahl ist noch nicht implementiert. Fortfahren?', () => {});
+        } else {
+            Utils.showAlert('Übungsauswahl ist noch nicht implementiert.', 'info');
+        }
+    },
+
+    /**
      * Löscht den gecachten Zustand des Moduls.
      */
     clearCache() {
