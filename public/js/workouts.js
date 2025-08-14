@@ -147,6 +147,12 @@ const Workouts = {
      * @param {object} workoutData - Die Daten des neuen Trainings.
      */
     async createWorkout(workoutData) {
+        // Ensure all selected exercises exist; optionally create missing ones
+        const ok = await this.ensureExercisesExist();
+        if (!ok) {
+            Utils.showAlert('Erstellung abgebrochen.', 'info');
+            return;
+        }
         try {
             await Utils.apiCall('/workouts', {
                 method: 'POST',
@@ -169,6 +175,12 @@ const Workouts = {
      * @param {object} workoutData - Die aktualisierten Daten.
      */
     async updateWorkout(workoutId, workoutData) {
+        // Ensure all selected exercises exist; optionally create missing ones
+        const ok = await this.ensureExercisesExist();
+        if (!ok) {
+            Utils.showAlert('Aktualisierung abgebrochen.', 'info');
+            return;
+        }
         try {
             await Utils.apiCall(`/workouts/${workoutId}`, {
                 method: 'PUT',
@@ -583,6 +595,65 @@ const Workouts = {
     /**
      * Löscht den gecachten Zustand des Moduls.
      */
+    /**
+     * Stellt sicher, dass alle ausgewählten Übungen in der Datenbank existieren.
+     * Falls nicht, fragt nach Bestätigung und erstellt sie automatisch.
+     * @returns {Promise<boolean>} - true, wenn weitergemacht werden soll.
+     */
+    async ensureExercisesExist() {
+        try {
+            const list = await Utils.apiCall('/exercises');
+            const existingById = new Map(list.map(e => [e.id, e]));
+            const existingByKey = new Map(list.map(e => [`${(e.name||'').toLowerCase()}|${(e.muscle_group||'').toLowerCase()}`, e]));
+
+            const missing = [];
+            for (const ex of this.selectedExercises) {
+                let exId = ex.id || ex.exercise_id;
+                let ok = exId && existingById.has(Number(exId));
+                if (!ok) {
+                    // Try by name + muscle group
+                    const key = `${(ex.name || ex.exercise_name || '').toLowerCase()}|${(ex.muscle_group||'').toLowerCase()}`;
+                    const found = existingByKey.get(key);
+                    if (found) {
+                        ex.id = found.id;
+                        ok = true;
+                    }
+                }
+                if (!ok) missing.push(ex);
+            }
+
+            if (missing.length === 0) return true;
+
+            const names = missing.map(ex => ex.name || ex.exercise_name || 'Unbenannt').join(', ');
+            const confirmCreate = window.confirm(`${missing.length} Übung(en) existieren nicht: ${names}. Jetzt automatisch erstellen?`);
+            if (!confirmCreate) return false;
+
+            for (const ex of missing) {
+                const payload = {
+                    name: ex.name || ex.exercise_name || 'Unbenannt',
+                    category: ex.category || 'Krafttraining',
+                    muscle_group: ex.muscle_group || 'Ganzkörper',
+                    description: ex.description || ''
+                };
+                try {
+                    const created = await Utils.apiCall('/exercises', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    ex.id = created.id;
+                } catch (err) {
+                    console.error('Auto-Create Übung fehlgeschlagen:', err);
+                    Utils.showAlert(`Übung konnte nicht erstellt werden: ${payload.name}`, 'error');
+                    return false;
+                }
+            }
+            return true;
+        } catch (error) {
+            console.error('ensureExercisesExist Fehler:', error);
+            return false;
+        }
+    },
+
     clearCache() {
         this.workouts = [];
         this.selectedExercises = [];

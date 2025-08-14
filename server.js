@@ -455,6 +455,8 @@ app.post('/api/workouts', authenticateToken, async (req, res) => {
         const ex = exercises[i];
         const exId = Number(ex.id || ex.exercise_id);
         if (!Number.isInteger(exId)) continue;
+        const exists = await getAsync('SELECT id FROM exercises WHERE id = ?', [exId]);
+        if (!exists) continue;
         await runAsync(
           'INSERT INTO workout_exercises (workout_id, exercise_id, exercise_order, sets_count, reps, weights, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
@@ -493,6 +495,8 @@ app.put('/api/workouts/:id', authenticateToken, async (req, res) => {
         const ex = exercises[i];
         const exId = Number(ex.id || ex.exercise_id);
         if (!Number.isInteger(exId)) continue;
+        const exists = await getAsync('SELECT id FROM exercises WHERE id = ?', [exId]);
+        if (!exists) continue;
         await runAsync(
           'INSERT INTO workout_exercises (workout_id, exercise_id, exercise_order, sets_count, reps, weights, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
