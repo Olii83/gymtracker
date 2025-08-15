@@ -16,6 +16,7 @@ const Workouts = {
     init() {
         console.log('Workouts: Modul initialisiert');
         this.setupEventListeners();
+        this.ensureUIButtons();
     },
 
     /**
@@ -42,6 +43,8 @@ const Workouts = {
         });
         
         Utils.delegate(document.body, 'click', '.add-exercise-btn', this.showExerciseSelectionModal.bind(this));
+        Utils.delegate(document.body, 'click', '#loadTemplateBtn', this.showTemplateSelectionModal.bind(this));
+        Utils.delegate(document.body, 'click', '#saveTemplateBtn', this.saveCurrentAsTemplate.bind(this));
 
         // Editing controls for selected exercises
         Utils.delegate(document.body, 'input', '#selectedExercisesList .ex-sets-count', (event) => {
@@ -660,5 +663,160 @@ const Workouts = {
         this.currentWorkout = null;
         this.isEditing = false;
         this.editingWorkoutId = null;
+    },
+
+    /**
+     * Stellt sicher, dass die Buttons für Vorlagen im UI vorhanden sind.
+     */
+    ensureUIButtons() {
+        const form = document.getElementById('newWorkoutForm');
+        if (!form) return;
+        const actions = form.querySelector('.form-actions');
+        if (!actions) return;
+        if (!document.getElementById('loadTemplateBtn')) {
+            const loadBtn = document.createElement('button');
+            loadBtn.id = 'loadTemplateBtn';
+            loadBtn.type = 'button';
+            loadBtn.className = 'btn btn-secondary';
+            loadBtn.textContent = 'Vorlage laden';
+            actions.insertBefore(loadBtn, actions.firstChild);
+        }
+        if (!document.getElementById('saveTemplateBtn')) {
+            const saveBtn = document.createElement('button');
+            saveBtn.id = 'saveTemplateBtn';
+            saveBtn.type = 'button';
+            saveBtn.className = 'btn btn-info';
+            saveBtn.textContent = 'Als Vorlage speichern';
+            actions.appendChild(saveBtn);
+        }
+    },
+
+    /**
+     * Zeigt das Vorlagen-Auswahlmodal, lädt Vorlagen und ermöglicht Anwenden (Anhängen/Ersetzen).
+     */
+    async showTemplateSelectionModal() {
+        try {
+            if (!document.getElementById('templateSelectionModal')) {
+                const modalHTML = `
+                    <div id="templateSelectionModal" class="modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3 class="modal-title">Vorlage auswählen</h3>
+                                <button class="close" onclick="Modals.closeModal('templateSelectionModal')">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="templateAppendMode" checked /> Vorhandene Übungen beibehalten (hinzufügen)
+                                    </label>
+                                </div>
+                                <div id="templateSelectionList"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" onclick="Modals.closeModal('templateSelectionModal')">Schließen</button>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+            }
+
+            const [templates, exercises] = await Promise.all([
+                Utils.apiCall('/templates'),
+                Utils.apiCall('/exercises')
+            ]);
+            const exMap = new Map(exercises.map(e => [e.id, e]));
+            const list = document.getElementById('templateSelectionList');
+            if (!list) return;
+            if (!templates || templates.length === 0) {
+                list.innerHTML = '<p class="text-center">Keine Vorlagen vorhanden.</p>';
+            } else {
+                list.innerHTML = templates.map(t => {
+                    const exCount = (t.exercises || []).length;
+                    return `
+                        <div class="card" style="margin-bottom:8px;">
+                            <div class="card-title">${t.name}</div>
+                            <div class="form-actions">
+                                <button class="btn btn-primary tpl-apply" data-id="${t.id}">Anwenden</button>
+                            </div>
+                            <div class="template-preview">${exCount} Übung(en)</div>
+                        </div>`;
+                }).join('');
+            }
+
+            // Bind apply buttons (replace old listeners)
+            list.querySelectorAll('.tpl-apply').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = Number(btn.dataset.id);
+                    const append = document.getElementById('templateAppendMode').checked;
+                    this.applyTemplateFromId(id, append, templates, exMap);
+                }, { once: true });
+            });
+
+            Modals.showModal('templateSelectionModal');
+        } catch (error) {
+            console.error('Vorlagen laden fehlgeschlagen:', error);
+            Utils.showAlert('Fehler beim Laden der Vorlagen: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Wendet eine Vorlage an (entweder anhängen oder ersetzen), mit Join auf Übungsdetails.
+     */
+    applyTemplateFromId(templateId, append, templates, exMap) {
+        const tpl = (templates || []).find(t => t.id === templateId);
+        if (!tpl) return;
+        const built = (tpl.exercises || []).map(ex => {
+            const base = exMap.get(ex.exercise_id) || {};
+            let reps = [];
+            let weights = [];
+            try { reps = ex.suggested_reps ? JSON.parse(ex.suggested_reps) : []; } catch(e) { reps = []; }
+            try { weights = ex.suggested_weight ? JSON.parse(ex.suggested_weight) : []; } catch(e) { weights = []; }
+            return {
+                id: ex.exercise_id,
+                name: base.name || 'Übung',
+                muscle_group: base.muscle_group || 'Ganzkörper',
+                sets_count: ex.suggested_sets || reps.length || 3,
+                reps,
+                weights,
+                notes: ''
+            };
+        });
+        if (append) {
+            // Merge, avoid duplicates by id
+            const existingIds = new Set(this.selectedExercises.map(e => e.id || e.exercise_id));
+            const merged = this.selectedExercises.concat(built.filter(b => !existingIds.has(b.id)));
+            this.selectedExercises = merged;
+        } else {
+            this.selectedExercises = built;
+        }
+        this.updateSelectedExercisesDisplay();
+        Modals.closeModal('templateSelectionModal');
+        Utils.showAlert('Vorlage angewendet', 'success');
+    },
+
+    /**
+     * Speichert die aktuelle Auswahl als Vorlage (schnell aus dem Workout-Editor).
+     */
+    async saveCurrentAsTemplate() {
+        const name = prompt('Name der Vorlage:');
+        if (!name) return;
+        const payload = {
+            name: name.trim(),
+            description: `Erstellt aus Workout: ${document.getElementById('workoutName')?.value || 'Unbenannt'}`,
+            exercises: this.selectedExercises.map((ex, idx) => ({
+                exercise_id: ex.id || ex.exercise_id,
+                exercise_order: idx + 1,
+                suggested_sets: ex.sets_count || 3,
+                suggested_reps: ex.reps || [],
+                suggested_weight: ex.weights || []
+            }))
+        };
+        try {
+            await Utils.apiCall('/templates', { method: 'POST', body: JSON.stringify(payload) });
+            Utils.showAlert('Vorlage gespeichert', 'success');
+        } catch (err) {
+            console.error('Vorlage speichern fehlgeschlagen:', err);
+            Utils.showAlert('Fehler beim Speichern der Vorlage: ' + err.message, 'error');
+        }
     }
 };

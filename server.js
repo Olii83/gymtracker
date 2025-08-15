@@ -118,6 +118,16 @@ async function upgradeSchema() {
   await ensureColumn('workouts', 'workout_type', 'workout_type VARCHAR(50)');
   await ensureColumn('workouts', 'rating', 'rating INTEGER');
   await ensureColumn('workouts', 'is_template', 'is_template BOOLEAN DEFAULT 0');
+
+  // Workout exercises table columns
+  await ensureColumn('workout_exercises', 'exercise_order', 'exercise_order INTEGER');
+  await ensureColumn('workout_exercises', 'sets_count', 'sets_count INTEGER');
+  await ensureColumn('workout_exercises', 'reps', 'reps TEXT');
+  await ensureColumn('workout_exercises', 'weights', 'weights TEXT');
+  await ensureColumn('workout_exercises', 'distance', 'distance REAL');
+  await ensureColumn('workout_exercises', 'duration_seconds', 'duration_seconds INTEGER');
+  await ensureColumn('workout_exercises', 'rest_time', 'rest_time INTEGER DEFAULT 90');
+  await ensureColumn('workout_exercises', 'notes', 'notes TEXT');
 }
 
 async function initDatabase() {
@@ -210,6 +220,23 @@ async function initDatabase() {
         suggested_reps TEXT,
         suggested_weight TEXT,
         FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE,
+        FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
+      );
+    `);
+
+    await runAsync(`
+      CREATE TABLE IF NOT EXISTS personal_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        exercise_id INTEGER NOT NULL,
+        record_type VARCHAR(50) NOT NULL,
+        value REAL NOT NULL,
+        unit VARCHAR(10) NOT NULL DEFAULT 'kg',
+        reps INTEGER,
+        date_achieved DATE NOT NULL DEFAULT (DATE('now')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, exercise_id, record_type) ON CONFLICT REPLACE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
       );
     `);
@@ -490,9 +517,23 @@ app.post('/api/workouts', authenticateToken, async (req, res) => {
             ex.sets_count || null,
             Array.isArray(ex.reps) ? JSON.stringify(ex.reps) : null,
             Array.isArray(ex.weights) ? JSON.stringify(ex.weights) : null,
-            ex.notes || null
+            (ex.notes && typeof ex.notes === 'string') ? ex.notes : null
           ]
         );
+        // Update PR (max weight)
+        const weightsArr = Array.isArray(ex.weights) ? ex.weights.map(Number).filter(n => !isNaN(n)) : [];
+        if (weightsArr.length) {
+          const maxWeight = Math.max(...weightsArr);
+          const existingPR = await getAsync('SELECT value FROM personal_records WHERE user_id = ? AND exercise_id = ? AND record_type = ?', [req.user.id, exId, 'max_weight']);
+          if (!existingPR || maxWeight > existingPR.value) {
+            await runAsync(
+              `INSERT INTO personal_records (user_id, exercise_id, record_type, value, unit, reps, date_achieved)
+               VALUES (?, ?, ?, ?, 'kg', NULL, DATE('now'))
+               ON CONFLICT(user_id, exercise_id, record_type) DO UPDATE SET value=excluded.value, date_achieved=excluded.date_achieved`,
+              [req.user.id, exId, 'max_weight', maxWeight]
+            );
+          }
+        }
       }
     }
 
@@ -530,9 +571,23 @@ app.put('/api/workouts/:id', authenticateToken, async (req, res) => {
             ex.sets_count || null,
             Array.isArray(ex.reps) ? JSON.stringify(ex.reps) : null,
             Array.isArray(ex.weights) ? JSON.stringify(ex.weights) : null,
-            ex.notes || null
+            (ex.notes && typeof ex.notes === 'string') ? ex.notes : null
           ]
         );
+        // Update PR (max weight)
+        const weightsArr = Array.isArray(ex.weights) ? ex.weights.map(Number).filter(n => !isNaN(n)) : [];
+        if (weightsArr.length) {
+          const maxWeight = Math.max(...weightsArr);
+          const existingPR = await getAsync('SELECT value FROM personal_records WHERE user_id = ? AND exercise_id = ? AND record_type = ?', [req.user.id, exId, 'max_weight']);
+          if (!existingPR || maxWeight > existingPR.value) {
+            await runAsync(
+              `INSERT INTO personal_records (user_id, exercise_id, record_type, value, unit, reps, date_achieved)
+               VALUES (?, ?, ?, ?, 'kg', NULL, DATE('now'))
+               ON CONFLICT(user_id, exercise_id, record_type) DO UPDATE SET value=excluded.value, date_achieved=excluded.date_achieved`,
+              [req.user.id, exId, 'max_weight', maxWeight]
+            );
+          }
+        }
       }
     }
 
@@ -676,6 +731,45 @@ app.post('/api/admin/backup', authenticateToken, requireAdmin, async (_req, res)
     res.json({ message: 'Backup erstellt', filename: path.basename(backupFile) });
   } catch (err) {
     console.error('Backup Fehler:', err);
+    res.status(500).json({ error: 'Interner Serverfehler' });
+  }
+});
+
+// Last performance per exercise
+app.get('/api/exercises/:id/last', authenticateToken, async (req, res) => {
+  try {
+    const exId = Number(req.params.id);
+    const row = await getAsync(
+      `SELECT we.* , w.date as workout_date FROM workout_exercises we
+       JOIN workouts w ON w.id = we.workout_id
+       WHERE w.user_id = ? AND we.exercise_id = ?
+       ORDER BY w.date DESC, we.id DESC LIMIT 1`,
+      [req.user.id, exId]
+    );
+    if (!row) return res.json(null);
+    // Parse reps/weights
+    try { row.reps = row.reps ? JSON.parse(row.reps) : []; } catch(e) { row.reps = []; }
+    try { row.weights = row.weights ? JSON.parse(row.weights) : []; } catch(e) { row.weights = []; }
+    res.json(row);
+  } catch (err) {
+    console.error('Last performance error:', err);
+    res.status(500).json({ error: 'Interner Serverfehler' });
+  }
+});
+
+// List personal records
+app.get('/api/user/prs', authenticateToken, async (req, res) => {
+  try {
+    const rows = await allAsync(
+      `SELECT pr.*, e.name as exercise_name FROM personal_records pr
+       JOIN exercises e ON e.id = pr.exercise_id
+       WHERE pr.user_id = ?
+       ORDER BY pr.value DESC, pr.date_achieved DESC`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('PR list error:', err);
     res.status(500).json({ error: 'Interner Serverfehler' });
   }
 });
