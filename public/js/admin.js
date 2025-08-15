@@ -87,7 +87,7 @@ const Admin = {
         
         statsContainer.innerHTML = `
             <div class="stat-card"><h3>Benutzer gesamt</h3><p>${stats.totalUsers || 0}</p></div>
-            <div class="stat-card"><h3>Aktive Workouts</h3><p>${stats.activeWorkouts || 0}</p></div>
+            <div class="stat-card"><h3>Workouts gesamt</h3><p>${stats.totalWorkouts || 0}</p></div>
             <div class="stat-card"><h3>Neue Benutzer (30 Tage)</h3><p>${stats.newUsersLast30Days || 0}</p></div>
         `;
     },
