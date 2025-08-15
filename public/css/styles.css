@@ -326,6 +326,7 @@ p {
 }
 
 /* Navigation */
+.nav-logo .logo-text { font-weight: 800; color: var(--accent-primary); letter-spacing: 0.5px; }
 .nav {
     position: fixed;
     top: 0;

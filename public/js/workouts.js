@@ -9,6 +9,7 @@ const Workouts = {
     isEditing: false,
     editingWorkoutId: null,
     exerciseCatalog: [],
+    lastPerfCache: new Map(),
 
     /**
      * Initialisiert das Trainingsmodul.
@@ -336,9 +337,14 @@ const Workouts = {
                     <div class="card" style="margin-top:8px;">
                         ${rows}
                     </div>
+                    <div class="last-performance" id="lastPerf-${idx}" style="margin-top:8px;color: var(--text-secondary); font-size: var(--font-size-sm);"></div>
                 </div>`;
         });
         container.innerHTML = html;
+        this.selectedExercises.forEach((ex, idx) => {
+            const exId = ex.id || ex.exercise_id;
+            if (exId) this.populateLastPerformance(idx, Number(exId));
+        });
     },
 
     /**
@@ -593,6 +599,10 @@ const Workouts = {
         if (setIndex >= 0 && setIndex < sets) {
             ex[type][setIndex] = value;
         }
+        const exId = ex.id || ex.exercise_id;
+        if (type === 'weights' && exId) {
+            this.populateLastPerformance(index, Number(exId));
+        }
     },
 
     /**
@@ -818,5 +828,54 @@ const Workouts = {
             console.error('Vorlage speichern fehlgeschlagen:', err);
             Utils.showAlert('Fehler beim Speichern der Vorlage: ' + err.message, 'error');
         }
+    },
+
+    // --- Last performance helpers ---
+    computeMaxWeight(ex) {
+        const arr = Array.isArray(ex && ex.weights) ? ex.weights.map(Number).filter(n => !isNaN(n) && n > 0) : [];
+        return arr.length ? Math.max(...arr) : null;
+    },
+
+    computeMaxFromRow(row) {
+        let ws = row && row.weights;
+        if (typeof ws === 'string') {
+            try { ws = JSON.parse(ws); } catch (_) { ws = []; }
+        }
+        const nums = Array.isArray(ws) ? ws.map(Number).filter(n => !isNaN(n) && n > 0) : [];
+        return nums.length ? Math.max(...nums) : null;
+    },
+
+    async getLastPerformance(exerciseId) {
+        if (this.lastPerfCache.has(exerciseId)) return this.lastPerfCache.get(exerciseId);
+        try {
+            const data = await Utils.apiCall(`/exercises/${exerciseId}/last`);
+            this.lastPerfCache.set(exerciseId, data || null);
+            return data || null;
+        } catch (err) {
+            console.error('Fehler beim Laden der letzten Leistung:', err);
+            this.lastPerfCache.set(exerciseId, null);
+            return null;
+        }
+    },
+
+    async populateLastPerformance(index, exerciseId) {
+        const el = document.getElementById(`lastPerf-${index}`);
+        if (!el) return;
+        el.textContent = '';
+        const last = await this.getLastPerformance(exerciseId);
+        if (!last) { el.textContent = ''; return; }
+        const lastMax = this.computeMaxFromRow(last);
+        const dateStr = Utils.formatDate(last.workout_date);
+        if (lastMax == null) { el.textContent = ''; return; }
+        let text = `Letztes Mal (${dateStr}): Max ${lastMax} kg`;
+        const current = this.selectedExercises[index];
+        const currMax = this.computeMaxWeight(current);
+        if (currMax != null) {
+            let cmp = '=';
+            if (currMax > lastMax) cmp = '↑';
+            else if (currMax < lastMax) cmp = '↓';
+            text += ` — Vergleich: ${cmp}`;
+        }
+        el.textContent = text;
     }
 };

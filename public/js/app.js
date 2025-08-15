@@ -162,7 +162,8 @@ const App = {
                 this.loadStats();
                 break;
             default:
-                // Lade nichts oder Dashboard-Daten
+                // Dashboard: PR-Karte
+                this.renderPRCard();
                 break;
         }
     },
@@ -196,6 +197,63 @@ const App = {
             `;
         } catch (err) {
             container.innerHTML = `<div class="alert alert-error">Fehler beim Laden: ${err.message}</div>`;
+        }
+    },
+
+    async renderPRCard() {
+        const container = document.getElementById('dashboardPR');
+        if (!container) return;
+        container.innerHTML = '';
+        try {
+            const prs = await Utils.apiCall('/user/prs');
+            if (!prs || prs.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            const top = prs[0];
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-title">Persönliche Rekorde</div>
+                <div>
+                    <p><strong>Top-PR:</strong> ${top.exercise_name} — ${top.value} ${top.unit || 'kg'} (${Utils.formatDate(top.date_achieved)})</p>
+                    <button id="showAllPRsBtn" class="btn btn-primary btn-sm">Alle PRs anzeigen</button>
+                </div>
+            `;
+            container.appendChild(card);
+            if (!document.getElementById('prsModal')) {
+                const modalHTML = `
+                    <div id="prsModal" class="modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3 class="modal-title">Persönliche Rekorde</h3>
+                                <button class="close" onclick="Modals.closeModal('prsModal')">&times;</button>
+                            </div>
+                            <div class="modal-body" id="prsModalBody"></div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+            }
+            const btn = card.querySelector('#showAllPRsBtn');
+            btn.addEventListener('click', async () => {
+                try {
+                    const list = await Utils.apiCall('/user/prs');
+                    const body = document.getElementById('prsModalBody');
+                    if (body) {
+                        body.innerHTML = list.map(r => `
+                            <div class="sets-input" style="justify-content:space-between;">
+                                <div><strong>${r.exercise_name}</strong></div>
+                                <div>${r.value} ${r.unit || 'kg'} — ${Utils.formatDate(r.date_achieved)}</div>
+                            </div>
+                        `).join('');
+                    }
+                    Modals.showModal('prsModal');
+                } catch (e) {
+                    Utils.showAlert('Fehler beim Laden der PRs: ' + e.message, 'error');
+                }
+            });
+        } catch (err) {
+            container.innerHTML = '';
         }
     },
 
