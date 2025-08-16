@@ -126,18 +126,6 @@ const Templates = {
         event.preventDefault();
         
         const form = event.target;
-        const templateData = {
-            name: form.templateName.value,
-            description: form.templateDescription.value,
-            exercises: Workouts.selectedExercises.map(ex => ({
-                exercise_id: ex.id || ex.exercise_id, // Verwendet die korrekte ID
-                name: ex.name || ex.exercise_name,
-                muscle_group: ex.muscle_group,
-                suggested_sets: ex.sets_count,
-                suggested_reps: ex.reps,
-                suggested_weight: ex.weights
-            }))
-        };
 
         try {
             // Sicherstellen, dass alle Übungen existieren, um FK-Fehler zu vermeiden
@@ -145,6 +133,18 @@ const Templates = {
                 const ok = await Workouts.ensureExercisesExist();
                 if (!ok) return;
             }
+
+            // Nach ensureExercisesExist erneut mappen, damit aktualisierte IDs verwendet werden
+            const templateData = {
+                name: form.templateName.value,
+                description: form.templateDescription.value,
+                exercises: Workouts.selectedExercises.map(ex => ({
+                    exercise_id: ex.id || ex.exercise_id,
+                    suggested_sets: ex.sets_count,
+                    suggested_reps: ex.reps,
+                    suggested_weight: ex.weights
+                }))
+            };
 
             await Utils.apiCall('/templates', {
                 method: 'POST',
