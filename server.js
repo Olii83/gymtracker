@@ -659,9 +659,17 @@ app.post('/api/templates', authenticateToken, async (req, res) => {
     const templateId = result.lastID;
     if (Array.isArray(exercises)) {
       for (const [idx, ex] of exercises.entries()) {
+        const exId = Number(ex.exercise_id);
+        if (!Number.isInteger(exId)) {
+          return res.status(400).json({ error: 'Ungültige Übungs-ID in Vorlage' });
+        }
+        const exists = await getAsync('SELECT id FROM exercises WHERE id = ?', [exId]);
+        if (!exists) {
+          return res.status(400).json({ error: `Übung mit ID ${exId} existiert nicht` });
+        }
         await runAsync(
           'INSERT INTO template_exercises (template_id, exercise_id, exercise_order, suggested_sets, suggested_reps, suggested_weight) VALUES (?, ?, ?, ?, ?, ?)',
-          [templateId, ex.exercise_id, ex.exercise_order || idx + 1, ex.suggested_sets || null, JSON.stringify(ex.suggested_reps || null), JSON.stringify(ex.suggested_weight || null)]
+          [templateId, exId, ex.exercise_order || idx + 1, ex.suggested_sets || null, JSON.stringify(ex.suggested_reps || null), JSON.stringify(ex.suggested_weight || null)]
         );
       }
     }
