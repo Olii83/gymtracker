@@ -479,7 +479,7 @@ const Workouts = {
         }
 
         const html = items.map(ex => {
-            const checked = this.selectedExercises.some(se => se.id === ex.id) ? 'checked' : '';
+            const checked = this.selectedExercises.some(se => (se.id || se.exercise_id) === ex.id) ? 'checked' : '';
             return `
                 <div class="sets-input">
                     <label>

@@ -677,7 +677,12 @@ app.post('/api/templates', authenticateToken, async (req, res) => {
     res.status(201).json(created);
   } catch (err) {
     console.error('Template-Erstellungsfehler:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    const msg = (err && err.message) ? String(err.message) : 'Interner Serverfehler';
+    // SQLite FK error surface as 400 for better UX
+    if (/FOREIGN KEY|constraint|template_exercises/i.test(msg)) {
+      return res.status(400).json({ error: 'Ungültige oder fehlende Übungs-IDs in Vorlage', details: msg });
+    }
+    res.status(500).json({ error: 'Interner Serverfehler', details: msg });
   }
 });
 
