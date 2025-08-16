@@ -225,19 +225,24 @@ const Workouts = {
      * Startet den Bearbeitungsmodus für ein Training.
      * @param {string} workoutId - Die ID des zu bearbeitenden Trainings.
      */
-    startEdit(workoutId) {
-        const workout = this.workouts.find(w => w.id === workoutId);
-        if (!workout) {
-            Utils.showAlert('Training nicht gefunden', 'error');
-            return;
+    async startEdit(workoutId) {
+        try {
+            const workout = await Utils.apiCall(`/workouts/${workoutId}`);
+            if (!workout) {
+                Utils.showAlert('Training nicht gefunden', 'error');
+                return;
+            }
+            this.isEditing = true;
+            this.editingWorkoutId = workoutId;
+            this.currentWorkout = workout;
+            this.populateForm(workout);
+            App.showSection('newWorkout');
+            const btn = document.getElementById('newWorkoutFormButton');
+            if (btn) btn.textContent = 'Aktualisieren';
+        } catch (e) {
+            console.error('Workouts: Fehler beim Laden des Workouts:', e);
+            Utils.showAlert('Fehler beim Laden des Workouts: ' + e.message, 'error');
         }
-
-        this.isEditing = true;
-        this.editingWorkoutId = workoutId;
-        this.currentWorkout = workout;
-        this.populateForm(workout);
-        App.showSection('newWorkout');
-        document.getElementById('newWorkoutFormButton').textContent = 'Aktualisieren';
     },
 
     /**
@@ -360,30 +365,40 @@ const Workouts = {
      * Dupliziert ein Training.
      * @param {string} workoutId - Die ID des zu duplizierenden Trainings.
      */
-    duplicateWorkout(workoutId) {
-        const workout = this.getById(workoutId);
-        if (!workout) {
-            Utils.showAlert('Training nicht gefunden', 'error');
-            return;
+    async duplicateWorkout(workoutId) {
+        try {
+            const workout = await Utils.apiCall(`/workouts/${workoutId}`);
+            if (!workout) {
+                Utils.showAlert('Training nicht gefunden', 'error');
+                return;
+            }
+            this.isEditing = false;
+            this.editingWorkoutId = null;
+            const nameEl = document.getElementById('workoutName');
+            const dateEl = document.getElementById('workoutDate');
+            const notesEl = document.getElementById('workoutNotes');
+            if (nameEl) nameEl.value = (workout.name || 'Workout') + ' (Kopie)';
+            if (dateEl) dateEl.value = Utils.getCurrentDate();
+            if (notesEl) notesEl.value = workout.notes || '';
+
+            this.selectedExercises = Array.isArray(workout.exercises) ? workout.exercises.map(ex => ({
+                id: ex.exercise_id || ex.id,
+                exercise_id: ex.exercise_id || ex.id,
+                exercise_name: ex.exercise_name || ex.name,
+                name: ex.exercise_name || ex.name,
+                muscle_group: ex.muscle_group,
+                sets_count: ex.sets_count,
+                reps: Array.isArray(ex.reps) ? [...ex.reps] : [],
+                weights: Array.isArray(ex.weights) ? [...ex.weights] : [],
+                notes: ''
+            })) : [];
+            this.updateSelectedExercisesDisplay();
+            App.showSection('newWorkout');
+            Utils.showAlert('Training zum Duplizieren vorbereitet', 'info');
+        } catch (e) {
+            console.error('Workouts: Fehler beim Duplizieren:', e);
+            Utils.showAlert('Fehler beim Duplizieren: ' + e.message, 'error');
         }
-
-        // Formular mit Workout-Daten vorausfüllen
-        this.isEditing = false;
-        this.editingWorkoutId = null;
-        document.getElementById('workoutName').value = workout.name + ' (Kopie)';
-        document.getElementById('workoutDate').value = Utils.getCurrentDate();
-        document.getElementById('workoutNotes').value = workout.notes || '';
-
-        // Übungen kopieren
-        this.selectedExercises = workout.exercises.map(ex => ({
-            ...ex,
-            reps: [...ex.reps],
-            weights: [...ex.weights]
-        }));
-        this.updateSelectedExercisesDisplay();
-
-        App.showSection('newWorkout');
-        Utils.showAlert('Training zum Duplizieren vorbereitet', 'info');
     },
 
     /**

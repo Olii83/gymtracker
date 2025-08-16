@@ -131,6 +131,33 @@
             <!-- Dashboard-Sektion -->
             <section id="dashboard" class="content-section">
                 <h2>Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">🏋️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalWorkouts">0</div>
+                            <div class="stat-label">Trainings gesamt</div>
+                        </div>
+                    </div>
+                    <div class="stat-card secondary">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="thisWeekWorkouts">0</div>
+                            <div class="stat-label">Diese Woche</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalTime">0</div>
+                            <div class="stat-label">Minuten gesamt</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Letzte Trainings</div>
+                    <div id="recentWorkouts" class="workouts-list"></div>
+                </div>
                 <div id="dashboardPR"></div>
             </section>
             

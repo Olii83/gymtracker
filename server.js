@@ -493,6 +493,29 @@ app.get('/api/workouts', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/workouts/:id', authenticateToken, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const workout = await getAsync('SELECT * FROM workouts WHERE id = ? AND user_id = ?', [id, req.user.id]);
+    if (!workout) return res.status(404).json({ error: 'Workout nicht gefunden' });
+    const exercises = await allAsync(
+      `SELECT we.*, e.name as exercise_name, e.muscle_group FROM workout_exercises we
+       JOIN exercises e ON e.id = we.exercise_id
+       WHERE we.workout_id = ?
+       ORDER BY we.exercise_order ASC, we.id ASC`,
+      [id]
+    );
+    for (const ex of exercises) {
+      try { ex.reps = ex.reps ? JSON.parse(ex.reps) : []; } catch (_) { ex.reps = []; }
+      try { ex.weights = ex.weights ? JSON.parse(ex.weights) : []; } catch (_) { ex.weights = []; }
+    }
+    res.json({ ...workout, exercises });
+  } catch (err) {
+    console.error('Workout-Detail-Fehler:', err);
+    res.status(500).json({ error: 'Interner Serverfehler' });
+  }
+});
+
 app.post('/api/workouts', authenticateToken, async (req, res) => {
   const { name, date, duration_minutes, notes, workout_type, rating, exercises } = req.body;
   if (!date) return res.status(400).json({ error: 'Datum ist erforderlich' });
@@ -616,9 +639,9 @@ app.delete('/api/workouts/:id', authenticateToken, async (req, res) => {
 app.get('/api/templates', authenticateToken, async (req, res) => {
   try {
     const rows = await allAsync('SELECT * FROM templates WHERE user_id = ?', [req.user.id]);
-    // Attach exercises for each template
+    // Attach exercises for each template (joined with exercise details)
     const withExercises = await Promise.all(rows.map(async (t) => {
-      const ex = await allAsync('SELECT * FROM template_exercises WHERE template_id = ?', [t.id]);
+      const ex = await allAsync(`SELECT te.*, e.name as name, e.muscle_group FROM template_exercises te JOIN exercises e ON e.id = te.exercise_id WHERE te.template_id = ? ORDER BY te.exercise_order ASC`, [t.id]);
       return { ...t, exercises: ex };
     }));
     res.json(withExercises);
