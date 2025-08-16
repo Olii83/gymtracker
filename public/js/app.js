@@ -161,9 +161,17 @@ const App = {
             case 'stats':
                 this.loadStats();
                 break;
+            case 'dashboard':
+                if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated()) {
+                    this.loadDashboard();
+                    this.renderPRCard();
+                }
+                break;
             default:
-                // Dashboard: PR-Karte
-                this.renderPRCard();
+                // nur bei Authentifizierung
+                if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated()) {
+                    this.renderPRCard();
+                }
                 break;
         }
     },
@@ -197,6 +205,34 @@ const App = {
             `;
         } catch (err) {
             container.innerHTML = `<div class="alert alert-error">Fehler beim Laden: ${err.message}</div>`;
+        }
+    },
+
+    async loadDashboard() {
+        const totalEl = document.getElementById('totalWorkouts');
+        const weekEl = document.getElementById('thisWeekWorkouts');
+        const timeEl = document.getElementById('totalTime');
+        const recentEl = document.getElementById('recentWorkouts');
+        if (!totalEl || !weekEl || !timeEl || !recentEl) return;
+        try {
+            const stats = await Utils.apiCall('/dashboard/stats');
+            totalEl.textContent = stats.totalWorkouts || 0;
+            weekEl.textContent = stats.thisWeekWorkouts || 0;
+            timeEl.textContent = stats.totalTime || 0;
+            const recent = Array.isArray(stats.recentWorkouts) ? stats.recentWorkouts : [];
+            if (recent.length) {
+                recentEl.innerHTML = recent.map(w => `
+                    <div class="workout-item">
+                        <div class="workout-date">${Utils.formatDate(w.date)}</div>
+                        <div class="workout-name">${w.name || 'Ohne Namen'}</div>
+                        <div class="workout-duration">${w.duration_minutes ? `${w.duration_minutes} Min.` : ''}</div>
+                    </div>
+                `).join('');
+            } else {
+                recentEl.innerHTML = '<p class="text-center">Keine Trainings vorhanden.</p>';
+            }
+        } catch (err) {
+            recentEl.innerHTML = `<div class="alert alert-error">Fehler beim Laden der Dashboard-Daten: ${err.message}</div>`;
         }
     },
 

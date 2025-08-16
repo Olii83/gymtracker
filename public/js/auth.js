@@ -150,8 +150,9 @@ const Auth = {
             
             // Dashboard laden und anzeigen
             this.showAppContainer();
-            if (typeof App !== 'undefined' && App.showSection) {
-                App.showSection('dashboard');
+            if (typeof App !== 'undefined') {
+                if (App.loadDashboard) App.loadDashboard();
+                if (App.showSection) App.showSection('dashboard');
             }
             Utils.showAlert('Anmeldung erfolgreich!', 'success');
         } catch (error) {
@@ -223,8 +224,9 @@ const Auth = {
             if (response.isValid) {
                 this.updateNavUI();
                 this.showAppContainer();
-                if (typeof App !== 'undefined' && App.showSection) {
-                    App.showSection('dashboard');
+                if (typeof App !== 'undefined') {
+                    if (App.loadDashboard) App.loadDashboard();
+                    if (App.showSection) App.showSection('dashboard');
                 }
                 Utils.showAlert('Anmeldung erfolgreich fortgesetzt!', 'success');
             } else {
