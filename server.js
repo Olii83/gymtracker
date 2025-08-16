@@ -671,11 +671,17 @@ app.post('/api/templates', authenticateToken, async (req, res) => {
           // skip non-existing
           continue;
         }
-        await runAsync(
-          'INSERT INTO template_exercises (template_id, exercise_id, exercise_order, suggested_sets, suggested_reps, suggested_weight) VALUES (?, ?, ?, ?, ?, ?)',
-          [templateId, exId, ex.exercise_order || idx + 1, ex.suggested_sets || null, JSON.stringify(ex.suggested_reps || null), JSON.stringify(ex.suggested_weight || null)]
-        );
-        inserted += 1;
+        try {
+          await runAsync(
+            'INSERT INTO template_exercises (template_id, exercise_id, exercise_order, suggested_sets, suggested_reps, suggested_weight) VALUES (?, ?, ?, ?, ?, ?)',
+            [templateId, exId, ex.exercise_order || idx + 1, ex.suggested_sets || null, JSON.stringify(ex.suggested_reps || null), JSON.stringify(ex.suggested_weight || null)]
+          );
+          inserted += 1;
+        } catch (rowErr) {
+          console.warn('Template exercise insert skipped due to error:', rowErr && rowErr.message);
+          // skip this problematic row and continue
+          continue;
+        }
       }
     }
 
