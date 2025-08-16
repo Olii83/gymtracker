@@ -657,22 +657,33 @@ app.post('/api/templates', authenticateToken, async (req, res) => {
   try {
     const result = await runAsync('INSERT INTO templates (user_id, name, description, category) VALUES (?, ?, ?, ?)', [req.user.id, name, description || null, category || null]);
     const templateId = result.lastID;
+
+    let inserted = 0;
     if (Array.isArray(exercises)) {
       for (const [idx, ex] of exercises.entries()) {
         const exId = Number(ex.exercise_id);
         if (!Number.isInteger(exId)) {
-          return res.status(400).json({ error: 'Ungültige Übungs-ID in Vorlage' });
+          // skip invalid id
+          continue;
         }
         const exists = await getAsync('SELECT id FROM exercises WHERE id = ?', [exId]);
         if (!exists) {
-          return res.status(400).json({ error: `Übung mit ID ${exId} existiert nicht` });
+          // skip non-existing
+          continue;
         }
         await runAsync(
           'INSERT INTO template_exercises (template_id, exercise_id, exercise_order, suggested_sets, suggested_reps, suggested_weight) VALUES (?, ?, ?, ?, ?, ?)',
           [templateId, exId, ex.exercise_order || idx + 1, ex.suggested_sets || null, JSON.stringify(ex.suggested_reps || null), JSON.stringify(ex.suggested_weight || null)]
         );
+        inserted += 1;
       }
     }
+
+    if (Array.isArray(exercises) && exercises.length > 0 && inserted === 0) {
+      // No valid exercises provided
+      return res.status(400).json({ error: 'Keine gültigen Übungen in der Vorlage' });
+    }
+
     const created = await getAsync('SELECT * FROM templates WHERE id = ?', [templateId]);
     res.status(201).json(created);
   } catch (err) {
