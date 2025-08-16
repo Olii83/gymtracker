@@ -669,10 +669,20 @@ const Workouts = {
                         body: JSON.stringify(payload)
                     });
                     ex.id = created.id;
+                    ex.exercise_id = created.id;
                 } catch (err) {
                     console.error('Auto-Create Übung fehlgeschlagen:', err);
                     Utils.showAlert(`Übung konnte nicht erstellt werden: ${payload.name}`, 'error');
                     return false;
+                }
+            }
+
+            // Normiere alle ausgewählten Übungen auf gültige IDs
+            for (const ex of this.selectedExercises) {
+                const id = ex.id || ex.exercise_id;
+                if (id) {
+                    ex.id = Number(id);
+                    ex.exercise_id = Number(id);
                 }
             }
             return true;

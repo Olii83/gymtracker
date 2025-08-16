@@ -169,21 +169,26 @@ const Templates = {
             Utils.showAlert('Bitte gib einen Namen für die Vorlage an.', 'error');
             return;
         }
-        
-        const templateData = {
-            name: templateName.trim(),
-            description: `Erstellt aus Workout: ${document.getElementById('workoutName')?.value || 'Unbenannt'}`,
-            exercises: Workouts.selectedExercises.map(ex => ({
-                exercise_id: ex.id,
-                name: ex.name,
-                muscle_group: ex.muscle_group,
-                suggested_sets: ex.sets_count,
-                suggested_reps: [...ex.reps],
-                suggested_weight: [...ex.weights]
-            }))
-        };
-        
+
         try {
+            // IDs sicherstellen/normalisieren
+            if (typeof Workouts !== 'undefined' && Workouts.ensureExercisesExist) {
+                const ok = await Workouts.ensureExercisesExist();
+                if (!ok) return;
+            }
+
+            const templateData = {
+                name: templateName.trim(),
+                description: `Erstellt aus Workout: ${document.getElementById('workoutName')?.value || 'Unbenannt'}`,
+                exercises: Workouts.selectedExercises.map((ex, idx) => ({
+                    exercise_id: ex.id || ex.exercise_id,
+                    exercise_order: idx + 1,
+                    suggested_sets: ex.sets_count,
+                    suggested_reps: Array.isArray(ex.reps) ? ex.reps : [],
+                    suggested_weight: Array.isArray(ex.weights) ? ex.weights : []
+                }))
+            };
+            
             await Utils.apiCall('/templates', {
                 method: 'POST',
                 body: JSON.stringify(templateData)
