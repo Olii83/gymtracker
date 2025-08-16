@@ -661,14 +661,38 @@ app.post('/api/templates', authenticateToken, async (req, res) => {
     let inserted = 0;
     if (Array.isArray(exercises)) {
       for (const [idx, ex] of exercises.entries()) {
-        const exId = Number(ex.exercise_id);
+        let exId = Number(ex.exercise_id);
+        // Try resolve by id, or fallback to name+muscle_group, or create
         if (!Number.isInteger(exId)) {
-          // skip invalid id
+          exId = NaN;
+        }
+        if (!Number.isInteger(exId)) {
+          const name = (ex.name || '').trim();
+          const mg = (ex.muscle_group || '').trim();
+          if (name) {
+            const found = await getAsync('SELECT id FROM exercises WHERE lower(name) = lower(?) AND lower(muscle_group) = lower(?)', [name, mg || '']);
+            if (found && found.id) {
+              exId = Number(found.id);
+            } else {
+              // create new exercise minimal
+              try {
+                const created = await runAsync(
+                  'INSERT INTO exercises (name, category, muscle_group, description, instructions, difficulty_level, equipment, created_by, is_public) VALUES (?, ?, ?, NULL, NULL, 1, NULL, ?, 0)',
+                  [name, ex.category || 'Krafttraining', mg || 'Ganzkörper', req.user.id]
+                );
+                exId = Number(created.lastID);
+              } catch (_) {
+                exId = NaN;
+              }
+            }
+          }
+        }
+        if (!Number.isInteger(exId)) {
+          // skip if still invalid
           continue;
         }
         const exists = await getAsync('SELECT id FROM exercises WHERE id = ?', [exId]);
         if (!exists) {
-          // skip non-existing
           continue;
         }
         try {
