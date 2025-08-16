@@ -146,6 +146,17 @@ const Templates = {
                 }))
             };
 
+            // Verifiziere IDs gegen aktuelle Übungsliste, um FK-Fehler zu vermeiden
+            const all = await Utils.apiCall('/exercises');
+            const validIds = new Set((all || []).map(e => Number(e.id)));
+            templateData.exercises = templateData.exercises
+                .map(ex => ({ ...ex, exercise_id: Number(ex.exercise_id) }))
+                .filter(ex => Number.isInteger(ex.exercise_id) && validIds.has(ex.exercise_id));
+            if (!templateData.exercises.length) {
+                Utils.showAlert('Keine gültigen Übungen für die Vorlage gefunden. Bitte Übungen auswählen.', 'error');
+                return;
+            }
+
             await Utils.apiCall('/templates', {
                 method: 'POST',
                 body: JSON.stringify(templateData)
@@ -188,6 +199,17 @@ const Templates = {
                     suggested_weight: Array.isArray(ex.weights) ? ex.weights : []
                 }))
             };
+
+            // IDs gegen aktuelle Übungsliste prüfen
+            const all = await Utils.apiCall('/exercises');
+            const validIds = new Set((all || []).map(e => Number(e.id)));
+            templateData.exercises = templateData.exercises
+                .map(ex => ({ ...ex, exercise_id: Number(ex.exercise_id) }))
+                .filter(ex => Number.isInteger(ex.exercise_id) && validIds.has(ex.exercise_id));
+            if (!templateData.exercises.length) {
+                Utils.showAlert('Keine gültigen Übungen für die Vorlage gefunden. Bitte Übungen auswählen.', 'error');
+                return;
+            }
             
             await Utils.apiCall('/templates', {
                 method: 'POST',
